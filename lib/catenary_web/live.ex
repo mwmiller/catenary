@@ -15,6 +15,12 @@ defmodule CatenaryWeb.Live do
     <section class="phx-hero" id="page-live" phx-hook="weback">
     <div class="mx-2 grid grid-cols-1 md:grid-cols-4 gap-10 justify-center font-mono">
       <h1>Catenary</h1>
+       <table class="my-4">
+         <tr><th>Author</th><th>Log Id</th><th>Max Seq</th></tr>
+         <%= for {author, log_id, seq} <- Baobab.stored_info() do %>
+         <tr><td><%= author %></td><td><%= log_id %></td><td><%= seq %></td></tr>
+         <% end %>
+      </table>
     </div>
     """
   end

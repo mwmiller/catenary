@@ -33,6 +33,7 @@ defmodule Catenary.MixProject do
   # Type `mix help deps` for examples and options.
   defp deps do
     [
+      {:baobab, "~> 0.10.0"},
       {:desktop, "~> 1.4"},
       {:tailwind, "~> 0.1", runtime: Mix.env() == :dev},
       {:phoenix, "~> 1.6.0"},
