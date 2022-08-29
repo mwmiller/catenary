@@ -27,7 +27,6 @@ defmodule CatenaryWeb.Live do
     ~L"""
     <section class="phx-hero" id="page-live">
     <div class="mx-2 grid grid-cols-1 md:grid-cols-4 gap-10 justify-center font-mono">
-      <h1>Catenary</h1>
        <table class="my-4">
          <tr>
            <th><button phx-click="asc_author">↓</button> Author <button phx-click="dec_author">↑</button></th>

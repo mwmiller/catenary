@@ -19,6 +19,9 @@ defmodule Catenary.Application do
       {Desktop.Window,
        [
          app: :catenary,
+         title: "Catenary",
+         icon: "catenary.png",
+         size: {600, 600},
          id: CatenaryWindow,
          url: &CatenaryWeb.Endpoint.url/0
        ]}
