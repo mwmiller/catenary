@@ -34,6 +34,7 @@ defmodule Catenary.MixProject do
   defp deps do
     [
       {:baobab, "~> 0.10.0"},
+      {:cbor, "~> 1.0"},
       {:desktop, "~> 1.4"},
       {:tailwind, "~> 0.1", runtime: Mix.env() == :dev},
       {:phoenix, "~> 1.6.0"},
