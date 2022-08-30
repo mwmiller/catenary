@@ -36,16 +36,20 @@ defmodule CatenaryWeb.Live do
         <% end %>
       </div>
       <div>
-       <table "table-auto m-5 width='100%'">
-         <tr>
-           <th><button value="asc-author" phx-click="sort">↓</button> Author <button value="desc-author" phx-click="sort">↑</button></th>
-           <th><button value="asc-logid" phx-click="sort">↓</button> Log Id <button value="desc-logid" phx-click="sort">↑</button></th>
-           <th><button value="asc-seq" phx-click="sort">↓</button> Max Seq <button value="desc-seq" phx-click="sort">↑</button></th>
-         </tr>
-         <%= for {author, log_id, seq} <- @store do %>
-         <tr align="center"><td><%= short_id(author)  %></td><td><%= log_id %></td><td><%= seq %></td></tr>
-         <% end %>
-      </table>
+        <%= if [] == @store do %>
+         <h1>Waiting for logs</h1>
+        <% else %>
+         <table "table-auto m-5 width='100%'">
+           <tr>
+             <th><button value="asc-author" phx-click="sort">↓</button> Author <button value="desc-author" phx-click="sort">↑</button></th>
+             <th><button value="asc-logid" phx-click="sort">↓</button> Log Id <button value="desc-logid" phx-click="sort">↑</button></th>
+             <th><button value="asc-seq" phx-click="sort">↓</button> Max Seq <button value="desc-seq" phx-click="sort">↑</button></th>
+           </tr>
+           <%= for {author, log_id, seq} <- @store do %>
+           <tr align="center"><td><%= short_id(author)  %></td><td><%= log_id %></td><td><%= seq %></td></tr>
+           <% end %>
+         </table>
+        <% end %>
     </div>
     </div>
     """
