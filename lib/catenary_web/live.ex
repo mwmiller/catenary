@@ -1,28 +1,26 @@
 defmodule CatenaryWeb.Live do
   use CatenaryWeb, :live_view
 
-  # Every 9s or so, we see if someone put new stuff in the store
-  @store_refresh 9001
+  # Every 11s or so, we see if someone put new stuff in the store
+  @store_refresh 11131
 
   def mount(_params, _session, socket) do
-    starting_sort = [dir: :desc, by: :seq]
     # Making sure these exist, but also faux docs
-    [:asc, :desc, :author, :logid, :seq]
+    {:asc, :desc, :author, :logid, :seq}
 
-    {store, watering} =
+    default_sort = [dir: :desc, by: :seq]
+
+    filled_sock =
       case connected?(socket) do
         true ->
           Process.send_after(self(), :check_store, @store_refresh, [])
-          si = Baobab.stored_info()
-          {sorted_store(si, starting_sort), watering(si)}
+          state_set(default_sort, socket)
 
         false ->
-          {[], []}
+          assign(socket, store: [], watering: [], sorter: default_sort)
       end
 
-    opts = [store: store, watering: watering, sorter: starting_sort]
-
-    {:ok, assign(socket, opts)}
+    {:ok, filled_sock}
   end
 
   def render(assigns) do
@@ -40,9 +38,9 @@ defmodule CatenaryWeb.Live do
       <div>
        <table "table-auto m-5 width='100%'">
          <tr>
-           <th><button value="asc-author" phx-click="sort">↓</button> Author <button value="dec-author" phx-click="sort">↑</button></th>
-           <th><button value="asc-logid" phx-click="sort">↓</button> Log Id <button value="dec-logid" phx-click="sort">↑</button></th>
-           <th><button value="asc-seq" phx-click="sort">↓</button> Max Seq <button value="dec-seq" phx-click="sort">↑</button></th>
+           <th><button value="asc-author" phx-click="sort">↓</button> Author <button value="desc-author" phx-click="sort">↑</button></th>
+           <th><button value="asc-logid" phx-click="sort">↓</button> Log Id <button value="desc-logid" phx-click="sort">↑</button></th>
+           <th><button value="asc-seq" phx-click="sort">↓</button> Max Seq <button value="desc-seq" phx-click="sort">↑</button></th>
          </tr>
          <%= for {author, log_id, seq} <- @store do %>
          <tr align="center"><td><%= short_id(author)  %></td><td><%= log_id %></td><td><%= seq %></td></tr>
@@ -53,15 +51,23 @@ defmodule CatenaryWeb.Live do
     """
   end
 
-  def handle_event("sort", %{"value" => <<dir::binary-size(3), "-", by::binary>>}, socket) do
-    sorter = [dir: String.to_existing_atom(dir), by: String.to_existing_atom(by)]
-    {:noreply, assign(socket, store: sorted_store(socket.assigns.store, sorter), sorter: sorter)}
+  def handle_event("sort", %{"value" => ordering}, socket) do
+    [dir, by] = String.split(ordering, "-")
+
+    {:noreply,
+     state_set([dir: String.to_existing_atom(dir), by: String.to_existing_atom(by)], socket)}
   end
 
   def handle_info(:check_store, socket) do
-    Process.send_after(self(), :check_store, @store_refresh)
+    Process.send_after(self(), :check_store, @store_refresh, [])
+    {:noreply, state_set(socket)}
+  end
 
-    {:noreply, assign(socket, store: Baobab.stored_info() |> sorted_store(socket.assigns.sorter))}
+  defp state_set(socket), do: state_set(socket.assigns.sorter, socket)
+
+  defp state_set(sorter, socket) do
+    si = Baobab.stored_info()
+    assign(socket, store: sorted_store(si, sorter), watering: watering(si), sorter: sorter)
   end
 
   defp watering(store) do
