@@ -27,30 +27,8 @@ defmodule CatenaryWeb.Live do
     ~L"""
     <section class="phx-hero" id="page-live">
     <div class="mx-2 grid grid-cols-1 md:grid-cols-2 gap-10 justify-center font-mono">
-      <div>
-        <%= for {recent, index}  <- Enum.with_index(@watering) do %>
-          <div class="<%= case rem(index, 2)  do
-          0 ->  "bg-emerald-200 dark:bg-cyan-700"
-          1 -> "bg-emerald-400 dark:bg-sky-700"
-        end %>"><span title="as of: <%= ago_string(recent.age, 2)%>"><%= recent["name"] %> (<%= recent.id %>)</span><br><%= recent["host"]<>":"<>Integer.to_string(recent["port"]) %></div>
-        <% end %>
-      </div>
-      <div>
-        <%= if [] == @store do %>
-         <h1>Waiting for logs</h1>
-        <% else %>
-         <table "table-auto m-5 width='100%'">
-           <tr>
-             <th><button value="asc-author" phx-click="sort">↓</button> Author <button value="desc-author" phx-click="sort">↑</button></th>
-             <th><button value="asc-logid" phx-click="sort">↓</button> Log Id <button value="desc-logid" phx-click="sort">↑</button></th>
-             <th><button value="asc-seq" phx-click="sort">↓</button> Max Seq <button value="desc-seq" phx-click="sort">↑</button></th>
-           </tr>
-           <%= for {author, log_id, seq} <- @store do %>
-           <tr align="center"><td><%= short_id(author)  %></td><td><%= log_id %></td><td><%= seq %></td></tr>
-           <% end %>
-         </table>
-        <% end %>
-    </div>
+      <%= live_component(Catenary.Live.OasisBox, id: :recents, watering: @watering) %>
+      <%= live_component(Catenary.Live.Browse, id: :browse, store: @store) %>
     </div>
     """
   end
@@ -102,7 +80,9 @@ defmodule CatenaryWeb.Live do
 
           cond do
             sago > -172_800 ->
-              extract_recents(rest, now, [Map.merge(map, %{age: sago, id: short_id(a)}) | acc])
+              extract_recents(rest, now, [
+                Map.merge(map, %{age: sago, id: Catenary.short_id(a)}) | acc
+              ])
 
             true ->
               extract_recents(rest, now, acc)
@@ -115,8 +95,6 @@ defmodule CatenaryWeb.Live do
       _ -> extract_recents(rest, now, acc)
     end
   end
-
-  defp short_id(id), do: "~" <> String.slice(id, 0..15)
 
   defp sorted_store(store, opts) do
     elem =
@@ -142,31 +120,5 @@ defmodule CatenaryWeb.Live do
     |> Enum.reject(fn {_, l, _} -> l == 8483 end)
     |> Enum.sort_by(fn {a, _, _} -> a end, &Kernel.<=/2)
     |> Enum.sort_by(elem, comp)
-  end
-
-  defp ago_string(sago, n) do
-    "about " <> compile_sections(sago, n, []) <> " ago"
-  end
-
-  defp compile_sections(sago, _, acc) when sago <= 0, do: acc |> Enum.reverse() |> Enum.join("")
-  defp compile_sections(_sago, n, acc) when length(acc) == n, do: compile_sections(0, n, acc)
-
-  defp compile_sections(sago, n, acc) when div(sago, 86400) > 0 do
-    u = div(sago, 86400)
-    compile_sections(sago - 86400 * u, n, [Integer.to_string(u) <> "d" | acc])
-  end
-
-  defp compile_sections(sago, n, acc) when div(sago, 3600) > 0 do
-    u = div(sago, 3600)
-    compile_sections(sago - 3600 * u, n, [Integer.to_string(u) <> "h" | acc])
-  end
-
-  defp compile_sections(sago, n, acc) when div(sago, 60) > 0 do
-    u = div(sago, 60)
-    compile_sections(sago - 60 * u, n, [Integer.to_string(u) <> "m" | acc])
-  end
-
-  defp compile_sections(sago, n, acc) do
-    compile_sections(0, n, [Integer.to_string(sago) <> "s" | acc])
   end
 end

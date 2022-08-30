@@ -6,4 +6,5 @@ defmodule Catenary do
   Contexts are also responsible for managing your data, regardless
   if it comes from the database, an external API or others.
   """
+  def short_id(id), do: "~" <> String.slice(id, 0..15)
 end

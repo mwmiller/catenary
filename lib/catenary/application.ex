@@ -20,8 +20,7 @@ defmodule Catenary.Application do
        [
          app: :catenary,
          title: "Catenary",
-         icon: "catenary.png",
-         size: {600, 600},
+         size: {1117, 661},
          id: CatenaryWindow,
          url: &CatenaryWeb.Endpoint.url/0
        ]}
