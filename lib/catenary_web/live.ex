@@ -7,30 +7,28 @@ defmodule CatenaryWeb.Live do
   def mount(_params, _session, socket) do
     # Making sure these exist, but also faux docs
     {:asc, :desc, :author, :logid, :seq}
+    Phoenix.PubSub.subscribe(Catenary.PubSub, "iconset")
 
     default_sort = [dir: :desc, by: :seq]
+    default_icons = :png
 
-    filled_sock =
-      case connected?(socket) do
-        true ->
-          Process.send_after(self(), :check_store, @store_refresh, [])
-          state_set(default_sort, socket)
+    Process.send_after(self(), :check_store, @store_refresh, [])
 
-        false ->
-          assign(socket, store: [], watering: [], sorter: default_sort)
-      end
-
-    {:ok, filled_sock}
+    {:ok, state_set(default_sort, assign(socket, iconset: default_icons))}
   end
 
   def render(assigns) do
     ~L"""
     <section class="phx-hero" id="page-live">
     <div class="mx-2 grid grid-cols-1 md:grid-cols-2 gap-10 justify-center font-mono">
-      <%= live_component(Catenary.Live.OasisBox, id: :recents, watering: @watering) %>
-      <%= live_component(Catenary.Live.Browse, id: :browse, store: @store) %>
+      <%= live_component(Catenary.Live.OasisBox, id: :recents, watering: @watering, iconset: @iconset) %>
+      <%= live_component(Catenary.Live.Browse, id: :browse, store: @store, iconset: @iconset) %>
     </div>
     """
+  end
+
+  def handle_info(%{icons: which}, socket) do
+    {:noreply, assign(socket, iconset: which)}
   end
 
   def handle_event("sort", %{"value" => ordering}, socket) do

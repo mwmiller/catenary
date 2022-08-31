@@ -8,7 +8,7 @@ defmodule Catenary.Live.OasisBox do
         <div title="as of <%= ago_string(recent.age, 2)%>" class="<%= case rem(index, 2)  do
         0 ->  "bg-emerald-200 dark:bg-cyan-700"
         1 -> "bg-emerald-400 dark:bg-sky-700"
-      end %>"> <img class="m-1 float-right align-middle" src="data:image/png;base64,<%= Excon.ident(recent.id, base64: true)%>">
+      end %>"> <img class="m-1 float-right align-middle" src="<%= Catenary.identicon(recent.id, @iconset)%>">
               <%= recent["name"] %> (<%= Catenary.short_id(recent.id) %>)<br><%= recent["host"]<>":"<>Integer.to_string(recent["port"]) %>
         </div>
       <% end %>

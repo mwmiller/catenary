@@ -22,6 +22,7 @@ defmodule Catenary.Application do
          title: "Catenary",
          size: {1117, 661},
          id: CatenaryWindow,
+         menubar: Catenary.MenuBar,
          url: &CatenaryWeb.Endpoint.url/0
        ]}
     ]

@@ -15,10 +15,10 @@ defmodule Catenary.Live.Browse do
            </tr>
            <%= for {author, log_id, seq} <- @store do %>
              <tr class="text-center"><td><%= Catenary.short_id(author)  %>
-                <img class="m-0.5 float-right align-middle" src="data:image/png;base64,<%= Excon.ident(author, base64: true, magnification: 2)%>">
+                <img class="m-0.5 float-right align-middle" src="<%= Catenary.identicon(author, @iconset, 2)%>">
              </td><td><%= log_id %></td><td><%= seq %></td></tr>
            <% end %>
-         </table>
+         </table
         <% end %>
       </div>
     """
