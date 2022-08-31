@@ -14,7 +14,9 @@ defmodule Catenary.Live.Browse do
              <th><button value="asc-seq" phx-click="sort">↓</button> Max Seq <button value="desc-seq" phx-click="sort">↑</button></th>
            </tr>
            <%= for {author, log_id, seq} <- @store do %>
-           <tr class="text-center"><td><%= Catenary.short_id(author)  %></td><td><%= log_id %></td><td><%= seq %></td></tr>
+             <tr class="text-center"><td><%= Catenary.short_id(author)  %>
+                <img class="m-0.5 float-right align-middle" src="data:image/png;base64,<%= Excon.ident(author, base64: true, magnification: 2)%>">
+             </td><td><%= log_id %></td><td><%= seq %></td></tr>
            <% end %>
          </table>
         <% end %>

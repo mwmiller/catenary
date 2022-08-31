@@ -5,10 +5,12 @@ defmodule Catenary.Live.OasisBox do
     ~L"""
     <div>
       <%= for {recent, index}  <- Enum.with_index(@watering) do %>
-        <div class="<%= case rem(index, 2)  do
+        <div title="as of <%= ago_string(recent.age, 2)%>" class="<%= case rem(index, 2)  do
         0 ->  "bg-emerald-200 dark:bg-cyan-700"
         1 -> "bg-emerald-400 dark:bg-sky-700"
-      end %>"><span title="as of: <%= ago_string(recent.age, 2)%>"><%= recent["name"] %> (<%= recent.id %>)</span><br><%= recent["host"]<>":"<>Integer.to_string(recent["port"]) %></div>
+      end %>"> <img class="m-1 float-right align-middle" src="data:image/png;base64,<%= Excon.ident(recent.id, base64: true)%>">
+              <%= recent["name"] %> (<%= Catenary.short_id(recent.id) %>)<br><%= recent["host"]<>":"<>Integer.to_string(recent["port"]) %>
+        </div>
       <% end %>
     </div>
     """

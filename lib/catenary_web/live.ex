@@ -81,7 +81,7 @@ defmodule CatenaryWeb.Live do
           cond do
             sago > -172_800 ->
               extract_recents(rest, now, [
-                Map.merge(map, %{age: sago, id: Catenary.short_id(a)}) | acc
+                Map.merge(map, %{age: sago, id: a}) | acc
               ])
 
             true ->
