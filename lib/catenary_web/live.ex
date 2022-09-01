@@ -22,7 +22,8 @@ defmodule CatenaryWeb.Live do
     <section class="phx-hero" id="page-live">
     <div class="mx-2 grid grid-cols-1 md:grid-cols-2 gap-10 justify-center font-mono">
       <%= live_component(Catenary.Live.OasisBox, id: :recents, watering: @watering, iconset: @iconset) %>
-      <%= live_component(Catenary.Live.Browse, id: :browse, store: @store |> Enum.take(5), iconset: @iconset) %>
+      <%= live_component(Catenary.Live.Browse, id: :browse, store: Enum.take(@store, 5), iconset: @iconset) %>
+      <%= live_component(Catenary.Live.Journal, id: :journal, store: @store, journal: :random, iconset: @iconset) %>
     </div>
     """
   end
