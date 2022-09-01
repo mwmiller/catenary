@@ -36,7 +36,13 @@ defmodule Catenary.Live.Journal do
 
     Map.merge(data, %{
       "author" => a,
-      "body" => data |> Map.get("body") |> Earmark.as_html!() |> Phoenix.HTML.raw()
+      "body" => data |> Map.get("body") |> Earmark.as_html!() |> Phoenix.HTML.raw(),
+      "published" =>
+        data
+        |> Map.get("published")
+        |> Timex.parse!("{ISO:Extended}")
+        |> Timex.Timezone.convert(Timex.Timezone.local())
+        |> Timex.Format.DateTime.Formatter.format!("{YYYY}-{0M}-{0D} {kitchen}")
     })
   end
 end

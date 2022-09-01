@@ -37,6 +37,7 @@ defmodule Catenary.MixProject do
       {:cbor, "~> 1.0"},
       {:earmark, "~> 1.4"},
       {:excon, "~> 4.0"},
+      {:timex, "~> 3.0"},
       {:desktop, "~> 1.4"},
       {:tailwind, "~> 0.1", runtime: Mix.env() == :dev},
       {:phoenix, "~> 1.6.0"},

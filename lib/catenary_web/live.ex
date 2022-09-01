@@ -74,14 +74,11 @@ defmodule CatenaryWeb.Live do
 
       case map do
         %{"running" => ts} ->
-          {:ok, then, _offset} = DateTime.from_iso8601(ts)
-          sago = DateTime.diff(now, then)
+          then = ts |> Timex.parse!("{ISO:Extended}")
 
           cond do
-            sago > -172_800 ->
-              extract_recents(rest, now, [
-                Map.merge(map, %{age: sago, id: a}) | acc
-              ])
+            Timex.diff(then, now, :hour) > -49 ->
+              extract_recents(rest, now, [Map.merge(map, %{:id => a, "running" => then}) | acc])
 
             true ->
               extract_recents(rest, now, acc)
