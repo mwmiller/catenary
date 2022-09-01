@@ -35,6 +35,7 @@ defmodule Catenary.MixProject do
     [
       {:baobab, "~> 0.10.0"},
       {:cbor, "~> 1.0"},
+      {:earmark, "~> 1.4"},
       {:excon, "~> 4.0"},
       {:desktop, "~> 1.4"},
       {:tailwind, "~> 0.1", runtime: Mix.env() == :dev},

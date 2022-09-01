@@ -17,14 +17,15 @@ defmodule Catenary.Live.Journal do
   @impl true
   def render(assigns) do
     ~L"""
-      <div class="min-w-full">
-        <img class = "float-left m-3" src="<%= Catenary.identicon(@card["author"], @iconset, 8) %>">
-        <h1><%= @card["title"] %></h1>
-        <h2><%= Catenary.short_id(@card["author"]) %></h2>
-        <h3><%= @card["published"] %></h3>
+      <div class="min-w-full text-align="bottom">
+        <img class = "float-left m-3" src="<%= Catenary.identicon(@card["author"], @iconset, 5) %>">
+          <p class="text-lg"><%= @card["title"] %></p>
+          <p class="text-sm"><%= Catenary.short_id(@card["author"]) %> &mdash; <%= @card["published"] %></p>
         <hr/>
         <br/>
-        <pre><%= @card["body"] %></pre>
+        <div>
+        <%= @card["body"] %>
+      </div>
       </div>
     """
   end
@@ -32,6 +33,10 @@ defmodule Catenary.Live.Journal do
   defp extract({a, l, e}) do
     %Baobab.Entry{payload: cbor} = Baobab.log_entry(a, e, log_id: l)
     {:ok, data, ""} = CBOR.decode(cbor)
-    Map.merge(data, %{"author" => a})
+
+    Map.merge(data, %{
+      "author" => a,
+      "body" => data |> Map.get("body") |> Earmark.as_html!() |> Phoenix.HTML.raw()
+    })
   end
 end
