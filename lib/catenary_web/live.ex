@@ -7,7 +7,7 @@ defmodule CatenaryWeb.Live do
   def mount(_params, _session, socket) do
     # Making sure these exist, but also faux docs
     {:asc, :desc, :author, :logid, :seq}
-    Phoenix.PubSub.subscribe(Catenary.PubSub, "iconset")
+    Phoenix.PubSub.subscribe(Catenary.PubSub, "ui")
 
     default_sort = [dir: :desc, by: :seq]
     default_icons = :png
@@ -31,16 +31,16 @@ defmodule CatenaryWeb.Live do
     {:noreply, assign(socket, iconset: which)}
   end
 
+  def handle_info(:check_store, socket) do
+    Process.send_after(self(), :check_store, @store_refresh, [])
+    {:noreply, state_set(socket)}
+  end
+
   def handle_event("sort", %{"value" => ordering}, socket) do
     [dir, by] = String.split(ordering, "-")
 
     {:noreply,
      state_set([dir: String.to_existing_atom(dir), by: String.to_existing_atom(by)], socket)}
-  end
-
-  def handle_info(:check_store, socket) do
-    Process.send_after(self(), :check_store, @store_refresh, [])
-    {:noreply, state_set(socket)}
   end
 
   defp state_set(socket), do: state_set(socket.assigns.sorter, socket)

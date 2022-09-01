@@ -14,11 +14,11 @@ defmodule Catenary.MenuBar do
           Desktop.Window.quit()
 
         <<"png">> ->
-          Phoenix.PubSub.local_broadcast(Catenary.PubSub, "iconset", %{icons: :png})
+          Phoenix.PubSub.local_broadcast(Catenary.PubSub, "ui", %{icons: :png})
           assign(menu, iconset: :png)
 
         <<"svg">> ->
-          Phoenix.PubSub.local_broadcast(Catenary.PubSub, "iconset", %{icons: :svg})
+          Phoenix.PubSub.local_broadcast(Catenary.PubSub, "ui", %{icons: :svg})
           assign(menu, iconset: :svg)
       end
 
