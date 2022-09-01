@@ -17,13 +17,13 @@ defmodule Catenary.Live.Journal do
   @impl true
   def render(assigns) do
     ~L"""
-      <div class="min-w-full text-align="bottom">
-        <img class = "float-left m-3" src="<%= Catenary.identicon(@card["author"], @iconset, 5) %>">
-          <p class="text-lg"><%= @card["title"] %></p>
-          <p class="text-sm"><%= Catenary.short_id(@card["author"]) %> &mdash; <%= @card["published"] %></p>
+      <div class="min-w-full font-sans">
+        <img class = "float-left m-3" src="<%= Catenary.identicon(@card["author"], @iconset, 8) %>">
+          <h1><%= @card["title"] %></h1>
+          <p class="text-sm font-light"><%= Catenary.short_id(@card["author"]) %> &mdash; <%= @card["published"] %></p>
         <hr/>
         <br/>
-        <div>
+        <div class="font-light">
         <%= @card["body"] %>
       </div>
       </div>
