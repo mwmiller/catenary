@@ -7,6 +7,7 @@ defmodule Catenary.Live.Journal do
     # For now, all is latest from random author
     journal = assigns.store |> Enum.filter(fn {_, l, _} -> l == 360_360 end) |> Enum.random()
 
+    Phoenix.PubSub.local_broadcast(Catenary.PubSub, "ui", %{entry: journal})
     {:ok, assign(socket, Map.merge(assigns, %{journal: journal, card: extract(journal)}))}
   end
 

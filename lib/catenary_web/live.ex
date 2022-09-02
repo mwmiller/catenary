@@ -14,7 +14,11 @@ defmodule CatenaryWeb.Live do
 
     Process.send_after(self(), :check_store, @store_refresh, [])
 
-    {:ok, state_set(default_sort, assign(socket, iconset: default_icons))}
+    {:ok,
+     state_set(
+       default_sort,
+       assign(socket, iconset: default_icons, entry: :none, journal: :random)
+     )}
   end
 
   def render(assigns) do
@@ -23,7 +27,8 @@ defmodule CatenaryWeb.Live do
     <div class="mx-2 grid grid-cols-1 md:grid-cols-2 gap-10 justify-center font-mono">
       <%= live_component(Catenary.Live.OasisBox, id: :recents, watering: @watering, iconset: @iconset) %>
       <%= live_component(Catenary.Live.Browse, id: :browse, store: Enum.take(@store, 5), iconset: @iconset) %>
-      <%= live_component(Catenary.Live.Journal, id: :journal, store: @store, journal: :random, iconset: @iconset) %>
+      <%= live_component(Catenary.Live.Journal, id: :journal, store: @store, journal: @journal, iconset: @iconset) %>
+      <%= live_component(Catenary.Live.Navigation, id: :nav, entry: @entry) %>
     </div>
     """
   end
@@ -36,9 +41,52 @@ defmodule CatenaryWeb.Live do
     {:noreply, push_redirect(socket, to: Routes.live_dashboard_path(socket, :home))}
   end
 
+  def handle_info(%{entry: which}, socket) do
+    {:noreply, assign(socket, entry_switch_assigns(which))}
+  end
+
   def handle_info(:check_store, socket) do
     Process.send_after(self(), :check_store, @store_refresh, [])
     {:noreply, state_set(socket)}
+  end
+
+  def handle_event("nav", %{"value" => move}, socket) do
+    {a, l, e} = socket.assigns.entry
+
+    {na, nl, ne} =
+      case move do
+        "prev-entry" ->
+          {a, l, e - 1}
+
+        "next-entry" ->
+          {a, l, e + 1}
+
+        "next-author" ->
+          next_author({a, l, e}, socket)
+
+        "prev-author" ->
+          prev_author({a, l, e}, socket)
+
+        _ ->
+          {a, l, e}
+      end
+
+    max =
+      socket.assigns.store
+      |> Enum.reduce(1, fn
+        {^na, ^nl, s}, _acc -> s
+        _, acc -> acc
+      end)
+
+    next =
+      cond do
+        # Wrap around
+        ne < 1 -> {na, nl, max}
+        ne > max -> {na, nl, 1}
+        true -> {na, nl, ne}
+      end
+
+    {:noreply, assign(socket, entry_switch_assigns(next))}
   end
 
   def handle_event("sort", %{"value" => ordering}, socket) do
@@ -53,6 +101,13 @@ defmodule CatenaryWeb.Live do
   defp state_set(sorter, socket) do
     si = Baobab.stored_info()
     assign(socket, store: sorted_store(si, sorter), watering: watering(si), sorter: sorter)
+  end
+
+  defp entry_switch_assigns(entry) do
+    case entry do
+      {_, 360_360, _} -> [journal: entry, entry: entry]
+      _ -> [entry: entry]
+    end
   end
 
   defp watering(store) do
@@ -120,5 +175,30 @@ defmodule CatenaryWeb.Live do
     |> Enum.reject(fn {_, l, _} -> l == 8483 end)
     |> Enum.sort_by(fn {a, _, _} -> a end, &Kernel.<=/2)
     |> Enum.sort_by(elem, comp)
+  end
+
+  defp next_author({author, log_id, seq}, socket) do
+    possibles =
+      socket.assigns.store |> Enum.filter(fn {_, l, _} -> log_id == l end) |> Enum.sort(:asc)
+
+    case Enum.drop_while(possibles, fn {a, _, _} -> a <= author end) do
+      [] -> List.first(possibles)
+      [next | _] -> next
+    end
+    |> then(fn {a, l, _} -> {a, l, seq} end)
+
+    # I recognise there is no relationship with the other seqnum
+    # Exploration involves more kismet than determinism
+  end
+
+  defp prev_author({author, log_id, seq}, socket) do
+    possibles =
+      socket.assigns.store |> Enum.filter(fn {_, l, _} -> log_id == l end) |> Enum.sort(:desc)
+
+    case Enum.drop_while(possibles, fn {a, _, _} -> a >= author end) do
+      [] -> List.first(possibles)
+      [next | _] -> next
+    end
+    |> then(fn {a, l, _} -> {a, l, seq} end)
   end
 end
