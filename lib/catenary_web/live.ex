@@ -66,7 +66,7 @@ defmodule CatenaryWeb.Live do
     # Pick the most recent for any host/port dupes
     # Display a max of 3
     acc
-    |> Enum.sort_by(fn m -> Map.get(m, :age) end, :asc)
+    |> Enum.sort_by(fn m -> Map.get(m, "running") end, :desc)
     |> Enum.uniq_by(fn %{"host" => h, "port" => p} -> {h, p} end)
     |> Enum.take(4)
   end
