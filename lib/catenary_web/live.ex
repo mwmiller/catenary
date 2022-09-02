@@ -32,6 +32,10 @@ defmodule CatenaryWeb.Live do
     {:noreply, assign(socket, iconset: which)}
   end
 
+  def handle_info(%{view: :dashboard}, socket) do
+    {:noreply, push_redirect(socket, to: Routes.live_dashboard_path(socket, :home))}
+  end
+
   def handle_info(:check_store, socket) do
     Process.send_after(self(), :check_store, @store_refresh, [])
     {:noreply, state_set(socket)}

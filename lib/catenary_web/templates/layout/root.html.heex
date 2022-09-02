@@ -11,16 +11,5 @@
   </head>
   <body class="m-6 bg-slate-100 dark:bg-slate-900 text-black dark:text-slate-100">
     <%= @inner_content %>
-    <footer class="text-center text-gray-800 dark:text-gray-500 text-sm my-10">
-      <section class="container">
-        <nav>
-          <ul>
-            <%= if function_exported?(Routes, :live_dashboard_path, 2) do %>
-              <li><%= link "Catenary Runtime Dashboard", to: Routes.live_dashboard_path(@conn, :home) %></li>
-            <% end %>
-          </ul>
-        </nav>
-      </section>
-    </footer>
   </body>
 </html>

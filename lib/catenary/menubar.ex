@@ -20,6 +20,10 @@ defmodule Catenary.MenuBar do
         <<"svg">> ->
           Phoenix.PubSub.local_broadcast(Catenary.PubSub, "ui", %{icons: :svg})
           assign(menu, iconset: :svg)
+
+        <<"dashboard">> ->
+          Phoenix.PubSub.local_broadcast(Catenary.PubSub, "ui", %{view: :dashboard})
+          menu
       end
 
     {:noreply, nm}
@@ -30,6 +34,7 @@ defmodule Catenary.MenuBar do
     ~H"""
     <menubar>
       <menu label="File">
+          <item onclick="dashboard">Open dashboard</item>
           <item onclick="quit">Quit</item>
       </menu>
       <menu label="Icons">
