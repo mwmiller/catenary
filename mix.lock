@@ -1,5 +1,5 @@
 %{
-  "baby": {:git, "https://github.com/mwmiller/baby_ex", "f03b3afd0db660c168631dee96c3669bb809e678", []},
+  "baby": {:git, "https://github.com/mwmiller/baby_ex", "0dd6cb279510563df65845b593c3fdf24dcf106a", []},
   "baobab": {:hex, :baobab, "0.10.1", "63c77da8ec9b911130811e0b48940b1aa10c714ba9c95783ad5a2e381fa75bac", [:mix], [{:basex, ">= 0.0.0", [hex: :basex, repo: "hexpm", optional: false]}, {:ed25519, "~> 1.4", [hex: :ed25519, repo: "hexpm", optional: false]}, {:lipmaa, ">= 1.1.0", [hex: :lipmaa, repo: "hexpm", optional: false]}, {:varu64, "~> 1.0.0", [hex: :varu64, repo: "hexpm", optional: false]}, {:yamfhash, ">= 1.0.0", [hex: :yamfhash, repo: "hexpm", optional: false]}], "hexpm", "4fa3c19de09309093c2ae3d9750aeee28cbbbc9951b5e37046352a9cf4e5018f"},
   "basex": {:hex, :basex, "1.3.3", "857f4df811430d48890863b67bebc115b2d437d78f428ed4125d6edf5d09f80c", [:mix], [], "hexpm", "3a8eaf27124340417d5aa1d7a926a7186f2ea37dbd574426ba521614121fce8d"},
   "blake2": {:hex, :blake2, "1.0.4", "8263c69a191142922bc2510f1ffc0de0ae96e8c3bd5e2ad3fac7e87aed94c8b1", [:mix], [], "hexpm", "e9f4120d163ba14d86304195e50745fa18483e6ad2be94c864ae449bbdd6a189"},
