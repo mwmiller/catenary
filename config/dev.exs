@@ -65,5 +65,15 @@ config :phoenix, :stacktrace_depth, 20
 # Initialize plugs at runtime for faster development compilation
 config :phoenix, :plug_init_mode, :runtime
 
+# These should be subsumed into :catenary configs
 # Baobab
 config :baobab, spool_dir: "~/.baobab"
+
+# Baby
+config :baby,
+  identity: "mwm",
+  clump_id: "Quagga",
+  port: 8483,
+  cryouts: [
+    [host: "zebra.nftease.online", port: 8483, period: {7, :minute}]
+  ]

@@ -20,7 +20,7 @@ defmodule Catenary.MixProject do
   def application do
     [
       mod: {Catenary.Application, []},
-      extra_applications: [:logger, :runtime_tools]
+      extra_applications: [:logger, :runtime_tools, :baby]
     ]
   end
 
@@ -33,6 +33,7 @@ defmodule Catenary.MixProject do
   # Type `mix help deps` for examples and options.
   defp deps do
     [
+      {:baby, git: "https://github.com/mwmiller/baby_ex"},
       {:baobab, "~> 0.10.0"},
       {:cbor, "~> 1.0"},
       {:earmark, "~> 1.4"},

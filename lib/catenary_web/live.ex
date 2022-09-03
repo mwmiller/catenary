@@ -1,8 +1,8 @@
 defmodule CatenaryWeb.Live do
   use CatenaryWeb, :live_view
 
-  # Every 11s or so, we see if someone put new stuff in the store
-  @store_refresh 11131
+  # Every second or so, we see if someone put new stuff in the store
+  @store_refresh 1061
 
   def mount(_params, _session, socket) do
     # Making sure these exist, but also faux docs

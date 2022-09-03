@@ -10,17 +10,23 @@ defmodule Catenary.Live.EntryViewer do
   def update(%{entry: which} = assigns, socket) when is_atom(which) do
     # Eventually there will be other selection criteria
     # For now, all is latest from random author
-    target_log_id = Quagga.log_id_for_name(which) |> IO.inspect()
+    target_log_id = Quagga.log_id_for_name(which)
 
-    case assigns.store |> Enum.filter(fn {_, l, _} -> l == target_log_id end) |> Enum.random() do
-      :error ->
-        # We are papering over a whole lot of potential errors here
-        # They should be corrected at the source.
-        update(%{entry: which}, socket)
+    case assigns.store |> Enum.filter(fn {_, l, _} -> l == target_log_id end) do
+      [] ->
+        {:ok, assign(socket, card: :none)}
 
-      entry ->
-        Phoenix.PubSub.local_broadcast(Catenary.PubSub, "ui", %{entry: entry})
-        {:ok, assign(socket, Map.merge(assigns, %{card: extract(entry)}))}
+      entries ->
+        entry = Enum.random(entries)
+
+        case extract(entry) do
+          :error ->
+            update(%{entry: which}, socket)
+
+          card ->
+            Phoenix.PubSub.local_broadcast(Catenary.PubSub, "ui", %{entry: entry})
+            {:ok, assign(socket, Map.merge(assigns, %{card: card}))}
+        end
     end
   end
 
@@ -29,6 +35,14 @@ defmodule Catenary.Live.EntryViewer do
   end
 
   @impl true
+  def render(%{card: :none} = assigns) do
+    ~L"""
+      <div class="min-w-full font-sans">
+        <h1>No data just yet</h1>
+      </div>
+    """
+  end
+
   def render(assigns) do
     ~L"""
       <div class="min-w-full font-sans">
@@ -122,5 +136,5 @@ defmodule Catenary.Live.EntryViewer do
     end
   end
 
-  defp maybe_text(t), do: "Not binary"
+  defp maybe_text(_), do: "Not binary"
 end
