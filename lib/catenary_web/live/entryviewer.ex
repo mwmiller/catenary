@@ -7,6 +7,10 @@ defmodule Catenary.Live.EntryViewer do
     update(Map.put(assigns, :entry, Quagga.log_type()), socket)
   end
 
+  def update(%{entry: :none}, socket) do
+    {:ok, assign(socket, card: :none)}
+  end
+
   def update(%{entry: which} = assigns, socket) when is_atom(which) do
     # Eventually there will be other selection criteria
     # For now, all is latest from random author

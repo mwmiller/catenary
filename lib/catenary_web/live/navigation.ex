@@ -2,11 +2,10 @@ defmodule Catenary.Live.Navigation do
   use Phoenix.LiveComponent
 
   @impl true
-
-  def update(%{entry: which} = assigns, socket) do
+  def update(assigns, socket) do
     # As things expand, we'll use this info to build a proper
     # interface to navigate.
-    {:ok, socket}
+    {:ok, assign(socket, assigns)}
   end
 
   @impl true

@@ -42,6 +42,12 @@ defmodule Catenary.MenuBar do
   end
 
   @impl true
+  def handle_info(stuff, menu) do
+    IO.inspect({:unhandled_menu, stuff})
+    {:noreply, menu}
+  end
+
+  @impl true
   def render(assigns) do
     ~H"""
     <menubar>

@@ -12,12 +12,20 @@ defmodule CatenaryWeb.Live do
     default_sort = [dir: :desc, by: :seq]
     default_icons = :png
 
-    Process.send_after(self(), :check_store, @ui_refresh, [])
+    entry =
+      case connected?(socket) do
+        true ->
+          Process.send_after(self(), :check_store, @ui_refresh, [])
+          :random
+
+        false ->
+          :none
+      end
 
     {:ok,
      state_set(
        default_sort,
-       assign(socket, iconset: default_icons, entry: :random, connection: :none)
+       assign(socket, iconset: default_icons, entry: entry, connection: :none)
      )}
   end
 
