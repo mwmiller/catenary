@@ -15,11 +15,11 @@ defmodule Catenary.MenuBar do
 
         <<"png">> ->
           Phoenix.PubSub.local_broadcast(Catenary.PubSub, "ui", %{icons: :png})
-          assign(menu, iconset: :png)
+          menu
 
         <<"svg">> ->
           Phoenix.PubSub.local_broadcast(Catenary.PubSub, "ui", %{icons: :svg})
-          assign(menu, iconset: :svg)
+          menu
 
         <<"dashboard">> ->
           Phoenix.PubSub.local_broadcast(Catenary.PubSub, "ui", %{view: :dashboard})
@@ -61,13 +61,8 @@ defmodule Catenary.MenuBar do
         <item onclick="test">Test posts</item>
       </menu>
       <menu label="Icons">
-        <%= if @iconset == :png do %>
-        <item onclick="png" type="checkbox" checked>Blocky</item>
-        <item onclick="svg" type="checkbox">Curvy</item>
-        <% else %>
-        <item onclick="png" type="checkbox">Blocky</item>
-        <item onclick="svg" type="checkbox" checked>Curvy</item>
-        <% end %>
+        <item onclick="png">Blocky</item>
+        <item onclick="svg">Curvy</item>
       </menu>
     </menubar>
     """
