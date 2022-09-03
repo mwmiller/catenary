@@ -17,7 +17,7 @@ defmodule CatenaryWeb.Live do
     {:ok,
      state_set(
        default_sort,
-       assign(socket, iconset: default_icons, entry: :none, journal: :random)
+       assign(socket, iconset: default_icons, entry: :random)
      )}
   end
 
@@ -27,7 +27,7 @@ defmodule CatenaryWeb.Live do
     <div class="mx-2 grid grid-cols-1 md:grid-cols-2 gap-10 justify-center font-mono">
       <%= live_component(Catenary.Live.OasisBox, id: :recents, watering: @watering, iconset: @iconset) %>
       <%= live_component(Catenary.Live.Browse, id: :browse, store: Enum.take(@store, 5), iconset: @iconset) %>
-      <%= live_component(Catenary.Live.Journal, id: :journal, store: @store, journal: @journal, iconset: @iconset) %>
+      <%= live_component(Catenary.Live.EntryViewer, id: :entry, store: @store, entry: @entry, iconset: @iconset) %>
       <%= live_component(Catenary.Live.Navigation, id: :nav, entry: @entry) %>
     </div>
     """
@@ -42,7 +42,7 @@ defmodule CatenaryWeb.Live do
   end
 
   def handle_info(%{entry: which}, socket) do
-    {:noreply, assign(socket, entry_switch_assigns(which))}
+    {:noreply, assign(socket, entry: which)}
   end
 
   def handle_info(:check_store, socket) do
@@ -86,7 +86,7 @@ defmodule CatenaryWeb.Live do
         true -> {na, nl, ne}
       end
 
-    {:noreply, assign(socket, entry_switch_assigns(next))}
+    {:noreply, assign(socket, entry: next)}
   end
 
   def handle_event("sort", %{"value" => ordering}, socket) do
@@ -101,13 +101,6 @@ defmodule CatenaryWeb.Live do
   defp state_set(sorter, socket) do
     si = Baobab.stored_info()
     assign(socket, store: sorted_store(si, sorter), watering: watering(si), sorter: sorter)
-  end
-
-  defp entry_switch_assigns(entry) do
-    case entry do
-      {_, 360_360, _} -> [journal: entry, entry: entry]
-      _ -> [entry: entry]
-    end
   end
 
   defp watering(store) do
@@ -172,7 +165,6 @@ defmodule CatenaryWeb.Live do
     # We're using them differently
     # If this ever becomes more than POC and a botleneck, yay!
     store
-    |> Enum.reject(fn {_, l, _} -> l == 8483 end)
     |> Enum.sort_by(fn {a, _, _} -> a end, &Kernel.<=/2)
     |> Enum.sort_by(elem, comp)
   end

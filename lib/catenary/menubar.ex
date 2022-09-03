@@ -24,6 +24,18 @@ defmodule Catenary.MenuBar do
         <<"dashboard">> ->
           Phoenix.PubSub.local_broadcast(Catenary.PubSub, "ui", %{view: :dashboard})
           menu
+
+        <<"journal">> ->
+          Phoenix.PubSub.local_broadcast(Catenary.PubSub, "ui", %{entry: :journal})
+          menu
+
+        <<"oasis">> ->
+          Phoenix.PubSub.local_broadcast(Catenary.PubSub, "ui", %{entry: :oasis})
+          menu
+
+        <<"test">> ->
+          Phoenix.PubSub.local_broadcast(Catenary.PubSub, "ui", %{entry: :test})
+          menu
       end
 
     {:noreply, nm}
@@ -36,6 +48,11 @@ defmodule Catenary.MenuBar do
       <menu label="File">
           <item onclick="dashboard">Open dashboard</item>
           <item onclick="quit">Quit</item>
+      </menu>
+      <menu label="Explore">
+        <item onclick="journal">Journals</item>
+        <item onclick="oasis">Oases</item>
+        <item onclick="test">Test posts</item>
       </menu>
       <menu label="Icons">
         <%= if @iconset == :png do %>
