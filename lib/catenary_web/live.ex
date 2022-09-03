@@ -2,7 +2,7 @@ defmodule CatenaryWeb.Live do
   use CatenaryWeb, :live_view
 
   # Every second or so, we see if someone put new stuff in the store
-  @store_refresh 1061
+  @ui_refresh 1061
 
   def mount(_params, _session, socket) do
     # Making sure these exist, but also faux docs
@@ -12,12 +12,12 @@ defmodule CatenaryWeb.Live do
     default_sort = [dir: :desc, by: :seq]
     default_icons = :png
 
-    Process.send_after(self(), :check_store, @store_refresh, [])
+    Process.send_after(self(), :check_store, @ui_refresh, [])
 
     {:ok,
      state_set(
        default_sort,
-       assign(socket, iconset: default_icons, entry: :random)
+       assign(socket, iconset: default_icons, entry: :random, connection: :none)
      )}
   end
 
@@ -25,7 +25,7 @@ defmodule CatenaryWeb.Live do
     ~L"""
     <section class="phx-hero" id="page-live">
     <div class="mx-2 grid grid-cols-1 md:grid-cols-2 gap-10 justify-center font-mono">
-      <%= live_component(Catenary.Live.OasisBox, id: :recents, watering: @watering, iconset: @iconset) %>
+      <%= live_component(Catenary.Live.OasisBox, id: :recents, connection: @connection, watering: @watering, iconset: @iconset) %>
       <%= live_component(Catenary.Live.Browse, id: :browse, store: Enum.take(@store, 5), iconset: @iconset) %>
       <%= live_component(Catenary.Live.EntryViewer, id: :entry, store: @store, entry: @entry, iconset: @iconset) %>
       <%= live_component(Catenary.Live.Navigation, id: :nav, entry: @entry) %>
@@ -46,8 +46,21 @@ defmodule CatenaryWeb.Live do
   end
 
   def handle_info(:check_store, socket) do
-    Process.send_after(self(), :check_store, @store_refresh, [])
+    Process.send_after(self(), :check_store, @ui_refresh, [])
     {:noreply, state_set(socket)}
+  end
+
+  def handle_event("connect", %{"value" => where}, socket) do
+    # This is a dumb placeholder until I build the intermediary functions
+    # or get a better marshalling
+    [a, l, e] = String.split(where, "⋀")
+
+    %Baobab.Entry{payload: payload} =
+      Baobab.log_entry(a, String.to_integer(e), log_id: String.to_integer(l))
+
+    {:ok, map, ""} = CBOR.decode(payload)
+    {:ok, pid} = Baby.connect(map["host"], map["port"])
+    {:noreply, assign(socket, connection: {pid, Map.put(map, :id, {a, l, e})})}
   end
 
   def handle_event("nav", %{"value" => move}, socket) do
@@ -100,7 +113,28 @@ defmodule CatenaryWeb.Live do
 
   defp state_set(sorter, socket) do
     si = Baobab.stored_info()
-    assign(socket, store: sorted_store(si, sorter), watering: watering(si), sorter: sorter)
+
+    conn =
+      case socket.assigns.connection do
+        {pid, map} ->
+          case Process.alive?(pid) do
+            true ->
+              {pid, map}
+
+            false ->
+              :none
+          end
+
+        c ->
+          c
+      end
+
+    assign(socket,
+      store: sorted_store(si, sorter),
+      connection: conn,
+      watering: watering(si),
+      sorter: sorter
+    )
   end
 
   defp watering(store) do
@@ -130,7 +164,9 @@ defmodule CatenaryWeb.Live do
 
           cond do
             Timex.diff(then, now, :hour) > -49 ->
-              extract_recents(rest, now, [Map.merge(map, %{:id => a, "running" => then}) | acc])
+              extract_recents(rest, now, [
+                Map.merge(map, %{:id => {a, l, e}, "running" => then}) | acc
+              ])
 
             true ->
               extract_recents(rest, now, acc)
