@@ -47,6 +47,14 @@ defmodule Catenary.Live.EntryViewer do
     """
   end
 
+  def render(%{card: :error} = assigns) do
+    ~L"""
+      <div class="min-w-full font-sans">
+        <h1>Unrenderable card</h1>
+      </div>
+    """
+  end
+
   def render(assigns) do
     ~L"""
       <div class="min-w-full font-sans">
