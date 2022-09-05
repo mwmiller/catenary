@@ -25,7 +25,7 @@ defmodule CatenaryWeb.Live do
     {:ok,
      state_set(
        default_sort,
-       assign(socket, iconset: default_icons, entry: entry, connection: :none)
+       assign(socket, iconset: default_icons, entry: entry, connections: [])
      )}
   end
 
@@ -33,7 +33,7 @@ defmodule CatenaryWeb.Live do
     ~L"""
     <section class="phx-hero" id="page-live">
     <div class="mx-2 grid grid-cols-1 md:grid-cols-2 gap-10 justify-center font-mono">
-      <%= live_component(Catenary.Live.OasisBox, id: :recents, connection: @connection, watering: @watering, iconset: @iconset) %>
+      <%= live_component(Catenary.Live.OasisBox, id: :recents, connections: @connections, watering: @watering, iconset: @iconset) %>
       <%= live_component(Catenary.Live.Browse, id: :browse, store: Enum.take(@store, 5), iconset: @iconset) %>
       <%= live_component(Catenary.Live.EntryViewer, id: :entry, store: @store, entry: @entry, iconset: @iconset) %>
       <%= live_component(Catenary.Live.Navigation, id: :nav, entry: @entry) %>
@@ -59,16 +59,15 @@ defmodule CatenaryWeb.Live do
   end
 
   def handle_event("connect", %{"value" => where}, socket) do
-    # This is a dumb placeholder until I build the intermediary functions
-    # or get a better marshalling
-    [a, l, e] = String.split(where, "⋀")
+    {a, l, e} = index = Catenary.string_to_index(where)
 
-    %Baobab.Entry{payload: payload} =
-      Baobab.log_entry(a, String.to_integer(e), log_id: String.to_integer(l))
+    %Baobab.Entry{payload: payload} = Baobab.log_entry(a, e, log_id: l)
 
     {:ok, map, ""} = CBOR.decode(payload)
     {:ok, pid} = Baby.connect(map["host"], map["port"])
-    {:noreply, assign(socket, connection: {pid, Map.put(map, :id, {a, l, e})})}
+
+    {:noreply,
+     assign(socket, connections: [{pid, Map.put(map, :id, index)} | socket.assigns.connections])}
   end
 
   def handle_event("nav", %{"value" => move}, socket) do
@@ -122,27 +121,24 @@ defmodule CatenaryWeb.Live do
   defp state_set(sorter, socket) do
     si = Baobab.stored_info()
 
-    conn =
-      case socket.assigns.connection do
-        {pid, map} ->
-          case Process.alive?(pid) do
-            true ->
-              {pid, map}
-
-            false ->
-              :none
-          end
-
-        c ->
-          c
-      end
-
     assign(socket,
       store: sorted_store(si, sorter),
-      connection: conn,
+      connections: check_connections(socket.assigns.connections, []),
       watering: watering(si),
       sorter: sorter
     )
+  end
+
+  defp check_connections([], acc), do: acc
+
+  defp check_connections([{pid, map} | rest], acc) do
+    case Process.alive?(pid) do
+      true ->
+        check_connections(rest, [{pid, map} | acc])
+
+      false ->
+        check_connections(rest, acc)
+    end
   end
 
   defp watering(store) do

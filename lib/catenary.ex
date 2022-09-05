@@ -18,4 +18,13 @@ defmodule Catenary do
 
     "data:" <> mime <> ";base64," <> b64
   end
+
+  def index_to_string(tuple) do
+    tuple |> Tuple.to_list() |> Enum.map(fn e -> to_string(e) end) |> Enum.join("⋀")
+  end
+
+  def string_to_index(string) do
+    [a, l, e] = string |> String.split("⋀")
+    {a, String.to_integer(l), String.to_integer(e)}
+  end
 end
