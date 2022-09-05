@@ -25,7 +25,12 @@ defmodule CatenaryWeb.Live do
     {:ok,
      state_set(
        default_sort,
-       assign(socket, iconset: default_icons, entry: entry, connections: [])
+       assign(socket,
+         iconset: default_icons,
+         entry: entry,
+         connections: [],
+         identity: Application.get_env(:baby, :identity)
+       )
      )}
   end
 
@@ -37,6 +42,7 @@ defmodule CatenaryWeb.Live do
       <%= live_component(Catenary.Live.Browse, id: :browse, store: Enum.take(@store, 5), iconset: @iconset) %>
       <%= live_component(Catenary.Live.EntryViewer, id: :entry, store: @store, entry: @entry, iconset: @iconset) %>
       <%= live_component(Catenary.Live.Navigation, id: :nav, entry: @entry) %>
+      <%= live_component(Catenary.Live.EntryCreator, id: :post, identity: @identity, identities: @identities, iconset: @iconset) %>
     </div>
     """
   end
@@ -60,6 +66,21 @@ defmodule CatenaryWeb.Live do
 
   def handle_event("view-entry", %{"value" => index_string}, socket) do
     {:noreply, assign(socket, entry: Catenary.string_to_index(index_string))}
+  end
+
+  def handle_event(
+        "new-entry",
+        %{"body" => body, "identity" => author, "log_id" => log_id, "title" => title},
+        socket
+      ) do
+    # There will be more things to handle in short order, so this looks verbose
+    # but it's probably necessary
+    %Baobab.Entry{author: a, log_id: l, seqnum: e} =
+      %{"body" => body, "title" => title, "published" => Timex.now() |> DateTime.to_string()}
+      |> CBOR.encode()
+      |> Baobab.append_log(author, log_id: String.to_integer(log_id))
+
+    {:noreply, assign(socket, entry: {Baobab.b62identity(a), l, e})}
   end
 
   def handle_event("connect", %{"value" => where}, socket) do
@@ -127,6 +148,7 @@ defmodule CatenaryWeb.Live do
 
     assign(socket,
       store: sorted_store(si, sorter),
+      identities: Baobab.identities(),
       connections: check_connections(socket.assigns.connections, []),
       watering: watering(si),
       sorter: sorter
