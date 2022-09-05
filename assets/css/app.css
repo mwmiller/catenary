@@ -16,6 +16,12 @@
   p {
     @apply my-1;
   }
+  ul {
+    @apply list-disc;
+  }
+  ol {
+    @apply list-decimal;
+  }
 }
 
 @import "./phoenix.css";
