@@ -58,6 +58,10 @@ defmodule CatenaryWeb.Live do
     {:noreply, state_set(socket)}
   end
 
+  def handle_event("view-entry", %{"value" => index_string}, socket) do
+    {:noreply, assign(socket, entry: Catenary.string_to_index(index_string))}
+  end
+
   def handle_event("connect", %{"value" => where}, socket) do
     {a, l, e} = index = Catenary.string_to_index(where)
 
