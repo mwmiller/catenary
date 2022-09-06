@@ -63,7 +63,11 @@ defmodule Catenary.Live.EntryViewer do
           <h1><%= @card["title"] %></h1>
           <p class="text-sm font-light"><%= Catenary.short_id(@card["author"]) %> &mdash; <%= @card["published"] %></p>
           <p>
-          <%= for entry <- @card["references"] do %>
+          <%= for entry <- @card["back-refs"] do %>
+            <button value="<%= entry %>" phx-click="view-entry">※</button>&nbsp;
+          <% end %>
+              ↹
+          <%= for entry <- @card["fore-refs"] do %>
             <button value="<%= entry %>" phx-click="view-entry">※</button>&nbsp;
           <% end %>
         </p>
@@ -102,9 +106,7 @@ defmodule Catenary.Live.EntryViewer do
       :dets.close(:refs)
       extract_type(payload, a, l, forward_refs)
     rescue
-      e ->
-        Logger.warn(e)
-        :error
+      _ -> :error
     end
   end
 
@@ -112,7 +114,8 @@ defmodule Catenary.Live.EntryViewer do
     %{
       "author" => a,
       "title" => "Test Post, Please Ignore",
-      "references" => forward_refs,
+      "fore-refs" => forward_refs,
+      "back-refs" => [],
       "body" => maybe_text(text),
       "published" => "in a testing period"
     }
@@ -126,7 +129,8 @@ defmodule Catenary.Live.EntryViewer do
         "author" => a,
         "title" => "Oasis: " <> data["name"],
         "body" => data["host"] <> ":" <> Integer.to_string(data["port"]),
-        "references" => maybe_refs(data["references"], forward_refs),
+        "fore-refs" => forward_refs,
+        "back-refs" => maybe_refs(data["references"]),
         "published" => data["running"] |> nice_time
       }
     rescue
@@ -136,7 +140,8 @@ defmodule Catenary.Live.EntryViewer do
         %{
           "author" => a,
           "title" => "Legacy Oasis",
-          "references" => forward_refs,
+          "fore-refs" => forward_refs,
+          "back-refs" => [],
           "body" => maybe_text(cbor),
           "published" => "long ago: " <> differ
         }
@@ -150,7 +155,8 @@ defmodule Catenary.Live.EntryViewer do
       Map.merge(data, %{
         "author" => a,
         "body" => data["body"] |> Earmark.as_html!() |> Phoenix.HTML.raw(),
-        "references" => maybe_refs(Map.get(data, "references"), forward_refs),
+        "fore-refs" => forward_refs,
+        "back-refs" => maybe_refs(data["references"]),
         "published" => nice_time(data["published"])
       })
     rescue
@@ -159,7 +165,7 @@ defmodule Catenary.Live.EntryViewer do
           "author" => a,
           "title" => "Malformed Entry",
           "body" => maybe_text(cbor),
-          "references" => forward_refs,
+          "references" => {[], forward_refs},
           "published" => "unknown"
         }
     end
@@ -171,19 +177,18 @@ defmodule Catenary.Live.EntryViewer do
 
       Map.merge(data, %{
         "author" => a,
-        "references" => maybe_refs(data["references"], forward_refs),
+        "fore-refs" => forward_refs,
+        "back-refs" => maybe_refs(data["references"]),
         "body" => data["body"] |> Earmark.as_html!() |> Phoenix.HTML.raw(),
-        "published" =>
-          data
-          |> Map.get("published")
-          |> nice_time
+        "published" => data["published"] |> nice_time
       })
     rescue
       _ ->
         %{
           "author" => a,
           "title" => "Malformed Entry",
-          "references" => forward_refs,
+          "fore-refs" => forward_refs,
+          "back-refs" => [],
           "body" => maybe_text(cbor),
           "published" => "unknown"
         }
@@ -206,12 +211,13 @@ defmodule Catenary.Live.EntryViewer do
 
   defp maybe_text(_), do: "Not binary"
 
-  defp maybe_refs(list, forward, acc \\ [])
-  defp maybe_refs(nil, forward, _), do: forward
-  defp maybe_refs([], forward, acc), do: Enum.reverse(acc) ++ forward
+  defp maybe_refs(list, acc \\ [])
+  defp maybe_refs(nil, _), do: []
 
-  defp maybe_refs([r | rest], forward, acc) do
-    maybe_refs(rest, forward, [ref_string(r) | acc])
+  defp maybe_refs([], acc), do: Enum.reverse(acc)
+
+  defp maybe_refs([r | rest], acc) do
+    maybe_refs(rest, [ref_string(r) | acc])
   end
 
   defp ref_string(list), do: list |> List.to_tuple() |> Catenary.index_to_string()
