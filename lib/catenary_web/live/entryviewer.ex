@@ -42,7 +42,7 @@ defmodule Catenary.Live.EntryViewer do
   @impl true
   def render(%{card: :none} = assigns) do
     ~L"""
-      <div class="min-w-full font-sans">
+      <div class="min-w-full font-sans row-span-full">
         <h1>No data just yet</h1>
       </div>
     """
@@ -50,7 +50,7 @@ defmodule Catenary.Live.EntryViewer do
 
   def render(%{card: :error} = assigns) do
     ~L"""
-      <div class="min-w-full font-sans">
+      <div class="min-w-full font-sans row-span-full">
         <h1>Unrenderable card</h1>
       </div>
     """
