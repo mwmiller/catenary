@@ -42,7 +42,7 @@ defmodule CatenaryWeb.Live do
     ~L"""
     <section class="phx-hero" id="page-live">
     <div class="mx-2 grid grid-rows-2 grid-cols-1 md:grid-cols-2 gap-10 justify-center font-mono">
-      <%= live_component(Catenary.Live.OasisBox, id: :recents, indexing: @indexing,connections: @connections, watering: @watering, iconset: @iconset) %>
+      <%= live_component(Catenary.Live.OasisBox, id: :recents, indexing: @indexing, connections: @connections, watering: @watering, iconset: @iconset) %>
       <%= live_component(Catenary.Live.EntryViewer, id: :entry, store: @store, entry: @entry, iconset: @iconset) %>
       <%= live_component(Catenary.Live.Navigation, id: :nav, entry: @entry, show_posting: @show_posting,identity: @identity, identities: @identities, iconset: @iconset) %>
     </div>
@@ -188,7 +188,7 @@ defmodule CatenaryWeb.Live do
   defp state_set(socket) do
     si = Baobab.stored_info()
     curr = si |> CBOR.encode() |> Blake2.hash2b()
-    updated? = curr == socket.assigns.store_hash
+    updated? = curr != socket.assigns.store_hash
 
     dex = check_refindex(socket.assigns.indexing, updated?, si)
     con = check_connections(socket.assigns.connections, [])
