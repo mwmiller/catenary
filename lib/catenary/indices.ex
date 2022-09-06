@@ -14,6 +14,7 @@ defmodule Catenary.Indices do
         Application.get_env(:catenary, :application_dir, "~/.catenary"),
         "references.dets"
       ])
+      |> Path.expand
       |> to_charlist
 
     :dets.open_file(:refs, file: filename, ram_file: true, auto_save: 1000)
