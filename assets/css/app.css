@@ -22,6 +22,12 @@
   ol {
     @apply list-decimal;
   }
+  blockquote {
+    @apply border-l-2;
+    @apply pl-2;
+    @apply opacity-50;
+    @apply mb-2;
+  }
 }
 
 @import "./phoenix.css";
