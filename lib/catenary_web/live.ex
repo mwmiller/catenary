@@ -42,7 +42,7 @@ defmodule CatenaryWeb.Live do
       <%= live_component(Catenary.Live.Browse, id: :browse, store: Enum.take(@store, 5), iconset: @iconset) %>
       <%= live_component(Catenary.Live.EntryViewer, id: :entry, store: @store, entry: @entry, iconset: @iconset) %>
       <%= live_component(Catenary.Live.Navigation, id: :nav, entry: @entry) %>
-      <%= live_component(Catenary.Live.EntryCreator, id: :post, identity: @identity, identities: @identities, iconset: @iconset) %>
+      <%= live_component(Catenary.Live.EntryCreator, id: :post, entry: @entry, identity: @identity, identities: @identities, iconset: @iconset) %>
     </div>
     """
   end
@@ -70,7 +70,50 @@ defmodule CatenaryWeb.Live do
 
   def handle_event(
         "new-entry",
-        %{"body" => body, "identity" => author, "log_id" => log_id, "title" => title},
+        %{
+          "body" => body,
+          "identity" => author,
+          "log_id" => "533",
+          "ref" => ref,
+          "title" => title
+        },
+        socket
+      ) do
+    # Only single parent references.
+    # We get a tuple here, we'll get an array back from CBOR
+    {oa, ol, oe} = Catenary.string_to_index(ref)
+
+    t =
+      case title do
+        "" ->
+          try do
+            %Baobab.Entry{payload: payload} = Baobab.log_entry(oa, oe, log_id: ol)
+            {:ok, %{"title" => t}, ""} = CBOR.decode(payload)
+            "Re: " <> t
+          rescue
+            _ -> "Re: other post"
+          end
+
+        _ ->
+          title
+      end
+
+    %Baobab.Entry{author: a, log_id: l, seqnum: e} =
+      %{
+        "body" => body,
+        "reference" => [oa, ol, oe],
+        "title" => t,
+        "published" => Timex.now() |> DateTime.to_string()
+      }
+      |> CBOR.encode()
+      |> Baobab.append_log(author, log_id: 533)
+
+    {:noreply, assign(socket, entry: {Baobab.b62identity(a), l, e})}
+  end
+
+  def handle_event(
+        "new-entry",
+        %{"body" => body, "identity" => author, "log_id" => "360360", "title" => title},
         socket
       ) do
     # There will be more things to handle in short order, so this looks verbose
@@ -78,7 +121,7 @@ defmodule CatenaryWeb.Live do
     %Baobab.Entry{author: a, log_id: l, seqnum: e} =
       %{"body" => body, "title" => title, "published" => Timex.now() |> DateTime.to_string()}
       |> CBOR.encode()
-      |> Baobab.append_log(author, log_id: String.to_integer(log_id))
+      |> Baobab.append_log(author, log_id: 360_360)
 
     {:noreply, assign(socket, entry: {Baobab.b62identity(a), l, e})}
   end

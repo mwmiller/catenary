@@ -36,6 +36,10 @@ defmodule Catenary.MenuBar do
         <<"test">> ->
           Phoenix.PubSub.local_broadcast(Catenary.PubSub, "ui", %{entry: :test})
           menu
+
+        <<"reply">> ->
+          Phoenix.PubSub.local_broadcast(Catenary.PubSub, "ui", %{entry: :reply})
+          menu
       end
 
     {:noreply, nm}
@@ -57,6 +61,7 @@ defmodule Catenary.MenuBar do
       </menu>
       <menu label="Explore">
         <item onclick="journal">Journals</item>
+        <item onclick="reply">Replies</item>
         <item onclick="oasis">Oases</item>
         <item onclick="test">Test posts</item>
       </menu>

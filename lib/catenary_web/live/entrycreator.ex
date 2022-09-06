@@ -22,8 +22,13 @@ defmodule Catenary.Live.EntryCreator do
          <% end %>
        </select>
        <select name=log_id  class="bg-white dark:bg-black">
-         <option value="360360">Journal</option>
+         <%= for a <- posts_avail(@entry) do %>
+           <option value="<%= Quagga.log_id_for_name(a) %>"><%= String.capitalize(Atom.to_string(a)) %></option>
+         <% end %>
        </select>
+       <%= if is_tuple(@entry) do %>
+         <input type="hidden" name="ref" value="<%= Catenary.index_to_string(@entry) %>">
+       <% end %>
        <br/>
        <input class="bg-white dark:bg-black" type="text" name="title"/>
        <br/>
@@ -35,4 +40,8 @@ defmodule Catenary.Live.EntryCreator do
       </div>
     """
   end
+
+  defp posts_avail(atom) when is_atom(atom), do: [:journal]
+  # This will have more logic later
+  defp posts_avail(_), do: posts_avail(:none) ++ [:reply]
 end

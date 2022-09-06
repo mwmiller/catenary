@@ -61,6 +61,9 @@ defmodule Catenary.Live.EntryViewer do
         <img class = "float-left m-3" src="<%= Catenary.identicon(@card["author"], @iconset, 8) %>">
           <h1><%= @card["title"] %></h1>
           <p class="text-sm font-light"><%= Catenary.short_id(@card["author"]) %> &mdash; <%= @card["published"] %></p>
+          <%= if @card["reference"] do %>
+            <p><button value="<%= @card["reference"] %>" phx-click="view-entry">※</button></p>
+          <% end %>
         <hr/>
         <br/>
         <div class="font-light">
@@ -117,6 +120,31 @@ defmodule Catenary.Live.EntryViewer do
 
       Map.merge(data, %{
         "author" => a,
+        "body" => data |> Map.get("body") |> Earmark.as_html!() |> Phoenix.HTML.raw(),
+        "published" =>
+          data
+          |> Map.get("published")
+          |> nice_time
+      })
+    rescue
+      _ ->
+        %{
+          "author" => a,
+          "title" => "Malformed Entry",
+          "body" => maybe_text(cbor),
+          "published" => "unknown"
+        }
+    end
+  end
+
+  defp extract_type(cbor, a, 533) do
+    try do
+      {:ok, data, ""} = CBOR.decode(cbor)
+
+      Map.merge(data, %{
+        "author" => a,
+        "reference" =>
+          data |> Map.get("reference") |> List.to_tuple() |> Catenary.index_to_string(),
         "body" => data |> Map.get("body") |> Earmark.as_html!() |> Phoenix.HTML.raw(),
         "published" =>
           data
