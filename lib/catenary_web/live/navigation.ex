@@ -42,8 +42,7 @@ defmodule Catenary.Live.Navigation do
        <br/>
        <input class="bg-white dark:bg-black" type="text" name="title"/>
        <br/>
-       <textarea class="bg-white dark:bg-black" name="body" rows="4" cols="50">
-       </textarea>
+       <textarea class="bg-white dark:bg-black" name="body" rows="4" cols="50"></textarea>
        <hr/>
        <button phx-disable-with="posting..." type="submit">➲</button>
      </form>
