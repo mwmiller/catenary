@@ -4,6 +4,7 @@ defmodule Catenary.Live.OasisBox do
   def update(assigns, socket) do
     {:ok,
      assign(socket,
+       indexing: assigns.indexing,
        nodes: assigns.watering,
        iconset: assigns.iconset,
        connected: Enum.map(assigns.connections, fn {_, m} -> m.id end)
@@ -29,6 +30,7 @@ defmodule Catenary.Live.OasisBox do
 
         </div>
       <% end %>
+      <p class="text-center"><%= if @indexing, do: "indexing...", else: "∴" %></p>
     </div>
     """
   end

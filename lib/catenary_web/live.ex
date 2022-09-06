@@ -1,21 +1,20 @@
 defmodule CatenaryWeb.Live do
   use CatenaryWeb, :live_view
 
-  # Every second or so, we see if someone put new stuff in the store
-  @ui_refresh 1061
+  @ui_fast 1062
+  @ui_slow 57529
 
   def mount(_params, _session, socket) do
     # Making sure these exist, but also faux docs
     {:asc, :desc, :author, :logid, :seq}
     Phoenix.PubSub.subscribe(Catenary.PubSub, "ui")
 
-    default_sort = [dir: :desc, by: :seq]
     default_icons = :png
 
     entry =
       case connected?(socket) do
         true ->
-          Process.send_after(self(), :check_store, @ui_refresh, [])
+          Process.send_after(self(), :check_store, @ui_fast, [])
           :random
 
         false ->
@@ -24,13 +23,16 @@ defmodule CatenaryWeb.Live do
 
     {:ok,
      state_set(
-       default_sort,
        assign(socket,
+         store_hash: <<>>,
+         store: [],
+         ui_speed: @ui_slow,
          iconset: default_icons,
          show_posting: false,
          indexing: false,
          entry: entry,
          connections: [],
+         watering: [],
          identity: Application.get_env(:baby, :identity)
        )
      )}
@@ -39,9 +41,8 @@ defmodule CatenaryWeb.Live do
   def render(assigns) do
     ~L"""
     <section class="phx-hero" id="page-live">
-    <div class="mx-2 grid grid-cols-1 md:grid-cols-2 gap-10 justify-center font-mono">
-      <%= live_component(Catenary.Live.OasisBox, id: :recents, connections: @connections, watering: @watering, iconset: @iconset) %>
-      <%= live_component(Catenary.Live.Browse, id: :browse, indexing: @indexing, store: Enum.take(@store, 5), iconset: @iconset) %>
+    <div class="mx-2 grid grid-rows-2 grid-cols-1 md:grid-cols-2 gap-10 justify-center font-mono">
+      <%= live_component(Catenary.Live.OasisBox, id: :recents, indexing: @indexing,connections: @connections, watering: @watering, iconset: @iconset) %>
       <%= live_component(Catenary.Live.EntryViewer, id: :entry, store: @store, entry: @entry, iconset: @iconset) %>
       <%= live_component(Catenary.Live.Navigation, id: :nav, entry: @entry, show_posting: @show_posting,identity: @identity, identities: @identities, iconset: @iconset) %>
     </div>
@@ -61,7 +62,6 @@ defmodule CatenaryWeb.Live do
   end
 
   def handle_info(:check_store, socket) do
-    Process.send_after(self(), :check_store, @ui_refresh, [])
     {:noreply, state_set(socket)}
   end
 
@@ -185,53 +185,54 @@ defmodule CatenaryWeb.Live do
     {:noreply, assign(socket, entry: next)}
   end
 
-  def handle_event("sort", %{"value" => ordering}, socket) do
-    [dir, by] = String.split(ordering, "-")
-
-    {:noreply,
-     state_set([dir: String.to_existing_atom(dir), by: String.to_existing_atom(by)], socket)}
-  end
-
-  defp state_set(socket), do: state_set(socket.assigns.sorter, socket)
-
-  defp state_set(sorter, socket) do
+  defp state_set(socket) do
     si = Baobab.stored_info()
+    curr = si |> CBOR.encode() |> Blake2.hash2b()
+    updated? = curr == socket.assigns.store_hash
 
-    assign(socket,
-      store: sorted_store(si, sorter),
-      indexing: check_refindex(socket.assigns.indexing, si),
-      identities: Baobab.identities(),
-      connections: check_connections(socket.assigns.connections, []),
-      watering: watering(si),
-      sorter: sorter
-    )
+    dex = check_refindex(socket.assigns.indexing, updated?, si)
+    con = check_connections(socket.assigns.connections, [])
+
+    common = [indexing: dex, connections: con, store_hash: curr]
+
+    extra =
+      case socket.assigns.store_hash == curr do
+        false ->
+          [
+            ui_speed: @ui_fast,
+            store: si,
+            identities: Baobab.identities(),
+            watering: watering(si)
+          ]
+
+        true ->
+          [
+            ui_speed:
+              case {dex, con} do
+                {false, []} -> @ui_slow
+                _ -> @ui_fast
+              end
+          ]
+      end
+
+    Process.send_after(self(), :check_store, Keyword.get(extra, :ui_speed), [])
+    assign(socket, common ++ extra)
   end
 
   # We can wait an extra cycle for another
   # reindexing if needed
-  defp check_refindex(pid, _si) when is_pid(pid) do
+  defp check_refindex(pid, _new, _si) when is_pid(pid) do
     case Process.alive?(pid) do
       true -> pid
       false -> false
     end
   end
 
-  defp check_refindex(false, si) do
-    curr = si |> CBOR.encode() |> Blake2.hash2b()
+  defp check_refindex(false, false, _si), do: false
 
-    filename =
-      Path.join([Application.get_env(:catenary, :application_dir, "~/.baobab"), "store.hash"])
-      |> Path.expand()
-
-    case File.read(filename) do
-      {:ok, ^curr} ->
-        false
-
-      _ ->
-        {:ok, pid} = Task.start(Catenary.Indices, :index_references, [si])
-        File.write!(filename, curr, [:raw])
-        pid
-    end
+  defp check_refindex(false, true, si) do
+    {:ok, pid} = Task.start(Catenary.Indices, :index_references, [si])
+    pid
   end
 
   defp check_connections([], acc), do: acc
@@ -287,31 +288,6 @@ defmodule CatenaryWeb.Live do
     rescue
       _ -> extract_recents(rest, now, acc)
     end
-  end
-
-  defp sorted_store(store, opts) do
-    elem =
-      case Keyword.get(opts, :by) do
-        :author -> fn {a, _, _} -> a end
-        :logid -> fn {_, l, _} -> l end
-        :seq -> fn {_, _, s} -> s end
-      end
-
-    comp =
-      case Keyword.get(opts, :dir) do
-        :asc -> &Kernel.<=/2
-        :desc -> &Kernel.>=/2
-      end
-
-    # The extra step keeps it stable across
-    # refresh from stored_info which is in the
-    # described order [dir: :asc, by: author]
-    # We also filter out Baby annoucement logs because
-    # We're using them differently
-    # If this ever becomes more than POC and a botleneck, yay!
-    store
-    |> Enum.sort_by(fn {a, _, _} -> a end, &Kernel.<=/2)
-    |> Enum.sort_by(elem, comp)
   end
 
   defp self_random(assigns) do

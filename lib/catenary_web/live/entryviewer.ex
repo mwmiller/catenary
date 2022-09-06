@@ -58,7 +58,7 @@ defmodule Catenary.Live.EntryViewer do
 
   def render(assigns) do
     ~L"""
-      <div class="min-w-full font-sans">
+      <div class="min-w-full font-sans row-span-full">
         <img class = "float-left m-3" src="<%= Catenary.identicon(@card["author"], @iconset, 8) %>">
           <h1><%= @card["title"] %></h1>
           <p class="text-sm font-light"><%= Catenary.short_id(@card["author"]) %> &mdash; <%= @card["published"] %></p>
