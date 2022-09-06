@@ -82,7 +82,7 @@ defmodule Catenary.Live.EntryViewer do
 
       filename =
         Path.join([
-          Application.get_env(:catenary, :application_dir, "~/.baobab"),
+          Application.get_env(:catenary, :application_dir, "~/.catenary"),
           "references.dets"
         ])
         |> Path.expand()
