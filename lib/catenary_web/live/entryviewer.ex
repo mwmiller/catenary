@@ -63,12 +63,12 @@ defmodule Catenary.Live.EntryViewer do
           <h1><%= @card["title"] %></h1>
           <p class="text-sm font-light"><%= Catenary.short_id(@card["author"]) %> &mdash; <%= @card["published"] %></p>
           <p>
-          <%= for entry <- @card["back-refs"] do %>
-            <button value="<%= entry %>" phx-click="view-entry">※</button>&nbsp;
+          <%= for {a,_,_} = entry <- @card["back-refs"] do %>
+            <button value="<%= Catenary.index_to_string(entry) %>" phx-click="view-entry"><img src="<%= Catenary.identicon(a, @iconset, 2) %>"></button>&nbsp;
           <% end %>
               ↹
-          <%= for entry <- @card["fore-refs"] do %>
-            <button value="<%= entry %>" phx-click="view-entry">※</button>&nbsp;
+          <%= for {a,_,_} = entry <- @card["fore-refs"] do %>
+              <button value="<%= Catenary.index_to_string(entry) %>" phx-click="view-entry"><img src="<%= Catenary.identicon(a, @iconset, 2) %>"></button>&nbsp;
           <% end %>
         </p>
         <hr/>
@@ -96,11 +96,8 @@ defmodule Catenary.Live.EntryViewer do
 
       forward_refs =
         case :dets.lookup(:refs, entry) do
-          [] ->
-            []
-
-          [{^entry, vals}] ->
-            vals |> Enum.map(fn i -> Catenary.index_to_string(i) end)
+          [] -> []
+          [{^entry, vals}] -> vals
         end
 
       :dets.close(:refs)
@@ -217,8 +214,6 @@ defmodule Catenary.Live.EntryViewer do
   defp maybe_refs([], acc), do: Enum.reverse(acc)
 
   defp maybe_refs([r | rest], acc) do
-    maybe_refs(rest, [ref_string(r) | acc])
+    maybe_refs(rest, [List.to_tuple(r) | acc])
   end
-
-  defp ref_string(list), do: list |> List.to_tuple() |> Catenary.index_to_string()
 end
