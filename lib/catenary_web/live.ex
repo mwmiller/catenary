@@ -27,6 +27,7 @@ defmodule CatenaryWeb.Live do
        default_sort,
        assign(socket,
          iconset: default_icons,
+         show_posting: false,
          indexing: false,
          entry: entry,
          connections: [],
@@ -42,8 +43,7 @@ defmodule CatenaryWeb.Live do
       <%= live_component(Catenary.Live.OasisBox, id: :recents, connections: @connections, watering: @watering, iconset: @iconset) %>
       <%= live_component(Catenary.Live.Browse, id: :browse, indexing: @indexing, store: Enum.take(@store, 5), iconset: @iconset) %>
       <%= live_component(Catenary.Live.EntryViewer, id: :entry, store: @store, entry: @entry, iconset: @iconset) %>
-      <%= live_component(Catenary.Live.Navigation, id: :nav, entry: @entry) %>
-      <%= live_component(Catenary.Live.EntryCreator, id: :post, entry: @entry, identity: @identity, identities: @identities, iconset: @iconset) %>
+      <%= live_component(Catenary.Live.Navigation, id: :nav, entry: @entry, show_posting: @show_posting,identity: @identity, identities: @identities, iconset: @iconset) %>
     </div>
     """
   end
@@ -63,6 +63,10 @@ defmodule CatenaryWeb.Live do
   def handle_info(:check_store, socket) do
     Process.send_after(self(), :check_store, @ui_refresh, [])
     {:noreply, state_set(socket)}
+  end
+
+  def handle_event("toggle-posting", _, socket) do
+    {:noreply, assign(socket, show_posting: not socket.assigns.show_posting)}
   end
 
   def handle_event("view-entry", %{"value" => index_string}, socket) do
@@ -155,6 +159,9 @@ defmodule CatenaryWeb.Live do
 
         "prev-author" ->
           prev_author({a, l, e}, socket)
+
+        "origin" ->
+          self_random(socket.assigns)
 
         _ ->
           {a, l, e}
@@ -305,6 +312,18 @@ defmodule CatenaryWeb.Live do
     store
     |> Enum.sort_by(fn {a, _, _} -> a end, &Kernel.<=/2)
     |> Enum.sort_by(elem, comp)
+  end
+
+  defp self_random(assigns) do
+    whoami = Baobab.b62identity(assigns.identity)
+
+    possibles =
+      case assigns.store |> Enum.filter(fn {a, _, _} -> a == whoami end) do
+        [] -> assigns.store
+        ents -> ents
+      end
+
+    Enum.random(possibles)
   end
 
   defp next_author({author, log_id, seq}, socket) do
