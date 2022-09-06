@@ -61,9 +61,11 @@ defmodule Catenary.Live.EntryViewer do
         <img class = "float-left m-3" src="<%= Catenary.identicon(@card["author"], @iconset, 8) %>">
           <h1><%= @card["title"] %></h1>
           <p class="text-sm font-light"><%= Catenary.short_id(@card["author"]) %> &mdash; <%= @card["published"] %></p>
-          <%= if @card["reference"] do %>
-            <p><button value="<%= @card["reference"] %>" phx-click="view-entry">※</button></p>
+          <p>
+          <%= for entry <- @card["references"] do %>
+            <button value="<%= entry %>" phx-click="view-entry">※</button></p>
           <% end %>
+        </p>
         <hr/>
         <br/>
         <div class="font-light">
@@ -99,6 +101,7 @@ defmodule Catenary.Live.EntryViewer do
         "author" => a,
         "title" => "Oasis: " <> data["name"],
         "body" => data["host"] <> ":" <> Integer.to_string(data["port"]),
+        "references" => maybe_refs(data["references"]),
         "published" => data["running"] |> nice_time
       }
     rescue
@@ -108,6 +111,7 @@ defmodule Catenary.Live.EntryViewer do
         %{
           "author" => a,
           "title" => "Legacy Oasis",
+          "references" => [],
           "body" => maybe_text(cbor),
           "published" => "long ago: " <> differ
         }
@@ -120,11 +124,9 @@ defmodule Catenary.Live.EntryViewer do
 
       Map.merge(data, %{
         "author" => a,
-        "body" => data |> Map.get("body") |> Earmark.as_html!() |> Phoenix.HTML.raw(),
-        "published" =>
-          data
-          |> Map.get("published")
-          |> nice_time
+        "body" => data["body"] |> Earmark.as_html!() |> Phoenix.HTML.raw(),
+        "references" => maybe_refs(Map.get(data, "references")),
+        "published" => nice_time(data["published"])
       })
     rescue
       _ ->
@@ -143,9 +145,8 @@ defmodule Catenary.Live.EntryViewer do
 
       Map.merge(data, %{
         "author" => a,
-        "reference" =>
-          data |> Map.get("reference") |> List.to_tuple() |> Catenary.index_to_string(),
-        "body" => data |> Map.get("body") |> Earmark.as_html!() |> Phoenix.HTML.raw(),
+        "references" => maybe_refs(data["references"]),
+        "body" => data["body"] |> Earmark.as_html!() |> Phoenix.HTML.raw(),
         "published" =>
           data
           |> Map.get("published")
@@ -156,6 +157,7 @@ defmodule Catenary.Live.EntryViewer do
         %{
           "author" => a,
           "title" => "Malformed Entry",
+          "references" => [],
           "body" => maybe_text(cbor),
           "published" => "unknown"
         }
@@ -177,4 +179,12 @@ defmodule Catenary.Live.EntryViewer do
   end
 
   defp maybe_text(_), do: "Not binary"
+
+  defp maybe_refs(list, acc \\ [])
+  defp maybe_refs(nil, _), do: []
+  defp maybe_refs([], acc), do: Enum.reverse(acc)
+
+  defp maybe_refs([r | rest], acc) do
+    maybe_refs(rest, [r |> List.to_tuple() |> Catenary.index_to_string() | acc])
+  end
 end

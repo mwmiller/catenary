@@ -79,7 +79,7 @@ defmodule CatenaryWeb.Live do
         },
         socket
       ) do
-    # Only single parent references.
+    # Only single parent references, but maybe multiple children
     # We get a tuple here, we'll get an array back from CBOR
     {oa, ol, oe} = Catenary.string_to_index(ref)
 
@@ -101,7 +101,7 @@ defmodule CatenaryWeb.Live do
     %Baobab.Entry{author: a, log_id: l, seqnum: e} =
       %{
         "body" => body,
-        "reference" => [oa, ol, oe],
+        "references" => [[oa, ol, oe]],
         "title" => t,
         "published" => Timex.now() |> DateTime.to_string()
       }
