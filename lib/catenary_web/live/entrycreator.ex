@@ -43,5 +43,5 @@ defmodule Catenary.Live.EntryCreator do
 
   defp posts_avail(atom) when is_atom(atom), do: [:journal]
   # This will have more logic later
-  defp posts_avail(_), do: posts_avail(:none) ++ [:reply]
+  defp posts_avail(_), do: [:reply | posts_avail(:none)]
 end
