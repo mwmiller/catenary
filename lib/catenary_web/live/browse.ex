@@ -21,7 +21,8 @@ defmodule Catenary.Live.Browse do
                <td><button value="<%= Catenary.index_to_string({author, log_id, seq}) %>" phx-click="view-entry">◉</button></td>
              </tr>
            <% end %>
-         </table
+         </table>
+         <p class="text-center"><%= if @indexing, do: "indexing...", else: "∴" %></p>
         <% end %>
       </div>
     """

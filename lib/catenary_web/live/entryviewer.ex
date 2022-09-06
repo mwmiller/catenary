@@ -1,10 +1,11 @@
 defmodule Catenary.Live.EntryViewer do
+  require Logger
   use Phoenix.LiveComponent
   alias Catenary.Quagga
 
   @impl true
   def update(%{entry: :random} = assigns, socket) do
-    update(Map.put(assigns, :entry, Quagga.log_type()), socket)
+    update(Map.merge(assigns, %{entry: Quagga.log_type()}), socket)
   end
 
   def update(%{entry: :none}, socket) do
@@ -25,7 +26,7 @@ defmodule Catenary.Live.EntryViewer do
 
         case extract(entry) do
           :error ->
-            update(%{entry: which}, socket)
+            update(assigns, socket)
 
           card ->
             Phoenix.PubSub.local_broadcast(Catenary.PubSub, "ui", %{entry: entry})
@@ -63,7 +64,7 @@ defmodule Catenary.Live.EntryViewer do
           <p class="text-sm font-light"><%= Catenary.short_id(@card["author"]) %> &mdash; <%= @card["published"] %></p>
           <p>
           <%= for entry <- @card["references"] do %>
-            <button value="<%= entry %>" phx-click="view-entry">※</button></p>
+            <button value="<%= entry %>" phx-click="view-entry">※</button>&nbsp;
           <% end %>
         </p>
         <hr/>
@@ -75,25 +76,49 @@ defmodule Catenary.Live.EntryViewer do
     """
   end
 
-  def extract({a, l, e}) do
+  def extract({a, l, e} = entry) do
     try do
       %Baobab.Entry{payload: payload} = Baobab.log_entry(a, e, log_id: l)
-      extract_type(payload, a, l)
+
+      filename =
+        Path.join([
+          Application.get_env(:catenary, :application_dir, "~/.baobab"),
+          "references.dets"
+        ])
+        |> Path.expand()
+        |> to_charlist
+
+      :dets.open_file(:refs, file: filename)
+
+      forward_refs =
+        case :dets.lookup(:refs, entry) do
+          [] ->
+            []
+
+          [{^entry, vals}] ->
+            vals |> Enum.map(fn i -> Catenary.index_to_string(i) end)
+        end
+
+      :dets.close(:refs)
+      extract_type(payload, a, l, forward_refs)
     rescue
-      _ -> :error
+      e ->
+        Logger.warn(e)
+        :error
     end
   end
 
-  defp extract_type(text, a, 0) do
+  defp extract_type(text, a, 0, forward_refs) do
     %{
       "author" => a,
       "title" => "Test Post, Please Ignore",
+      "references" => forward_refs,
       "body" => maybe_text(text),
       "published" => "in a testing period"
     }
   end
 
-  defp extract_type(cbor, a, 8483) do
+  defp extract_type(cbor, a, 8483, forward_refs) do
     try do
       {:ok, data, ""} = CBOR.decode(cbor)
 
@@ -101,7 +126,7 @@ defmodule Catenary.Live.EntryViewer do
         "author" => a,
         "title" => "Oasis: " <> data["name"],
         "body" => data["host"] <> ":" <> Integer.to_string(data["port"]),
-        "references" => maybe_refs(data["references"]),
+        "references" => maybe_refs(data["references"], forward_refs),
         "published" => data["running"] |> nice_time
       }
     rescue
@@ -111,21 +136,21 @@ defmodule Catenary.Live.EntryViewer do
         %{
           "author" => a,
           "title" => "Legacy Oasis",
-          "references" => [],
+          "references" => forward_refs,
           "body" => maybe_text(cbor),
           "published" => "long ago: " <> differ
         }
     end
   end
 
-  defp extract_type(cbor, a, 360_360) do
+  defp extract_type(cbor, a, 360_360, forward_refs) do
     try do
       {:ok, data, ""} = CBOR.decode(cbor)
 
       Map.merge(data, %{
         "author" => a,
         "body" => data["body"] |> Earmark.as_html!() |> Phoenix.HTML.raw(),
-        "references" => maybe_refs(Map.get(data, "references")),
+        "references" => maybe_refs(Map.get(data, "references"), forward_refs),
         "published" => nice_time(data["published"])
       })
     rescue
@@ -134,18 +159,19 @@ defmodule Catenary.Live.EntryViewer do
           "author" => a,
           "title" => "Malformed Entry",
           "body" => maybe_text(cbor),
+          "references" => forward_refs,
           "published" => "unknown"
         }
     end
   end
 
-  defp extract_type(cbor, a, 533) do
+  defp extract_type(cbor, a, 533, forward_refs) do
     try do
       {:ok, data, ""} = CBOR.decode(cbor)
 
       Map.merge(data, %{
         "author" => a,
-        "references" => maybe_refs(data["references"]),
+        "references" => maybe_refs(data["references"], forward_refs),
         "body" => data["body"] |> Earmark.as_html!() |> Phoenix.HTML.raw(),
         "published" =>
           data
@@ -157,7 +183,7 @@ defmodule Catenary.Live.EntryViewer do
         %{
           "author" => a,
           "title" => "Malformed Entry",
-          "references" => [],
+          "references" => forward_refs,
           "body" => maybe_text(cbor),
           "published" => "unknown"
         }
@@ -180,11 +206,13 @@ defmodule Catenary.Live.EntryViewer do
 
   defp maybe_text(_), do: "Not binary"
 
-  defp maybe_refs(list, acc \\ [])
-  defp maybe_refs(nil, _), do: []
-  defp maybe_refs([], acc), do: Enum.reverse(acc)
+  defp maybe_refs(list, forward, acc \\ [])
+  defp maybe_refs(nil, forward, _), do: forward
+  defp maybe_refs([], forward, acc), do: Enum.reverse(acc) ++ forward
 
-  defp maybe_refs([r | rest], acc) do
-    maybe_refs(rest, [r |> List.to_tuple() |> Catenary.index_to_string() | acc])
+  defp maybe_refs([r | rest], forward, acc) do
+    maybe_refs(rest, forward, [ref_string(r) | acc])
   end
+
+  defp ref_string(list), do: list |> List.to_tuple() |> Catenary.index_to_string()
 end

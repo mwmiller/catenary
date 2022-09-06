@@ -27,6 +27,7 @@ defmodule CatenaryWeb.Live do
        default_sort,
        assign(socket,
          iconset: default_icons,
+         indexing: false,
          entry: entry,
          connections: [],
          identity: Application.get_env(:baby, :identity)
@@ -39,7 +40,7 @@ defmodule CatenaryWeb.Live do
     <section class="phx-hero" id="page-live">
     <div class="mx-2 grid grid-cols-1 md:grid-cols-2 gap-10 justify-center font-mono">
       <%= live_component(Catenary.Live.OasisBox, id: :recents, connections: @connections, watering: @watering, iconset: @iconset) %>
-      <%= live_component(Catenary.Live.Browse, id: :browse, store: Enum.take(@store, 5), iconset: @iconset) %>
+      <%= live_component(Catenary.Live.Browse, id: :browse, indexing: @indexing, store: Enum.take(@store, 5), iconset: @iconset) %>
       <%= live_component(Catenary.Live.EntryViewer, id: :entry, store: @store, entry: @entry, iconset: @iconset) %>
       <%= live_component(Catenary.Live.Navigation, id: :nav, entry: @entry) %>
       <%= live_component(Catenary.Live.EntryCreator, id: :post, entry: @entry, identity: @identity, identities: @identities, iconset: @iconset) %>
@@ -191,11 +192,39 @@ defmodule CatenaryWeb.Live do
 
     assign(socket,
       store: sorted_store(si, sorter),
+      indexing: check_refindex(socket.assigns.indexing, si),
       identities: Baobab.identities(),
       connections: check_connections(socket.assigns.connections, []),
       watering: watering(si),
       sorter: sorter
     )
+  end
+
+  # We can wait an extra cycle for another
+  # reindexing if needed
+  defp check_refindex(pid, _si) when is_pid(pid) do
+    case Process.alive?(pid) do
+      true -> pid
+      false -> false
+    end
+  end
+
+  defp check_refindex(false, si) do
+    curr = si |> CBOR.encode() |> Blake2.hash2b()
+
+    filename =
+      Path.join([Application.get_env(:catenary, :application_dir, "~/.baobab"), "store.hash"])
+      |> Path.expand()
+
+    case File.read(filename) do
+      {:ok, ^curr} ->
+        false
+
+      _ ->
+        {:ok, pid} = Task.start(Catenary.Indices, :index_references, [si])
+        File.write!(filename, curr, [:raw])
+        pid
+    end
   end
 
   defp check_connections([], acc), do: acc

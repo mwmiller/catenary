@@ -7,6 +7,12 @@ defmodule Catenary.Application do
 
   @impl true
   def start(_type, _args) do
+    # Ensure the application directory exists
+    :catenary
+    |> Application.get_env(:application_dir, "~/.catenary")
+    |> Path.expand()
+    |> File.mkdir_p()
+
     children = [
       # Start the Telemetry supervisor
       CatenaryWeb.Telemetry,
