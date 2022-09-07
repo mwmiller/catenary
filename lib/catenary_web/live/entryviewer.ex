@@ -82,7 +82,12 @@ defmodule Catenary.Live.EntryViewer do
 
   def extract({a, l, e} = entry) do
     try do
-      %Baobab.Entry{payload: payload} = Baobab.log_entry(a, e, log_id: l)
+      payload =
+        case Baobab.log_entry(a, e, log_id: l) do
+          {:error, :missing} -> :missing
+          %Baobab.Entry{payload: pl} -> pl
+          _ -> :unknown
+        end
 
       filename =
         Path.join([
@@ -103,8 +108,32 @@ defmodule Catenary.Live.EntryViewer do
       :dets.close(:refs)
       extract_type(payload, a, l, forward_refs)
     rescue
-      _ -> :error
+      e ->
+        Logger.warn(e)
+        :error
     end
+  end
+
+  defp extract_type(:missing, a, _, forward_refs) do
+    %{
+      "author" => a,
+      "title" => "Missing Post",
+      "fore-refs" => forward_refs,
+      "back-refs" => [],
+      "body" => "This may become available as you sync with more peers.",
+      "published" => "unknown publication"
+    }
+  end
+
+  defp extract_type(:unknown, a, _, forward_refs) do
+    %{
+      "author" => a,
+      "title" => "Loading Error",
+      "fore-refs" => forward_refs,
+      "back-refs" => [],
+      "body" => "This should never happen to you.",
+      "published" => "corrupted?"
+    }
   end
 
   defp extract_type(text, a, 0, forward_refs) do
