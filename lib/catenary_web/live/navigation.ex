@@ -12,14 +12,16 @@ defmodule Catenary.Live.Navigation do
   @impl true
   def render(assigns) do
     ~L"""
-      <div class="align-top min-w-full font-sans text-xl">
+      <div class="align-top min-w-full font-sans">
+        <div class="text-xl">
          <button value="origin" phx-click="nav">⌱</button>
          <button value="prev-author" phx-click="nav">⇧</button>
          <button value="prev-entry" phx-click="nav">☚</button>
          <button value="next-entry" phx-click="nav">☛</button>
          <button value="next-author" phx-click="nav">⇩</button>
          <button phx-click="toggle-posting">✎</button>
-         <hr/>
+       </div>
+         <br/>
          <%= if @show_posting do %>
          <div id="posting" class="font-sans">
         <form method="post" id="posting-form" phx-submit="new-entry">
