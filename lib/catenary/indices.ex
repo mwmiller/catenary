@@ -14,19 +14,20 @@ defmodule Catenary.Indices do
         Application.get_env(:catenary, :application_dir, "~/.catenary"),
         "references.dets"
       ])
-      |> Path.expand
+      |> Path.expand()
       |> to_charlist
 
     :dets.open_file(:refs, file: filename, ram_file: true, auto_save: 1000)
-    index(stored_info, :refs)
+    index(stored_info, Catenary.Quagga.log_ids_for_encoding(:cbor), :refs)
     :dets.close(:refs)
   end
 
-  defp index([], _), do: :ok
+  defp index([], _, _), do: :ok
 
-  defp index([{a, l, _} | rest], :refs) do
-    entries_index(Baobab.full_log(a, log_id: l), :refs)
-    index(rest, :refs)
+  defp index([{a, l, _} | rest], cbors, :refs) do
+    # Side-effects everywhere!
+    if l in cbors, do: entries_index(Baobab.full_log(a, log_id: l), :refs)
+    index(rest, cbors, :refs)
   end
 
   # This could maybe give up on a CBOR failure, eventurally
