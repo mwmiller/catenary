@@ -14,9 +14,9 @@ defmodule Catenary.Live.OasisBox do
   @impl true
   def render(assigns) do
     ~L"""
-    <div>
+    <div class="font-mono text-sm">
       <%= for {recent, index}  <- Enum.with_index(@nodes) do %>
-        <div class="m-2 <%= case rem(index, 2)  do
+        <div class="my-1 p-1 <%= case rem(index, 2)  do
         0 ->  "bg-emerald-200 dark:bg-cyan-700"
         1 -> "bg-emerald-400 dark:bg-sky-700"
       end %>"><img class="m-1 float-right align-middle" src="<%= Catenary.identicon(elem(recent.id, 0), @iconset, 2)%>">
