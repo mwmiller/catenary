@@ -41,10 +41,14 @@ defmodule CatenaryWeb.Live do
   def render(assigns) do
     ~L"""
     <section class="phx-hero" id="page-live">
-    <div class="mx-2 grid grid-rows-2 grid-cols-1 md:grid-cols-2 gap-10 justify-center font-mono">
-      <%= live_component(Catenary.Live.OasisBox, id: :recents, indexing: @indexing, connections: @connections, watering: @watering, iconset: @iconset) %>
+    <div class="h-screen w-100 border-1 grid grid-cols-3 gap-2 justify-center font-mono">
+      <div class="col-span-2">
       <%= live_component(Catenary.Live.EntryViewer, id: :entry, store: @store, entry: @entry, iconset: @iconset) %>
+    </div>
+    <div>
+      <%= live_component(Catenary.Live.OasisBox, id: :recents, indexing: @indexing, connections: @connections, watering: @watering, iconset: @iconset) %>
       <%= live_component(Catenary.Live.Navigation, id: :nav, entry: @entry, show_posting: @show_posting,identity: @identity, identities: @identities, iconset: @iconset) %>
+    </div>
     </div>
     """
   end
