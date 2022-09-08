@@ -5,6 +5,7 @@ defmodule Catenary.Quagga do
 
   @log_to_def %{
     0 => %{encoding: :raw, type: "text/plain", name: :test},
+    53 => %{encoding: :cbor, type: :map, name: :alias},
     533 => %{encoding: :cbor, type: :map, name: :reply},
     8483 => %{encoding: :cbor, type: :map, name: :oasis},
     360_360 => %{encoding: :cbor, type: :map, name: :journal},

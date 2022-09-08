@@ -20,9 +20,37 @@ defmodule Catenary.Live.Navigation do
          <button value="next-entry" phx-click="nav">☛</button>
          <button value="next-author" phx-click="nav">⇩</button>
          <button phx-click="toggle-posting">✎</button>
+         <button phx-click="toggle-aliases">∼</button>
        </div>
          <br/>
-         <%= if @show_posting do %>
+     <%= if @extra_nav == :aliases do %>
+           <div id="aliases">
+       <%= if is_tuple(@entry) do %>
+        <form method="post" id="alias-form" phx-submit="new-alias">
+        <select name="identity" id="select_identity" phx-change="identity-change" class="bg-white dark:bg-black">
+         <%= for {i, b62} <- @identities do %>
+           <option value="<%= i %>"  <%= if @identity == i,  do: "selected" %>>
+      <%= i<> " (" <> Catenary.short_id(b62)<>")" %>
+           </option>
+         <% end %>
+         <input type="hidden" name="ref" value="<%= Catenary.index_to_string(@entry) %>">
+       <p>
+           <input type="radio" name="doref" value="include" checked/>&nbsp;↹
+         <br/>
+           <input type="radio" name="doref" value="include" />&nbsp;⊗
+         <br/>
+       <input type="hidden" name="whom" value="<%= elem(@entry,0) %>" />
+       <label for="alias"><img src="<%= Catenary.identicon(elem(@entry,0), @iconset, 4) %>"> ～</label>
+           <input class="bg-white dark:bg-black" name="alias" type="text" size="16">
+       <hr/>
+       <button phx-disable-with="𝄇" type="submit">➲</button>
+           </form>
+           <% else %>
+             ‽
+           <% end %>
+         </div>
+         <% end %>
+         <%= if @extra_nav == :posting do %>
          <div id="posting" class="font-sans">
         <form method="post" id="posting-form" phx-submit="new-entry">
     <select name="identity" id="select_identity" phx-change="identity-change" class="bg-white dark:bg-black">

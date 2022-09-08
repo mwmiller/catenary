@@ -8,31 +8,55 @@ defmodule Catenary.Indices do
   for these.  We have no idea what to do if we fail.
   """
 
-  def index_references(stored_info) do
-    filename =
-      Path.join([
-        Application.get_env(:catenary, :application_dir, "~/.catenary"),
-        "references.dets"
-      ])
-      |> Path.expand()
-      |> to_charlist
+  defp dets_file(name) do
+    Path.join([
+      Application.get_env(:catenary, :application_dir, "~/.catenary"),
+      name
+    ])
+    |> Path.expand()
+    |> to_charlist
+  end
 
-    :dets.open_file(:refs, file: filename, ram_file: true, auto_save: 1000)
+  def index_references(stored_info) do
+    :dets.open_file(:refs, file: dets_file("references.dets"), ram_file: true, auto_save: 1000)
     index(stored_info, Catenary.Quagga.log_ids_for_encoding(:cbor), :refs)
     :dets.close(:refs)
   end
 
+  def index_aliases(id) do
+    :dets.open_file(:aliases, file: dets_file("aliases.dets"), ram_file: true, auto_save: 1000)
+    index([{id, 53, 1}], Catenary.Quagga.log_ids_for_encoding(:cbor), :aliases)
+    :dets.close(:aliases)
+  end
+
   defp index([], _, _), do: :ok
 
-  defp index([{a, l, _} | rest], cbors, :refs) do
+  defp index([{a, l, _} | rest], cbors, which) do
     # Side-effects everywhere!
-    if l in cbors, do: entries_index(Baobab.full_log(a, log_id: l), :refs)
-    index(rest, cbors, :refs)
+    case l in cbors do
+      true -> entries_index(Baobab.full_log(a, log_id: l), which)
+      false -> :ok
+    end
+
+    index(rest, cbors, which)
   end
 
   # This could maybe give up on a CBOR failure, eventurally
   # Right now we have a lot of mixed types
   defp entries_index([], _), do: :ok
+
+  defp entries_index([entry | rest], :aliases) do
+    try do
+      %Baobab.Entry{payload: payload} = entry
+      {:ok, data, ""} = CBOR.decode(payload)
+      :dets.insert(:aliases, {data["whom"], data["alias"]})
+    rescue
+      _ ->
+        :ok
+    end
+
+    entries_index(rest, :aliases)
+  end
 
   defp entries_index([entry | rest], :refs) do
     try do

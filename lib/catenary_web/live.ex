@@ -28,7 +28,8 @@ defmodule CatenaryWeb.Live do
          store: [],
          ui_speed: @ui_slow,
          iconset: default_icons,
-         show_posting: false,
+         extra_nav: :none,
+         aliasing: false,
          indexing: false,
          entry: entry,
          connections: [],
@@ -46,8 +47,9 @@ defmodule CatenaryWeb.Live do
       <%= live_component(Catenary.Live.EntryViewer, id: :entry, store: @store, entry: @entry, iconset: @iconset) %>
     </div>
     <div>
-      <%= live_component(Catenary.Live.OasisBox, id: :recents, indexing: @indexing, connections: @connections, watering: @watering, iconset: @iconset) %>
-      <%= live_component(Catenary.Live.Navigation, id: :nav, entry: @entry, show_posting: @show_posting,identity: @identity, identities: @identities, iconset: @iconset) %>
+      <%= live_component(Catenary.Live.OasisBox, id: :recents, indexing: @indexing, aliasing: @aliasing, connections: @connections, watering: @watering, iconset: @iconset) %>
+      <%= live_component(Catenary.Live.Navigation, id: :nav,
+      entry: @entry, extra_nav: @extra_nav, identity: @identity, identities: @identities, iconset: @iconset) %>
     </div>
     </div>
     """
@@ -70,11 +72,57 @@ defmodule CatenaryWeb.Live do
   end
 
   def handle_event("toggle-posting", _, socket) do
-    {:noreply, assign(socket, show_posting: not socket.assigns.show_posting)}
+    show_now =
+      case socket.assigns.extra_nav do
+        :posting -> :none
+        _ -> :posting
+      end
+
+    {:noreply, assign(socket, extra_nav: show_now)}
+  end
+
+  def handle_event("toggle-aliases", _, socket) do
+    show_now =
+      case socket.assigns.extra_nav do
+        :aliases -> :none
+        _ -> :aliases
+      end
+
+    {:noreply, assign(socket, extra_nav: show_now)}
   end
 
   def handle_event("view-entry", %{"value" => index_string}, socket) do
     {:noreply, assign(socket, entry: Catenary.string_to_index(index_string))}
+  end
+
+  def handle_event(
+        "new-alias",
+        %{
+          "alias" => ali,
+          "doref" => doref,
+          "identity" => id,
+          "ref" => ref,
+          "whom" => whom
+        },
+        socket
+      ) do
+    references =
+      case doref == "include" do
+        true -> [Catenary.string_to_index(ref)]
+        false -> []
+      end
+
+    %Baobab.Entry{author: a, log_id: l, seqnum: e} =
+      %{
+        "whom" => whom,
+        "references" => references,
+        "alias" => ali,
+        "published" => Timex.now() |> DateTime.to_string()
+      }
+      |> CBOR.encode()
+      |> Baobab.append_log(id, log_id: 53)
+
+    {:noreply, state_set(assign(socket, entry: {Baobab.b62identity(a), l, e}))}
   end
 
   def handle_event(
@@ -190,37 +238,53 @@ defmodule CatenaryWeb.Live do
   end
 
   defp state_set(socket) do
+    state = socket.assigns
     si = Baobab.stored_info()
     curr = si |> CBOR.encode() |> Blake2.hash2b()
-    updated? = curr != socket.assigns.store_hash
+    updated? = curr != state.store_hash
 
-    dex = check_refindex(socket.assigns.indexing, updated?, si)
-    con = check_connections(socket.assigns.connections, [])
+    dex = check_refindex(state.indexing, updated?, si)
+    ali = check_aliases(state.aliasing, updated?, state.identity)
+    con = check_connections(state.connections, [])
 
-    common = [indexing: dex, connections: con, store_hash: curr]
+    common = [indexing: dex, connections: con, store_hash: curr, aliasing: ali]
 
-    extra =
-      case socket.assigns.store_hash == curr do
-        false ->
-          [
-            ui_speed: @ui_fast,
-            store: si,
-            identities: Baobab.identities(),
-            watering: watering(si)
-          ]
-
+    {ui_speed, extra} =
+      case updated? do
         true ->
-          [
-            ui_speed:
-              case {dex, con} do
-                {false, []} -> @ui_slow
-                _ -> @ui_fast
-              end
-          ]
+          {@ui_fast,
+           [
+             store: si,
+             identities: Baobab.identities(),
+             watering: watering(si)
+           ]}
+
+        false ->
+          speed =
+            case {dex, ali, con} do
+              {false, false, []} -> @ui_slow
+              _ -> @ui_fast
+            end
+
+          {speed, []}
       end
 
-    Process.send_after(self(), :check_store, Keyword.get(extra, :ui_speed), [])
+    Process.send_after(self(), :check_store, ui_speed, [])
     assign(socket, common ++ extra)
+  end
+
+  defp check_aliases(pid, _new, _data) when is_pid(pid) do
+    case Process.alive?(pid) do
+      true -> pid
+      false -> false
+    end
+  end
+
+  defp check_aliases(false, false, _data), do: false
+
+  defp check_aliases(false, true, id) do
+    {:ok, pid} = Task.start(Catenary.Indices, :index_aliases, [id])
+    pid
   end
 
   # We can wait an extra cycle for another

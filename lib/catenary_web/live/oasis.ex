@@ -4,6 +4,7 @@ defmodule Catenary.Live.OasisBox do
   def update(assigns, socket) do
     {:ok,
      assign(socket,
+       aliasing: assigns.aliasing,
        indexing: assigns.indexing,
        nodes: assigns.watering,
        iconset: assigns.iconset,
@@ -31,7 +32,7 @@ defmodule Catenary.Live.OasisBox do
 
         </div>
       <% end %>
-      <p class="text-center"><%= if @indexing, do: "𝍂", else: "∴" %></p>
+        <p class="text-center"><%= if @indexing, do: "𝍂", else: "∴" %>&nbsp;<%= if @aliasing, do: "⍱", else: "⍲" %></p>
     </div>
     """
   end

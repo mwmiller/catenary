@@ -147,6 +147,33 @@ defmodule Catenary.Live.EntryViewer do
     }
   end
 
+  defp extract_type(cbor, a, 53, forward_refs) do
+    try do
+      {:ok, data, ""} = CBOR.decode(cbor)
+
+      %{
+        "author" => a,
+        "title" => "Alias: ~" <> data["alias"],
+        "body" => "For: " <> data["whom"],
+        "fore-refs" => forward_refs,
+        "back-refs" => maybe_refs(data["references"]),
+        "published" => data["published"] |> nice_time
+      }
+    rescue
+      _ ->
+        differ = cbor |> Blake2.hash2b(5) |> BaseX.Base62.encode()
+
+        %{
+          "author" => a,
+          "title" => "Legacy Alias",
+          "fore-refs" => forward_refs,
+          "back-refs" => [],
+          "body" => maybe_text(cbor),
+          "published" => "long ago: " <> differ
+        }
+    end
+  end
+
   defp extract_type(cbor, a, 8483, forward_refs) do
     try do
       {:ok, data, ""} = CBOR.decode(cbor)

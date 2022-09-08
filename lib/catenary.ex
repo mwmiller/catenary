@@ -5,7 +5,27 @@ defmodule Catenary do
   Contexts are also responsible for managing your data, regardless
   if it comes from the database, an external API or others.
   """
-  def short_id(id), do: "~" <> String.slice(id, 0..15)
+  def short_id(id) do
+    filename =
+      Path.join([
+        Application.get_env(:catenary, :application_dir, "~/.catenary"),
+        "aliases.dets"
+      ])
+      |> Path.expand()
+      |> to_charlist
+
+    :dets.open_file(:aliases, file: filename)
+
+    string =
+      case :dets.lookup(:aliases, id) do
+        [{^id, ali}] -> ali
+        _ -> String.slice(id, 0..15)
+      end
+
+    :dets.close(:aliases)
+
+    "~" <> string
+  end
 
   def identicon(id, type, mag \\ 4) do
     b64 = Excon.ident(id, base64: true, type: type, magnification: mag)
