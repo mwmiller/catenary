@@ -154,7 +154,7 @@ defmodule Catenary.Live.EntryViewer do
       %{
         "author" => a,
         "title" => "Alias: ~" <> data["alias"],
-        "body" => "For: " <> data["whom"],
+        "body" => "For: " <> Catenary.short_id(data["whom"]),
         "fore-refs" => forward_refs,
         "back-refs" => maybe_refs(data["references"]),
         "published" => data["published"] |> nice_time

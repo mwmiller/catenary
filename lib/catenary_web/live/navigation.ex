@@ -40,7 +40,7 @@ defmodule Catenary.Live.Navigation do
            <input type="radio" name="doref" value="include" />&nbsp;⊗
          <br/>
        <input type="hidden" name="whom" value="<%= elem(@entry,0) %>" />
-       <label for="alias"><img src="<%= Catenary.identicon(elem(@entry,0), @iconset, 4) %>"> ～</label>
+       <label for="alias"><img src="<%= Catenary.identicon(elem(@entry,0), @iconset, 4) %>"> <%= Catenary.short_id(elem(@entry, 0)) %><br/>～</label>
            <input class="bg-white dark:bg-black" name="alias" type="text" size="16">
        <hr/>
        <button phx-disable-with="𝄇" type="submit">➲</button>
