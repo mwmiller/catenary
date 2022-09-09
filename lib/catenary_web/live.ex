@@ -146,7 +146,11 @@ defmodule CatenaryWeb.Live do
           try do
             %Baobab.Entry{payload: payload} = Baobab.log_entry(oa, oe, log_id: ol)
             {:ok, %{"title" => t}, ""} = CBOR.decode(payload)
-            "Re: " <> t
+
+            case t do
+              <<"Re: ", _::binary>> -> t
+              _ -> "Re: " <> t
+            end
           rescue
             _ -> "Re: other post"
           end
