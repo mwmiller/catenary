@@ -27,7 +27,7 @@ defmodule Catenary.Live.Navigation do
            <div id="aliases">
        <%= if is_tuple(@entry) do %>
         <form method="post" id="alias-form" phx-submit="new-alias">
-        <select name="identity" id="select_identity" phx-change="identity-change" class="bg-white dark:bg-black">
+        <select name="identity" id="select_identity" class="bg-white dark:bg-black">
          <%= for {i, b62} <- @identities do %>
            <option value="<%= i %>"  <%= if @identity == i,  do: "selected" %>>
       <%= i<> " (" <> Catenary.short_id(b62)<>")" %>
@@ -35,13 +35,20 @@ defmodule Catenary.Live.Navigation do
          <% end %>
          <input type="hidden" name="ref" value="<%= Catenary.index_to_string(@entry) %>">
        <p>
-           <input type="radio" name="doref" value="include" checked/>&nbsp;↹
-         <br/>
-           <input type="radio" name="doref" value="include" />&nbsp;⊗
-         <br/>
-       <input type="hidden" name="whom" value="<%= elem(@entry,0) %>" />
-       <label for="alias"><img src="<%= Catenary.identicon(elem(@entry,0), @iconset, 4) %>"> <%= Catenary.short_id(elem(@entry, 0)) %><br/>～</label>
-           <input class="bg-white dark:bg-black" name="alias" type="text" size="16">
+       <% {whom, alias} = alias_info(@entry) %>
+       <input type="hidden" name="whom" value="<%= whom %>" />
+           <div class="flex flex-row space-x-4">
+             <label for="wref">↹</label>
+             <div class="flex-auto"><input type="radio" id="wref" name="doref" value="include" checked/></div>
+             <label for="noref">⊗</label>
+             <div class="flex-auto"><input type="radio" id="noref" name="doref" value="exclude" /></div>
+           </div>
+           <div class="flex flex-row p-2">
+             <div class="flex-auto"><%= Catenary.short_id(whom) %></div>
+             <div class="flex-auto"><img src="<%= Catenary.identicon(whom, @iconset, 4) %>"></div>
+           </div>
+       <label for="alias">～</label>
+       <input class="bg-white dark:bg-black" name="alias" value="<%= alias %>" type="text" size="16" />
        <hr/>
        <button phx-disable-with="𝄇" type="submit">➲</button>
            </form>
@@ -53,7 +60,7 @@ defmodule Catenary.Live.Navigation do
          <%= if @extra_nav == :posting do %>
          <div id="posting" class="font-sans">
         <form method="post" id="posting-form" phx-submit="new-entry">
-    <select name="identity" id="select_identity" phx-change="identity-change" class="bg-white dark:bg-black">
+    <select name="identity" id="select_identity"" class="bg-white dark:bg-black">
          <%= for {i, b62} <- @identities do %>
            <option value="<%= i %>"  <%= if @identity == i,  do: "selected" %>>
       <%= i<> " (" <> Catenary.short_id(b62)<>")" %>
@@ -80,6 +87,18 @@ defmodule Catenary.Live.Navigation do
     </div>
     """
   end
+
+  # We're looking at someone else's alias info, let's offer to use it
+  defp alias_info({a, 53, e}) do
+    with %Baobab.Entry{payload: payload} = Baobab.log_entry(a, e, log_id: 53),
+         {:ok, data, ""} = CBOR.decode(payload) do
+      {data["whom"], data["alias"]}
+    else
+      _ -> {a, ""}
+    end
+  end
+
+  defp alias_info({a, _, _}), do: {a, ""}
 
   defp posts_avail(atom) when is_atom(atom), do: [:journal]
   # This will have more logic later
