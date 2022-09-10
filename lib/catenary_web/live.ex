@@ -201,15 +201,11 @@ defmodule CatenaryWeb.Live do
   end
 
   def handle_event("init-connect", _, socket) do
-    # Theoretically, they should have already connected to a cryout
-    # but who knows how we got into this state
-    {host, port} =
-      case Application.get_env(:baby, :cryouts) do
-        [first | _] -> {Keyword.get(first, :host), Keyword.get(first, :port)}
-        _ -> {"quagga.nftease.online", 8483}
-      end
+    # This fallback to the fallback is a bad idea long-term
+    which =
+      Application.get_env(:catenary, :fallback_node, host: "sally.nftease.online", port: 8483)
 
-    {:ok, pid} = Baby.connect(host, port)
+    {:ok, pid} = Baby.connect(Keyword.get(which, :host), Keyword.get(which, :port))
     {:noreply, state_set(assign(socket, connections: [{pid, %{}} | socket.assigns.connections]))}
   end
 
