@@ -154,7 +154,12 @@ defmodule Catenary.Live.EntryViewer do
       %{
         "author" => a,
         "title" => "Alias: ~" <> data["alias"],
-        "body" => "For: " <> Catenary.short_id(data["whom"]),
+        "body" =>
+          Phoenix.HTML.raw(
+            "For: " <>
+              Catenary.short_id(data["whom"]) <>
+              "<br/>Full key: " <> data["whom"]
+          ),
         "fore-refs" => forward_refs,
         "back-refs" => maybe_refs(data["references"]),
         "published" => data["published"] |> nice_time
