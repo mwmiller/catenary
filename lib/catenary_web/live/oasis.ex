@@ -8,7 +8,7 @@ defmodule Catenary.Live.OasisBox do
        indexing: assigns.indexing,
        nodes: assigns.watering,
        iconset: assigns.iconset,
-       connected: Enum.map(assigns.connections, fn {_, m} -> m.id end)
+       connected: Enum.map(assigns.connections, &id_mapper/1)
      )}
   end
 
@@ -36,4 +36,7 @@ defmodule Catenary.Live.OasisBox do
     </div>
     """
   end
+
+  defp id_mapper({_, %{id: id}}), do: id
+  defp id_mapper({_, _}), do: ""
 end

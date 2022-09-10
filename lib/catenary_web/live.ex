@@ -210,7 +210,7 @@ defmodule CatenaryWeb.Live do
       end
 
     {:ok, pid} = Baby.connect(host, port)
-    {:noreply, assign(socket, connections: [{pid, %{}} | socket.assigns.connections])}
+    {:noreply, state_set(assign(socket, connections: [{pid, %{}} | socket.assigns.connections]))}
   end
 
   def handle_event("connect", %{"value" => where}, socket) do
