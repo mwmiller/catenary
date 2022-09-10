@@ -6,7 +6,7 @@ defmodule Catenary.Live.Navigation do
   def update(assigns, socket) do
     # As things expand, we'll use this info to build a proper
     # interface to navigate.
-    {:ok, assign(socket, assigns)}
+    {:ok, assign(socket, extra_nav: extra_nav(assigns))}
   end
 
   @impl true
@@ -23,7 +23,7 @@ defmodule Catenary.Live.Navigation do
         <button phx-click="toggle-aliases">∼</button>
       </div>
       <br/>
-      <%= extra_nav(assigns) %>
+      <%= @extra_nav %>
     </div>
     """
   end

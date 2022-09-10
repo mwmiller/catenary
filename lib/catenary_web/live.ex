@@ -39,6 +39,19 @@ defmodule CatenaryWeb.Live do
      )}
   end
 
+  def render(%{store: []} = assigns) do
+    ~L"""
+    <div>
+      <h1>No data just yet</h1>
+      <%= if @connections == []  do %>
+        <button phx-click="init-connect">⇆ Sync with a well-known node ⇆</button>
+      <% else %>
+        ⥀ any minute now ⥀
+      <% end %>
+    </div>
+    """
+  end
+
   def render(assigns) do
     ~L"""
     <section class="phx-hero" id="page-live">
@@ -187,6 +200,19 @@ defmodule CatenaryWeb.Live do
     {:noreply, assign(socket, entry: {Baobab.b62identity(a), l, e})}
   end
 
+  def handle_event("init-connect", _, socket) do
+    # Theoretically, they should have already connected to a cryout
+    # but who knows how we got into this state
+    {host, port} =
+      case Application.get_env(:baby, :cryouts) do
+        [first | _] -> {Keyword.get(first, :host), Keyword.get(first, :port)}
+        _ -> {"quagga.nftease.online", 8483}
+      end
+
+    {:ok, pid} = Baby.connect(host, port)
+    {:noreply, assign(socket, connections: [{pid, %{}} | socket.assigns.connections])}
+  end
+
   def handle_event("connect", %{"value" => where}, socket) do
     {a, l, e} = index = Catenary.string_to_index(where)
 
@@ -196,7 +222,9 @@ defmodule CatenaryWeb.Live do
     {:ok, pid} = Baby.connect(map["host"], map["port"])
 
     {:noreply,
-     assign(socket, connections: [{pid, Map.put(map, :id, index)} | socket.assigns.connections])}
+     state_set(
+       assign(socket, connections: [{pid, Map.put(map, :id, index)} | socket.assigns.connections])
+     )}
   end
 
   def handle_event("nav", %{"value" => move}, socket) do

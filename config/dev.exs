@@ -73,4 +73,5 @@ config :baobab, spool_dir: "~/.baobab"
 config :baby,
   identity: "mwm",
   clump_id: "Quagga",
-  port: 8483
+  port: 8483,
+  cryouts: [[host: "sally.nftease.online", port: 8483, period: {2, :hour}]]
