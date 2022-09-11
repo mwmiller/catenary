@@ -141,7 +141,11 @@ defmodule CatenaryWeb.Live do
       |> CBOR.encode()
       |> Baobab.append_log(Catenary.id_for_key(socket.assigns.identity), log_id: 53)
 
-    {:noreply, state_set(assign(socket, entry: {Baobab.b62identity(a), l, e}))}
+    b62author = Baobab.b62identity(a)
+    entry = {b62author, l, e}
+    Catenary.Indices.index_aliases(b62author)
+    Catenary.Indices.index_references([entry])
+    {:noreply, state_set(assign(socket, entry: entry))}
   end
 
   def handle_event(
@@ -187,7 +191,10 @@ defmodule CatenaryWeb.Live do
       |> CBOR.encode()
       |> Baobab.append_log(Catenary.id_for_key(socket.assigns.identity), log_id: 533)
 
-    {:noreply, assign(socket, entry: {Baobab.b62identity(a), l, e})}
+    entry = {Baobab.b62identity(a), l, e}
+    Catenary.Indices.index_references([entry])
+
+    {:noreply, assign(socket, entry: entry)}
   end
 
   def handle_event(
@@ -202,7 +209,10 @@ defmodule CatenaryWeb.Live do
       |> CBOR.encode()
       |> Baobab.append_log(Catenary.id_for_key(socket.assigns.identity), log_id: 360_360)
 
-    {:noreply, assign(socket, entry: {Baobab.b62identity(a), l, e})}
+    entry = {Baobab.b62identity(a), l, e}
+    Catenary.Indices.index_references([entry])
+
+    {:noreply, assign(socket, entry: entry)}
   end
 
   def handle_event("init-connect", _, socket) do
