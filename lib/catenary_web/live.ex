@@ -54,8 +54,8 @@ defmodule CatenaryWeb.Live do
 
   def render(assigns) do
     ~L"""
-    <div class="h-screen w-100 border-1 grid grid-cols-3 gap-2 justify-center font-mono">
-      <div class="col-span-2">
+    <div class="max-h-screen w-100 grid grid-cols-3 gap-2 justify-center font-mono">
+      <div class="col-span-2 overflow-y-auto max-h-screen m-2 p-x-2">
       <%= live_component(Catenary.Live.EntryViewer, id: :entry, store: @store, entry: @entry, iconset: @iconset) %>
     </div>
     <div>
