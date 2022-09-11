@@ -54,7 +54,6 @@ defmodule CatenaryWeb.Live do
 
   def render(assigns) do
     ~L"""
-    <section class="phx-hero" id="page-live">
     <div class="h-screen w-100 border-1 grid grid-cols-3 gap-2 justify-center font-mono">
       <div class="col-span-2">
       <%= live_component(Catenary.Live.EntryViewer, id: :entry, store: @store, entry: @entry, iconset: @iconset) %>

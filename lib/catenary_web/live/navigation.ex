@@ -4,9 +4,11 @@ defmodule Catenary.Live.Navigation do
 
   @impl true
   def update(assigns, socket) do
-    # As things expand, we'll use this info to build a proper
-    # interface to navigate.
-    {:ok, assign(socket, extra_nav: extra_nav(assigns))}
+    {whom, ali} = alias_info(assigns.entry)
+    posts_avail = posts_avail(assigns.entry)
+    na = Map.merge(assigns, %{whom: whom, ali: ali, posts_avail: posts_avail})
+
+    {:ok, assign(socket, lower_nav: extra_nav(na))}
   end
 
   @impl true
@@ -23,7 +25,7 @@ defmodule Catenary.Live.Navigation do
         <button phx-click="toggle-aliases">∼</button>
       </div>
       <br/>
-      <%= @extra_nav %>
+      <%= @lower_nav %>
     </div>
     """
   end
@@ -40,7 +42,7 @@ defmodule Catenary.Live.Navigation do
           <% end %>
         </select>
         <select name=log_id  class="bg-white dark:bg-black">
-          <%= for a <- posts_avail(@entry) do %>
+          <%= for a <- @posts_avail do %>
           <option value="<%= Quagga.log_id_for_name(a) %>"><%= String.capitalize(Atom.to_string(a)) %></option>
           <% end %>
         </select>
@@ -71,8 +73,7 @@ defmodule Catenary.Live.Navigation do
           <% end %>
          <input type="hidden" name="ref" value="<%= Catenary.index_to_string(@entry) %>">
          <p>
-         <% {whom, alias} = alias_info(@entry) %>
-         <input type="hidden" name="whom" value="<%= whom %>" />
+           <input type="hidden" name="whom" value="<%= @whom %>" />
          <div class="flex flex-row space-x-4">
           <label for="wref">↹</label>
           <div class="flex-auto"><input type="radio" id="wref" name="doref" value="include" checked/></div>
@@ -80,11 +81,11 @@ defmodule Catenary.Live.Navigation do
           <div class="flex-auto"><input type="radio" id="noref" name="doref" value="exclude" /></div>
          </div>
          <div class="flex flex-row p-2">
-          <div class="flex-auto"><%= Catenary.short_id(whom) %></div>
-          <div class="flex-auto"><img src="<%= Catenary.identicon(whom, @iconset, 4) %>"></div>
+          <div class="flex-auto"><%= Catenary.short_id(@whom) %></div>
+          <div class="flex-auto"><img src="<%= Catenary.identicon(@whom, @iconset, 4) %>"></div>
          </div>
          <label for="alias">～</label>
-         <input class="bg-white dark:bg-black" name="alias" value="<%= alias %>" type="text" size="16" />
+         <input class="bg-white dark:bg-black" name="alias" value="<%= @ali %>" type="text" size="16" />
          <hr/>
          <button phx-disable-with="𝄇" type="submit">➲</button>
        </form>
@@ -109,6 +110,7 @@ defmodule Catenary.Live.Navigation do
   end
 
   defp alias_info({a, _, _}), do: {a, ""}
+  defp alias_info(_), do: {"", ""}
 
   defp posts_avail(atom) when is_atom(atom), do: [:journal]
   # This will have more logic later

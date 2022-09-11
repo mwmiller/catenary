@@ -22,13 +22,12 @@ defmodule Catenary.Live.OasisBox do
         1 -> "bg-emerald-400 dark:bg-sky-700"
       end %>"><img class="m-1 float-right align-middle" src="<%= Catenary.identicon(elem(recent.id, 0), @iconset, 2)%>">
         <p><%= recent["name"] %> (<%= Catenary.short_id(elem(recent.id, 0)) %>)
-        <span>
         <%= if recent.id in @connected do %>
           ⥀
         <% else %>
-        <button phx-click="connect" phx-disable-with="↯" value="<%= Catenary.index_to_string(recent.id) %>">⇆</button></p>
+        <button phx-click="connect" phx-disable-with="↯" value="<%= Catenary.index_to_string(recent.id) %>">⇆</button>
         <% end %>
-        </span>
+        </p>
 
         </div>
       <% end %>
