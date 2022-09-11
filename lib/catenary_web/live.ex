@@ -34,7 +34,7 @@ defmodule CatenaryWeb.Live do
          entry: entry,
          connections: [],
          watering: [],
-         identity: Application.get_env(:baby, :identity)
+         identity: Application.get_env(:baby, :identity) |> Baobab.b62identity()
        )
      )}
   end
@@ -59,9 +59,10 @@ defmodule CatenaryWeb.Live do
       <%= live_component(Catenary.Live.EntryViewer, id: :entry, store: @store, entry: @entry, iconset: @iconset) %>
     </div>
     <div>
+      <%= live_component(Catenary.Live.Ident, id: :ident, identity: @identity, iconset: @iconset) %>
       <%= live_component(Catenary.Live.OasisBox, id: :recents, indexing: @indexing, aliasing: @aliasing, connections: @connections, watering: @watering, iconset: @iconset) %>
       <%= live_component(Catenary.Live.Navigation, id: :nav,
-      entry: @entry, extra_nav: @extra_nav, identity: @identity, identities: @identities, iconset: @iconset) %>
+      entry: @entry, extra_nav: @extra_nav, identity: @identity, iconset: @iconset) %>
     </div>
     </div>
     """
@@ -69,6 +70,13 @@ defmodule CatenaryWeb.Live do
 
   def handle_info(%{icons: which}, socket) do
     {:noreply, assign(socket, iconset: which)}
+  end
+
+  def handle_info(%{identity: who}, socket) do
+    whonow = Baobab.b62identity(who)
+    # Sync is importantish here
+    Catenary.Indices.index_aliases(whonow)
+    {:noreply, assign(socket, identity: whonow)}
   end
 
   def handle_info(%{view: :dashboard}, socket) do
@@ -112,7 +120,6 @@ defmodule CatenaryWeb.Live do
         %{
           "alias" => ali,
           "doref" => doref,
-          "identity" => id,
           "ref" => ref,
           "whom" => whom
         },
@@ -132,7 +139,7 @@ defmodule CatenaryWeb.Live do
         "published" => Timex.now() |> DateTime.to_string()
       }
       |> CBOR.encode()
-      |> Baobab.append_log(id, log_id: 53)
+      |> Baobab.append_log(Catenary.id_for_key(socket.assigns.identity), log_id: 53)
 
     {:noreply, state_set(assign(socket, entry: {Baobab.b62identity(a), l, e}))}
   end
@@ -141,7 +148,6 @@ defmodule CatenaryWeb.Live do
         "new-entry",
         %{
           "body" => body,
-          "identity" => author,
           "log_id" => "533",
           "ref" => ref,
           "title" => title
@@ -179,14 +185,14 @@ defmodule CatenaryWeb.Live do
         "published" => Timex.now() |> DateTime.to_string()
       }
       |> CBOR.encode()
-      |> Baobab.append_log(author, log_id: 533)
+      |> Baobab.append_log(Catenary.id_for_key(socket.assigns.identity), log_id: 533)
 
     {:noreply, assign(socket, entry: {Baobab.b62identity(a), l, e})}
   end
 
   def handle_event(
         "new-entry",
-        %{"body" => body, "identity" => author, "log_id" => "360360", "title" => title},
+        %{"body" => body, "log_id" => "360360", "title" => title},
         socket
       ) do
     # There will be more things to handle in short order, so this looks verbose
@@ -194,7 +200,7 @@ defmodule CatenaryWeb.Live do
     %Baobab.Entry{author: a, log_id: l, seqnum: e} =
       %{"body" => body, "title" => title, "published" => Timex.now() |> DateTime.to_string()}
       |> CBOR.encode()
-      |> Baobab.append_log(author, log_id: 360_360)
+      |> Baobab.append_log(Catenary.id_for_key(socket.assigns.identity), log_id: 360_360)
 
     {:noreply, assign(socket, entry: {Baobab.b62identity(a), l, e})}
   end
@@ -282,7 +288,6 @@ defmodule CatenaryWeb.Live do
           {@ui_fast,
            [
              store: si,
-             identities: Baobab.identities(),
              watering: watering(si)
            ]}
 

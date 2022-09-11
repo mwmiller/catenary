@@ -18,13 +18,14 @@ defmodule Catenary.Indices do
   end
 
   def index_references(stored_info) do
-    :dets.open_file(:refs, file: dets_file("references.dets"), ram_file: true, auto_save: 1000)
+    :dets.open_file(:refs, file: dets_file("references.dets"), auto_save: 1000)
     index(stored_info, Catenary.Quagga.log_ids_for_encoding(:cbor), :refs)
     :dets.close(:refs)
   end
 
   def index_aliases(id) do
-    :dets.open_file(:aliases, file: dets_file("aliases.dets"), ram_file: true, auto_save: 1000)
+    :dets.open_file(:aliases, file: dets_file("aliases.dets"), auto_save: 1000)
+    :dets.delete_all_objects(:aliases)
     index([{id, 53, 1}], Catenary.Quagga.log_ids_for_encoding(:cbor), :aliases)
     :dets.close(:aliases)
   end

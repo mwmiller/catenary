@@ -27,6 +27,11 @@ defmodule Catenary do
     "~" <> string
   end
 
+  def id_for_key(key), do: id_for_key(Baobab.identities(), key)
+  def id_for_key([], key), do: {:error, "No such identity for key " <> key}
+  def id_for_key([{ali, key} | _], key), do: ali
+  def id_for_key([_ | rest], key), do: id_for_key(rest, key)
+
   def identicon(id, type, mag \\ 4) do
     b64 = Excon.ident(id, base64: true, type: type, magnification: mag)
 

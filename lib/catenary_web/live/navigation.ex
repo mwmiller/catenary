@@ -8,7 +8,8 @@ defmodule Catenary.Live.Navigation do
     posts_avail = posts_avail(assigns.entry)
     na = Map.merge(assigns, %{whom: whom, ali: ali, posts_avail: posts_avail})
 
-    {:ok, assign(socket, lower_nav: extra_nav(na))}
+    {:ok,
+     assign(socket, identity: assigns.identity, iconset: assigns.iconset, lower_nav: extra_nav(na))}
   end
 
   @impl true
@@ -34,13 +35,6 @@ defmodule Catenary.Live.Navigation do
     ~L"""
     <div id="posting" class="font-sans">
       <form method="post" id="posting-form" phx-submit="new-entry">
-        <select name="identity" id="select_identity"" class="bg-white dark:bg-black">
-          <%= for {i, b62} <- @identities do %>
-          <option value="<%= i %>"  <%= if @identity == i,  do: "selected" %>>
-          <%= i<> " (" <> Catenary.short_id(b62)<>")" %>
-          </option>
-          <% end %>
-        </select>
         <select name=log_id  class="bg-white dark:bg-black">
           <%= for a <- @posts_avail do %>
           <option value="<%= Quagga.log_id_for_name(a) %>"><%= String.capitalize(Atom.to_string(a)) %></option>
@@ -65,12 +59,6 @@ defmodule Catenary.Live.Navigation do
     <div id="aliases">
       <%= if is_tuple(@entry) do %>
        <form method="post" id="alias-form" phx-submit="new-alias">
-         <select name="identity" id="select_identity" class="bg-white dark:bg-black">
-          <%= for {i, b62} <- @identities do %>
-            <option value="<%= i %>"  <%= if @identity == i,  do: "selected" %>>
-            <%= i<> " (" <> Catenary.short_id(b62)<>")" %>
-            </option>
-          <% end %>
          <input type="hidden" name="ref" value="<%= Catenary.index_to_string(@entry) %>">
          <p>
            <input type="hidden" name="whom" value="<%= @whom %>" />

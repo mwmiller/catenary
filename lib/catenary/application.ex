@@ -3,6 +3,8 @@ defmodule Catenary.Application do
   # for more information on OTP Applications
   @moduledoc false
 
+  require Catenary.MenuMaker
+
   use Application
 
   @impl true
@@ -12,6 +14,8 @@ defmodule Catenary.Application do
     |> Application.get_env(:application_dir, "~/.catenary")
     |> Path.expand()
     |> File.mkdir_p()
+
+    menubar_mod = prepare_menubar("MenuBar", menu_structure())
 
     children = [
       # Start the Telemetry supervisor
@@ -28,7 +32,7 @@ defmodule Catenary.Application do
          title: "Catenary",
          size: {1117, 661},
          id: CatenaryWindow,
-         menubar: Catenary.MenuBar,
+         menubar: menubar_mod,
          url: &CatenaryWeb.Endpoint.url/0
        ]}
     ]
@@ -45,5 +49,42 @@ defmodule Catenary.Application do
   def config_change(changed, _new, removed) do
     CatenaryWeb.Endpoint.config_change(changed, removed)
     :ok
+  end
+
+  def prepare_menubar(name, structure) do
+    full_name = Module.concat("Catenary", name)
+    Catenary.MenuMaker.generate(full_name, structure)
+
+    case Code.ensure_compiled(full_name) do
+      {:module, module} -> module
+      {:error, why} -> raise(why)
+    end
+  end
+
+  defp menu_structure do
+    [
+      {"File",
+       [
+         %{label: "Open dashboard", command: "dashboard", action: %{view: :dashboard}},
+         %{label: "Quit", command: "quit"}
+       ]},
+      {"Explore",
+       [
+         %{label: "Journals", command: "journal", action: %{entry: :journal}},
+         %{label: "Replies", command: "reply", action: %{entry: :reply}},
+         %{label: "Aliases", command: "alias", action: %{entry: :alias}},
+         %{label: "Oases", command: "oasis", action: %{entry: :oasis}},
+         %{label: "Test posts", command: "test", action: %{entry: :test}}
+       ]},
+      {"Icons",
+       [
+         %{label: "Blocky", command: "png", action: %{icons: :png}},
+         %{label: "Curvy", command: "svg", action: %{icons: :svg}}
+       ]},
+      {"Identity",
+       for {i, _} <- Baobab.identities() do
+         %{label: i, command: "id_" <> i, action: %{identity: i}}
+       end}
+    ]
   end
 end
