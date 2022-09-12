@@ -9,8 +9,6 @@ defmodule CatenaryWeb.Live do
     {:asc, :desc, :author, :logid, :seq}
     Phoenix.PubSub.subscribe(Catenary.PubSub, "ui")
 
-    default_icons = :png
-
     entry =
       case connected?(socket) do
         true ->
@@ -27,14 +25,14 @@ defmodule CatenaryWeb.Live do
          store_hash: <<>>,
          store: [],
          ui_speed: @ui_slow,
-         iconset: default_icons,
+         iconset: Catenary.Preferences.get(:iconset),
          extra_nav: :none,
          aliasing: false,
          indexing: false,
          entry: entry,
          connections: [],
          watering: [],
-         identity: Application.get_env(:baby, :identity) |> Baobab.b62identity()
+         identity: Catenary.Preferences.get(:identity) |> Baobab.b62identity()
        )
      )}
   end
@@ -69,14 +67,25 @@ defmodule CatenaryWeb.Live do
   end
 
   def handle_info(%{icons: which}, socket) do
-    {:noreply, assign(socket, iconset: which)}
+    case Catenary.Preferences.set(:iconset, which) do
+      :ok -> {:noreply, assign(socket, iconset: which)}
+      _ -> {:noreply, socket}
+    end
   end
 
   def handle_info(%{identity: who}, socket) do
-    whonow = Baobab.b62identity(who)
-    # Sync is importantish here
-    Catenary.Indices.index_aliases(whonow)
-    {:noreply, assign(socket, identity: whonow)}
+    ns =
+      case Catenary.Preferences.set(:identity, who) do
+        :ok ->
+          whonow = Baobab.b62identity(who)
+          Catenary.Indices.index_aliases(whonow)
+          assign(socket, identity: whonow)
+
+        _ ->
+          socket
+      end
+
+    {:noreply, ns}
   end
 
   def handle_info(%{view: :dashboard}, socket) do

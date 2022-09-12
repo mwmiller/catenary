@@ -68,9 +68,3 @@ config :phoenix, :plug_init_mode, :runtime
 # These should be subsumed into :catenary configs
 # Baobab
 config :baobab, spool_dir: "~/.baobab"
-
-# Baby
-config :baby,
-  identity: "mwm",
-  clump_id: "Quagga",
-  port: 8483

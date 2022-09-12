@@ -15,9 +15,11 @@ defmodule Catenary.Application do
     |> Path.expand()
     |> File.mkdir_p()
 
-    menubar_mod = prepare_menubar("MenuBar", menu_structure())
+    whoami = Catenary.Preferences.get(:identity)
+    clump_id = Catenary.Preferences.get(:clump_id)
 
     children = [
+      {Baby.Application, [identity: whoami, clump_id: clump_id]},
       # Start the Telemetry supervisor
       CatenaryWeb.Telemetry,
       # Start the PubSub system
@@ -32,7 +34,7 @@ defmodule Catenary.Application do
          title: "Catenary",
          size: {1117, 661},
          id: CatenaryWindow,
-         menubar: menubar_mod,
+         menubar: prepare_menubar("MenuBar", menu_structure()),
          url: &CatenaryWeb.Endpoint.url/0
        ]}
     ]
