@@ -8,26 +8,17 @@ defmodule Catenary.Indices do
   for these.  We have no idea what to do if we fail.
   """
 
-  defp dets_file(name) do
-    Path.join([
-      Application.get_env(:catenary, :application_dir, "~/.catenary"),
-      name
-    ])
-    |> Path.expand()
-    |> to_charlist
-  end
-
   def index_references(stored_info) do
-    :dets.open_file(:refs, file: dets_file("references.dets"), auto_save: 1000)
+    Catenary.dets_open(:refs)
     index(stored_info, Catenary.Quagga.log_ids_for_encoding(:cbor), :refs)
-    :dets.close(:refs)
+    Catenary.dets_close(:refs)
   end
 
   def index_aliases(id) do
-    :dets.open_file(:aliases, file: dets_file("aliases.dets"), auto_save: 1000)
+    Catenary.dets_open(:aliases)
     :dets.delete_all_objects(:aliases)
     index([{id, 53, 1}], Catenary.Quagga.log_ids_for_encoding(:cbor), :aliases)
-    :dets.close(:aliases)
+    Catenary.dets_close(:aliases)
   end
 
   defp index([], _, _), do: :ok

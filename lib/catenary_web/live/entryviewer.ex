@@ -89,15 +89,7 @@ defmodule Catenary.Live.EntryViewer do
           _ -> :unknown
         end
 
-      filename =
-        Path.join([
-          Application.get_env(:catenary, :application_dir, "~/.catenary"),
-          "references.dets"
-        ])
-        |> Path.expand()
-        |> to_charlist
-
-      :dets.open_file(:refs, file: filename)
+      Catenary.dets_open(:refs)
 
       forward_refs =
         case :dets.lookup(:refs, entry) do
@@ -105,7 +97,7 @@ defmodule Catenary.Live.EntryViewer do
           [{^entry, vals}] -> vals
         end
 
-      :dets.close(:refs)
+      Catenary.dets_close(:refs)
       extract_type(payload, a, l, forward_refs)
     rescue
       e ->

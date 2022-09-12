@@ -5,16 +5,10 @@ defmodule Catenary do
   Contexts are also responsible for managing your data, regardless
   if it comes from the database, an external API or others.
   """
-  def short_id(id) do
-    filename =
-      Path.join([
-        Application.get_env(:catenary, :application_dir, "~/.catenary"),
-        "aliases.dets"
-      ])
-      |> Path.expand()
-      |> to_charlist
+  @dets_tables %{aliases: "aliases.dets", refs: "references.dets", prefs: "preferences.dets"}
 
-    :dets.open_file(:aliases, file: filename)
+  def short_id(id) do
+    dets_open(:aliases)
 
     string =
       case :dets.lookup(:aliases, id) do
@@ -22,7 +16,7 @@ defmodule Catenary do
         _ -> String.slice(id, 0..15)
       end
 
-    :dets.close(:aliases)
+    dets_close(:aliases)
 
     "~" <> string
   end
@@ -52,4 +46,19 @@ defmodule Catenary do
     [a, l, e] = string |> String.split("⋀")
     {a, String.to_integer(l), String.to_integer(e)}
   end
+
+  def dets_open(table) do
+    filename =
+      Path.join([
+        Application.get_env(:catenary, :application_dir, "~/.catenary"),
+        Map.fetch!(@dets_tables, table)
+      ])
+      |> Path.expand()
+      |> to_charlist
+
+    :dets.open_file(table, file: filename)
+  end
+
+  # For symmetry, but maybe we'll have something we want to do here.
+  def dets_close(table), do: :dets.close(table)
 end
