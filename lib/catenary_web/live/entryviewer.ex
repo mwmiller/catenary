@@ -61,7 +61,7 @@ defmodule Catenary.Live.EntryViewer do
       <div class="min-w-full font-sans row-span-full">
         <img class = "float-left m-3" src="<%= Catenary.identicon(@card["author"], @iconset, 8) %>">
           <h1><%= @card["title"] %></h1>
-          <p class="text-sm font-light"><%= Catenary.short_id(@card["author"]) %> &mdash; <%= @card["published"] %></p>
+          <p class="text-sm font-light"><button phx-click="view-entry" value="<%= Catenary.index_to_string({@card["author"],0,0})%>"><%= Catenary.short_id(@card["author"]) %></button> &mdash; <%= @card["published"] %></p>
           <p>
           <%= for {a,_,_} = entry <- @card["back-refs"] do %>
             <button value="<%= Catenary.index_to_string(entry) %>" phx-click="view-entry"><img src="<%= Catenary.identicon(a, @iconset, 2) %>"></button>&nbsp;
@@ -78,6 +78,38 @@ defmodule Catenary.Live.EntryViewer do
       </div>
       </div>
     """
+  end
+
+  # This is to create an identity "profile", but it'll also
+  # give "something" when thing's go sideways
+  def extract({a, l, e}) when l < 0 or e < 1 do
+    # We don't want to have the store in the assigns
+    # just for this.  Extra rendering overhead
+    body =
+      Baobab.stored_info()
+      |> Enum.filter(fn {author, _, _} -> author == a end)
+      |> Enum.reduce("<ul>", fn entry, a ->
+        a <>
+          case Catenary.Quagga.log_def(elem(entry, 1)) do
+            %{name: na} ->
+              "<li><button value=\"" <>
+                Catenary.index_to_string(entry) <>
+                "\" phx-click=\"view-entry\">" <>
+                String.capitalize(Atom.to_string(na)) <> "</button></li>"
+
+            _ ->
+              ""
+          end
+      end)
+
+    %{
+      "author" => a,
+      "title" => "Activity",
+      "fore-refs" => [],
+      "back-refs" => [],
+      "body" => Phoenix.HTML.raw(body <> "</ul>"),
+      "published" => "latest known"
+    }
   end
 
   def extract({a, l, e} = entry) do
