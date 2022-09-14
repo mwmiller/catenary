@@ -229,22 +229,30 @@ defmodule CatenaryWeb.Live do
     which =
       Application.get_env(:catenary, :fallback_node, host: "sally.nftease.online", port: 8483)
 
-    {:ok, pid} = Baby.connect(Keyword.get(which, :host), Keyword.get(which, :port))
-    {:noreply, state_set(assign(socket, connections: [{pid, %{}} | socket.assigns.connections]))}
+    case Baby.connect(Keyword.get(which, :host), Keyword.get(which, :port)) do
+      {:ok, pid} ->
+        {:noreply,
+         state_set(assign(socket, connections: [{pid, %{}} | socket.assigns.connections]))}
+
+      _ ->
+        {:noreply, socket}
+    end
   end
 
   def handle_event("connect", %{"value" => where}, socket) do
-    {a, l, e} = index = Catenary.string_to_index(where)
-
-    %Baobab.Entry{payload: payload} = Baobab.log_entry(a, e, log_id: l)
-
-    {:ok, map, ""} = CBOR.decode(payload)
-    {:ok, pid} = Baby.connect(map["host"], map["port"])
-
-    {:noreply,
-     state_set(
-       assign(socket, connections: [{pid, Map.put(map, :id, index)} | socket.assigns.connections])
-     )}
+    with {a, l, e} = index <- Catenary.string_to_index(where),
+         %Baobab.Entry{payload: payload} <- Baobab.log_entry(a, e, log_id: l),
+         {:ok, map, ""} <- CBOR.decode(payload),
+         {:ok, pid} <- Baby.connect(map["host"], map["port"]) do
+      {:noreply,
+       state_set(
+         assign(socket,
+           connections: [{pid, Map.put(map, :id, index)} | socket.assigns.connections]
+         )
+       )}
+    else
+      _ -> {:noreply, socket}
+    end
   end
 
   def handle_event("nav", %{"value" => move}, socket) do
