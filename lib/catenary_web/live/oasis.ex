@@ -5,7 +5,7 @@ defmodule Catenary.Live.OasisBox do
     {:ok,
      assign(socket,
        aliasing: assigns.aliasing,
-       indexing: assigns.indexing,
+       reffing: assigns.reffing,
        nodes: assigns.watering,
        iconset: assigns.iconset,
        connected: Enum.map(assigns.connections, &id_mapper/1)
@@ -31,7 +31,7 @@ defmodule Catenary.Live.OasisBox do
 
         </div>
       <% end %>
-        <p class="text-center"><%= if @indexing, do: "𝍂", else: "∴" %>&nbsp;<%= if @aliasing, do: "⍱", else: "⍲" %></p>
+        <p class="text-center"><%= if @reffing == :not_running, do: "※", else: "𝍂" %>&nbsp;<%= if @aliasing == :not_running, do: "⍱", else: "⍲" %></p>
     </div>
     """
   end

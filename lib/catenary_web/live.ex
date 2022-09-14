@@ -27,8 +27,8 @@ defmodule CatenaryWeb.Live do
          ui_speed: @ui_slow,
          iconset: Catenary.Preferences.get(:iconset),
          extra_nav: :none,
-         aliasing: false,
-         indexing: false,
+         aliasing: :not_running,
+         reffing: :not_running,
          entry: entry,
          connections: [],
          watering: [],
@@ -58,7 +58,7 @@ defmodule CatenaryWeb.Live do
     </div>
     <div>
       <%= live_component(Catenary.Live.Ident, id: :ident, identity: @identity, iconset: @iconset) %>
-      <%= live_component(Catenary.Live.OasisBox, id: :recents, indexing: @indexing, aliasing: @aliasing, connections: @connections, watering: @watering, iconset: @iconset) %>
+      <%= live_component(Catenary.Live.OasisBox, id: :recents, reffing: @reffing, aliasing: @aliasing, connections: @connections, watering: @watering, iconset: @iconset) %>
       <%= live_component(Catenary.Live.Navigation, id: :nav,
       entry: @entry, extra_nav: @extra_nav, identity: @identity, iconset: @iconset) %>
     </div>
@@ -303,11 +303,11 @@ defmodule CatenaryWeb.Live do
     curr = si |> CBOR.encode() |> Blake2.hash2b()
     updated? = curr != state.store_hash
 
-    dex = check_refindex(state.indexing, updated?, si)
+    ref = check_refindex(state.reffing, updated?, si)
     ali = check_aliases(state.aliasing, updated?, state.identity)
     con = check_connections(state.connections, [])
 
-    common = [indexing: dex, connections: con, store_hash: curr, aliasing: ali]
+    common = [reffing: ref, connections: con, store_hash: curr, aliasing: ali]
 
     {ui_speed, extra} =
       case updated? do
@@ -320,8 +320,8 @@ defmodule CatenaryWeb.Live do
 
         false ->
           speed =
-            case {dex, ali, con} do
-              {false, false, []} -> @ui_slow
+            case {ref, ali, con} do
+              {:not_running, :not_running, []} -> @ui_slow
               _ -> @ui_fast
             end
 
@@ -332,32 +332,30 @@ defmodule CatenaryWeb.Live do
     assign(socket, common ++ extra)
   end
 
-  defp check_aliases(pid, _new, _data) when is_pid(pid) do
+  defp check_aliases(pid, new, data) when is_pid(pid) do
     case Process.alive?(pid) do
       true -> pid
-      false -> false
+      false -> check_aliases(:not_running, new, data)
     end
   end
 
-  defp check_aliases(false, false, _data), do: false
+  defp check_aliases(:not_running, false, _data), do: :not_running
 
-  defp check_aliases(false, true, id) do
+  defp check_aliases(:not_running, true, id) do
     {:ok, pid} = Task.start(Catenary.Indices, :index_aliases, [id])
     pid
   end
 
-  # We can wait an extra cycle for another
-  # reindexing if needed
-  defp check_refindex(pid, _new, _si) when is_pid(pid) do
+  defp check_refindex(pid, new, si) when is_pid(pid) do
     case Process.alive?(pid) do
       true -> pid
-      false -> false
+      false -> check_refindex(:not_running, new, si)
     end
   end
 
-  defp check_refindex(false, false, _si), do: false
+  defp check_refindex(:not_running, false, _si), do: :not_running
 
-  defp check_refindex(false, true, si) do
+  defp check_refindex(:not_running, true, si) do
     {:ok, pid} = Task.start(Catenary.Indices, :index_references, [si])
     pid
   end
