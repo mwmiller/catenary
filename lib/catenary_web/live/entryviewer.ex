@@ -62,15 +62,7 @@ defmodule Catenary.Live.EntryViewer do
         <img class = "float-left m-3" src="<%= Catenary.identicon(@card["author"], @iconset, 8) %>">
           <h1><%= @card["title"] %></h1>
           <p class="text-sm font-light"><%= Catenary.linked_author(@card["author"]) %> &mdash; <%= @card["published"] %></p>
-          <p>
-          <%= for {a,_,_} = entry <- @card["back-refs"] do %>
-            <button value="<%= Catenary.index_to_string(entry) %>" phx-click="view-entry"><img src="<%= Catenary.identicon(a, @iconset, 2) %>"></button>&nbsp;
-          <% end %>
-              ↹
-          <%= for {a,_,_} = entry <- @card["fore-refs"] do %>
-              <button value="<%= Catenary.index_to_string(entry) %>" phx-click="view-entry"><img src="<%= Catenary.identicon(a, @iconset, 2) %>"></button>&nbsp;
-          <% end %>
-        </p>
+          <p><%= icon_entries(@card["back-refs"], @iconset) %>&nbsp;↹&nbsp;<%= icon_entries(@card["fore-refs"], @iconset) %></p>
         <hr/>
         <br/>
         <div class="font-light">
@@ -81,11 +73,7 @@ defmodule Catenary.Live.EntryViewer do
             <div class="flex-auto text-xs text-orange-600 dark:text-amber-200"><%= tname %></div>
           <% end %>
             <hr/>
-            <div class="flex-auto">
-            <%= for {a,_,_} = entry <- @card["tagged-in"] do %>
-            <button value="<%= Catenary.index_to_string(entry) %>" phx-click="view-entry"><img src="<%= Catenary.identicon(a, @iconset, 2) %>"></button>&nbsp;
-            <% end %>
-              </div>
+            <div class="flex-auto"><%= icon_entries(@card["tagged-in"], @iconset) %></div>
         </div>
       </div>
     """
@@ -332,5 +320,20 @@ defmodule Catenary.Live.EntryViewer do
     {tags, others} = entry |> from_dets(:refs) |> Enum.split_with(fn {_, l, _} -> l == 749 end)
 
     %{"tagged-in" => tags, "fore-refs" => others}
+  end
+
+  defp icon_entries(list, icons, acc \\ "")
+  defp icon_entries([], _icons, acc), do: Phoenix.HTML.raw(acc)
+
+  defp icon_entries([{a, _, _} = entry | rest], icons, acc) do
+    icon_entries(
+      rest,
+      icons,
+      acc <>
+        "<button value=\"" <>
+        Catenary.index_to_string(entry) <>
+        "\" phx-click=\"view-entry\"><img src=\"" <>
+        Catenary.identicon(a, icons, 2) <> "\"></button>&nbsp;"
+    )
   end
 end
