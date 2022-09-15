@@ -80,6 +80,12 @@ defmodule Catenary.Live.EntryViewer do
           <%= for tname <- @card["tags"] do %>
             <div class="flex-auto text-xs text-orange-600 dark:text-amber-200"><%= tname %></div>
           <% end %>
+            <hr/>
+            <div class="flex-auto">
+            <%= for {a,_,_} = entry <- @card["tagged-in"] do %>
+            <button value="<%= Catenary.index_to_string(entry) %>" phx-click="view-entry"><img src="<%= Catenary.identicon(a, @iconset, 2) %>"></button>&nbsp;
+            <% end %>
+              </div>
         </div>
       </div>
     """
@@ -112,6 +118,7 @@ defmodule Catenary.Live.EntryViewer do
       "title" => "Activity",
       "fore-refs" => [],
       "back-refs" => [],
+      "tagged-in" => [],
       "tags" => [],
       "body" => Phoenix.HTML.raw(body <> "</ul>"),
       "published" => "latest known"
@@ -127,11 +134,14 @@ defmodule Catenary.Live.EntryViewer do
           _ -> :unknown
         end
 
-      base = %{
-        "author" => a,
-        "fore-refs" => from_dets(entry, :refs),
-        "tags" => from_dets(entry, :tags)
-      }
+      base =
+        Map.merge(
+          %{
+            "author" => a,
+            "tags" => from_dets(entry, :tags)
+          },
+          from_refs(entry)
+        )
 
       Map.merge(extract_type(payload, l), base)
     rescue
@@ -316,5 +326,11 @@ defmodule Catenary.Live.EntryViewer do
 
     Catenary.dets_close(table)
     val
+  end
+
+  defp from_refs(entry) do
+    {tags, others} = entry |> from_dets(:refs) |> Enum.split_with(fn {_, l, _} -> l == 749 end)
+
+    %{"tagged-in" => tags, "fore-refs" => others}
   end
 end
