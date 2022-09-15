@@ -327,7 +327,7 @@ defmodule CatenaryWeb.Live do
           prev_author({a, l, e}, socket)
 
         "origin" ->
-          self_random(socket.assigns)
+          self_prof(socket.assigns)
 
         _ ->
           {a, l, e}
@@ -484,17 +484,7 @@ defmodule CatenaryWeb.Live do
     end
   end
 
-  defp self_random(assigns) do
-    whoami = Baobab.b62identity(assigns.identity)
-
-    possibles =
-      case assigns.store |> Enum.filter(fn {a, _, _} -> a == whoami end) do
-        [] -> assigns.store
-        ents -> ents
-      end
-
-    Enum.random(possibles)
-  end
+  defp self_prof(assigns), do: {assigns.identity, -1, 0}
 
   defp next_author({author, log_id, seq}, socket) do
     possibles =

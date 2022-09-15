@@ -17,7 +17,7 @@ defmodule Catenary.Live.Navigation do
     ~L"""
     <div class="align-top min-w-full font-sans">
       <div class="text-xl">
-        <button value="origin" phx-click="nav">⌱</button>
+        <button value="origin" phx-click="nav"><img src="<%= Catenary.identicon(@identity, @iconset, 2) %>"></button>
         <button value="prev-author" phx-click="nav">⇧</button>
         <button value="prev-entry" phx-click="nav">☚</button>
         <button value="next-entry" phx-click="nav">☛</button>
