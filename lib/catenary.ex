@@ -5,7 +5,12 @@ defmodule Catenary do
   Contexts are also responsible for managing your data, regardless
   if it comes from the database, an external API or others.
   """
-  @dets_tables %{aliases: "aliases.dets", refs: "references.dets", prefs: "preferences.dets"}
+  @dets_tables %{
+    aliases: "aliases.dets",
+    refs: "references.dets",
+    prefs: "preferences.dets",
+    tags: "tags.dets"
+  }
 
   def short_id(id) do
     dets_open(:aliases)

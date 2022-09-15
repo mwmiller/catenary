@@ -17,25 +17,59 @@ defmodule Catenary.Indices do
   def index_aliases(id) do
     Catenary.dets_open(:aliases)
     :dets.delete_all_objects(:aliases)
-    index([{id, 53, 1}], Catenary.Quagga.log_ids_for_encoding(:cbor), :aliases)
+    index([{id, 53, 1}], [53], :aliases)
     Catenary.dets_close(:aliases)
+  end
+
+  def index_tags(stored_info) do
+    Catenary.dets_open(:tags)
+    index(stored_info, [749], :tags)
+    Catenary.dets_close(:tags)
   end
 
   defp index([], _, _), do: :ok
 
-  defp index([{a, l, _} | rest], cbors, which) do
+  defp index([{a, l, _} | rest], log_ids, which) do
     # Side-effects everywhere!
-    case l in cbors do
+    case l in log_ids do
       true -> entries_index(Baobab.full_log(a, log_id: l), which)
       false -> :ok
     end
 
-    index(rest, cbors, which)
+    index(rest, log_ids, which)
   end
 
   # This could maybe give up on a CBOR failure, eventurally
   # Right now we have a lot of mixed types
   defp entries_index([], _), do: :ok
+
+  defp entries_index([entry | rest], :tags) do
+    # This is a two-way index
+    try do
+      %Baobab.Entry{payload: payload} = entry
+      {:ok, data, ""} = CBOR.decode(payload)
+      tags = data["tags"]
+      [ent] = data["references"]
+      e = List.to_tuple(ent)
+      # Tags for entry
+      case :dets.lookup(:tags, e) do
+        [] -> :dets.insert(:tags, {e, tags})
+        [{^e, val}] -> :dets.insert(:tags, {e, Enum.uniq(val ++ tags)})
+      end
+
+      # Entries for tag
+      for tag <- tags do
+        case :dets.lookup(:tags, tag) do
+          [] -> :dets.insert(:tags, {tag, [e]})
+          [{^tag, val}] -> :dets.insert(:tags, {tag, Enum.uniq(val ++ [e])})
+        end
+      end
+    rescue
+      _ -> :ok
+    end
+
+    entries_index(rest, :tags)
+  end
 
   defp entries_index([entry | rest], :aliases) do
     try do

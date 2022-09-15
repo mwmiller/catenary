@@ -75,7 +75,12 @@ defmodule Catenary.Live.EntryViewer do
         <br/>
         <div class="font-light">
         <%= @card["body"] %>
-      </div>
+        </div>
+        <div class="flex flex-row mt-10 space-x-4" text-xs>
+          <%= for tname <- @card["tags"] do %>
+            <div class="flex-auto text-xs text-orange-600 dark:text-amber-200"><%= tname %></div>
+          <% end %>
+        </div>
       </div>
     """
   end
@@ -107,6 +112,7 @@ defmodule Catenary.Live.EntryViewer do
       "title" => "Activity",
       "fore-refs" => [],
       "back-refs" => [],
+      "tags" => [],
       "body" => Phoenix.HTML.raw(body <> "</ul>"),
       "published" => "latest known"
     }
@@ -121,16 +127,13 @@ defmodule Catenary.Live.EntryViewer do
           _ -> :unknown
         end
 
-      Catenary.dets_open(:refs)
+      base = %{
+        "author" => a,
+        "fore-refs" => from_dets(entry, :refs),
+        "tags" => from_dets(entry, :tags)
+      }
 
-      forward_refs =
-        case :dets.lookup(:refs, entry) do
-          [] -> []
-          [{^entry, vals}] -> vals
-        end
-
-      Catenary.dets_close(:refs)
-      extract_type(payload, a, l, forward_refs)
+      Map.merge(extract_type(payload, l), base)
     rescue
       e ->
         Logger.warn(e)
@@ -138,45 +141,38 @@ defmodule Catenary.Live.EntryViewer do
     end
   end
 
-  defp extract_type(:missing, a, _, forward_refs) do
+  defp extract_type(:missing, _) do
     %{
-      "author" => a,
       "title" => "Missing Post",
-      "fore-refs" => forward_refs,
       "back-refs" => [],
       "body" => "This may become available as you sync with more peers.",
       "published" => "unknown publication"
     }
   end
 
-  defp extract_type(:unknown, a, _, forward_refs) do
+  defp extract_type(:unknown, _) do
     %{
-      "author" => a,
       "title" => "Loading Error",
-      "fore-refs" => forward_refs,
       "back-refs" => [],
       "body" => "This should never happen to you.",
       "published" => "corrupted?"
     }
   end
 
-  defp extract_type(text, a, 0, forward_refs) do
+  defp extract_type(text, 0) do
     %{
-      "author" => a,
       "title" => "Test Post, Please Ignore",
-      "fore-refs" => forward_refs,
       "back-refs" => [],
       "body" => maybe_text(text),
       "published" => "in a testing period"
     }
   end
 
-  defp extract_type(cbor, a, 53, forward_refs) do
+  defp extract_type(cbor, 53) do
     try do
       {:ok, data, ""} = CBOR.decode(cbor)
 
       %{
-        "author" => a,
         "title" => "Alias: ~" <> data["alias"],
         "body" =>
           Phoenix.HTML.raw(
@@ -184,7 +180,6 @@ defmodule Catenary.Live.EntryViewer do
               Catenary.short_id(data["whom"]) <>
               "<br/>Full key: " <> data["whom"]
           ),
-        "fore-refs" => forward_refs,
         "back-refs" => maybe_refs(data["references"]),
         "published" => data["published"] |> nice_time
       }
@@ -193,9 +188,7 @@ defmodule Catenary.Live.EntryViewer do
         differ = cbor |> Blake2.hash2b(5) |> BaseX.Base62.encode()
 
         %{
-          "author" => a,
           "title" => "Legacy Alias",
-          "fore-refs" => forward_refs,
           "back-refs" => [],
           "body" => maybe_text(cbor),
           "published" => "long ago: " <> differ
@@ -203,15 +196,13 @@ defmodule Catenary.Live.EntryViewer do
     end
   end
 
-  defp extract_type(cbor, a, 8483, forward_refs) do
+  defp extract_type(cbor, 8483) do
     try do
       {:ok, data, ""} = CBOR.decode(cbor)
 
       %{
-        "author" => a,
         "title" => "Oasis: " <> data["name"],
         "body" => data["host"] <> ":" <> Integer.to_string(data["port"]),
-        "fore-refs" => forward_refs,
         "back-refs" => maybe_refs(data["references"]),
         "published" => data["running"] |> nice_time
       }
@@ -220,9 +211,7 @@ defmodule Catenary.Live.EntryViewer do
         differ = cbor |> Blake2.hash2b(5) |> BaseX.Base62.encode()
 
         %{
-          "author" => a,
           "title" => "Legacy Oasis",
-          "fore-refs" => forward_refs,
           "back-refs" => [],
           "body" => maybe_text(cbor),
           "published" => "long ago: " <> differ
@@ -230,36 +219,31 @@ defmodule Catenary.Live.EntryViewer do
     end
   end
 
-  defp extract_type(cbor, a, 360_360, forward_refs) do
+  defp extract_type(cbor, 360_360) do
     try do
       {:ok, data, ""} = CBOR.decode(cbor)
 
       Map.merge(data, %{
-        "author" => a,
         "body" => data["body"] |> Earmark.as_html!() |> Phoenix.HTML.raw(),
-        "fore-refs" => forward_refs,
         "back-refs" => maybe_refs(data["references"]),
         "published" => nice_time(data["published"])
       })
     rescue
       _ ->
         %{
-          "author" => a,
           "title" => "Malformed Entry",
           "body" => maybe_text(cbor),
-          "references" => {[], forward_refs},
+          "back-refs" => [],
           "published" => "unknown"
         }
     end
   end
 
-  defp extract_type(cbor, a, 533, forward_refs) do
+  defp extract_type(cbor, 533) do
     try do
       {:ok, data, ""} = CBOR.decode(cbor)
 
       Map.merge(data, %{
-        "author" => a,
-        "fore-refs" => forward_refs,
         "back-refs" => maybe_refs(data["references"]),
         "body" => data["body"] |> Earmark.as_html!() |> Phoenix.HTML.raw(),
         "published" => data["published"] |> nice_time
@@ -267,9 +251,28 @@ defmodule Catenary.Live.EntryViewer do
     rescue
       _ ->
         %{
-          "author" => a,
           "title" => "Malformed Entry",
-          "fore-refs" => forward_refs,
+          "back-refs" => [],
+          "body" => maybe_text(cbor),
+          "published" => "unknown"
+        }
+    end
+  end
+
+  defp extract_type(cbor, 749) do
+    try do
+      {:ok, data, ""} = CBOR.decode(cbor)
+
+      Map.merge(data, %{
+        "title" => "Tagging",
+        "back-refs" => maybe_refs(data["references"]),
+        "body" => data["tags"] |> Enum.join(", ") |> Phoenix.HTML.raw(),
+        "published" => data["published"] |> nice_time
+      })
+    rescue
+      _ ->
+        %{
+          "title" => "Malformed Entry",
           "back-refs" => [],
           "body" => maybe_text(cbor),
           "published" => "unknown"
@@ -300,5 +303,18 @@ defmodule Catenary.Live.EntryViewer do
 
   defp maybe_refs([r | rest], acc) do
     maybe_refs(rest, [List.to_tuple(r) | acc])
+  end
+
+  defp from_dets(entry, table) do
+    Catenary.dets_open(table)
+
+    val =
+      case :dets.lookup(table, entry) do
+        [] -> []
+        [{^entry, v}] -> v
+      end
+
+    Catenary.dets_close(table)
+    val
   end
 end

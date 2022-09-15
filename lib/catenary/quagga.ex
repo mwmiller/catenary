@@ -7,6 +7,7 @@ defmodule Catenary.Quagga do
     0 => %{encoding: :raw, type: "text/plain", name: :test},
     53 => %{encoding: :cbor, type: :map, name: :alias},
     533 => %{encoding: :cbor, type: :map, name: :reply},
+    749 => %{encoding: :cbor, type: :map, name: :tag},
     8483 => %{encoding: :cbor, type: :map, name: :oasis},
     360_360 => %{encoding: :cbor, type: :map, name: :journal},
     808_001 => %{encoding: :raw, type: "image/jpg", name: :jpg},
@@ -25,6 +26,6 @@ defmodule Catenary.Quagga do
   def log_ids_for_encoding(e), do: Map.get(@encoding_to_logs, e, [])
 
   # This should work off the def, but I need more metadata and
-  # I am cranky this morning.
-  def log_type(), do: [:test, :oasis, :journal] |> Enum.random()
+  # I am still cranky this morning.
+  def log_type(), do: [:reply, :journal] |> Enum.random()
 end

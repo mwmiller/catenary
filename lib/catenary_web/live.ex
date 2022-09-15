@@ -29,6 +29,7 @@ defmodule CatenaryWeb.Live do
          extra_nav: :none,
          aliasing: :not_running,
          reffing: :not_running,
+         tagging: :not_running,
          entry: entry,
          connections: [],
          watering: [],
@@ -58,7 +59,7 @@ defmodule CatenaryWeb.Live do
     </div>
     <div>
       <%= live_component(Catenary.Live.Ident, id: :ident, identity: @identity, iconset: @iconset) %>
-      <%= live_component(Catenary.Live.OasisBox, id: :recents, reffing: @reffing, aliasing: @aliasing, connections: @connections, watering: @watering, iconset: @iconset) %>
+      <%= live_component(Catenary.Live.OasisBox, id: :recents, reffing: @reffing, aliasing: @aliasing, tagging: @tagging, connections: @connections, watering: @watering, iconset: @iconset) %>
       <%= live_component(Catenary.Live.Navigation, id: :nav,
       entry: @entry, extra_nav: @extra_nav, identity: @identity, iconset: @iconset) %>
     </div>
@@ -120,8 +121,42 @@ defmodule CatenaryWeb.Live do
     {:noreply, assign(socket, extra_nav: show_now)}
   end
 
+  def handle_event("toggle-tags", _, socket) do
+    show_now =
+      case socket.assigns.extra_nav do
+        :tags -> :none
+        _ -> :tags
+      end
+
+    {:noreply, assign(socket, extra_nav: show_now)}
+  end
+
   def handle_event("view-entry", %{"value" => index_string}, socket) do
     {:noreply, assign(socket, entry: Catenary.string_to_index(index_string))}
+  end
+
+  def handle_event(
+        "new-tag",
+        %{"ref" => ref, "tag0" => tag0, "tag1" => tag1, "tag2" => tag2, "tag3" => tag3},
+        socket
+      ) do
+    tags = Enum.reject([tag0, tag1, tag2, tag3], fn s -> s == "" end)
+    references = Catenary.string_to_index(ref)
+
+    %Baobab.Entry{author: a, log_id: l, seqnum: e} =
+      %{
+        "references" => [references],
+        "tags" => tags,
+        "published" => Timex.now() |> DateTime.to_string()
+      }
+      |> CBOR.encode()
+      |> Baobab.append_log(Catenary.id_for_key(socket.assigns.identity), log_id: 749)
+
+    b62author = Baobab.b62identity(a)
+    entry = {b62author, l, e}
+    Catenary.Indices.index_tags([entry])
+    Catenary.Indices.index_references([entry])
+    {:noreply, state_set(assign(socket, entry: entry))}
   end
 
   def handle_event(
@@ -304,10 +339,11 @@ defmodule CatenaryWeb.Live do
     updated? = curr != state.store_hash
 
     ref = check_refindex(state.reffing, updated?, si)
+    tag = check_tags(state.tagging, updated?, si)
     ali = check_aliases(state.aliasing, updated?, state.identity)
     con = check_connections(state.connections, [])
 
-    common = [reffing: ref, connections: con, store_hash: curr, aliasing: ali]
+    common = [reffing: ref, tagging: tag, connections: con, store_hash: curr, aliasing: ali]
 
     {ui_speed, extra} =
       case updated? do
@@ -320,8 +356,8 @@ defmodule CatenaryWeb.Live do
 
         false ->
           speed =
-            case {ref, ali, con} do
-              {:not_running, :not_running, []} -> @ui_slow
+            case {ref, ali, tag, con} do
+              {:not_running, :not_running, :not_running, []} -> @ui_slow
               _ -> @ui_fast
             end
 
@@ -343,6 +379,20 @@ defmodule CatenaryWeb.Live do
 
   defp check_aliases(:not_running, true, id) do
     {:ok, pid} = Task.start(Catenary.Indices, :index_aliases, [id])
+    pid
+  end
+
+  defp check_tags(pid, new, data) when is_pid(pid) do
+    case Process.alive?(pid) do
+      true -> pid
+      false -> check_tags(:not_running, new, data)
+    end
+  end
+
+  defp check_tags(:not_running, false, _si), do: :not_running
+
+  defp check_tags(:not_running, true, si) do
+    {:ok, pid} = Task.start(Catenary.Indices, :index_tags, [si])
     pid
   end
 

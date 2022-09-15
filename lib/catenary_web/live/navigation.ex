@@ -24,6 +24,7 @@ defmodule Catenary.Live.Navigation do
         <button value="next-author" phx-click="nav">⇩</button>
         <button phx-click="toggle-posting">✎</button>
         <button phx-click="toggle-aliases">∼</button>
+        <button phx-click="toggle-tags">#</button>
       </div>
       <br/>
       <%= @lower_nav %>
@@ -74,6 +75,27 @@ defmodule Catenary.Live.Navigation do
          </div>
          <label for="alias">～</label>
          <input class="bg-white dark:bg-black" name="alias" value="<%= @ali %>" type="text" size="16" />
+         <hr/>
+         <button phx-disable-with="𝄇" type="submit">➲</button>
+       </form>
+      <% else %>
+          ‽
+      <% end %>
+    </div>
+    """
+  end
+
+  defp extra_nav(%{:extra_nav => :tags} = assigns) do
+    ~L"""
+    <div id="tags">
+      <%= if is_tuple(@entry) do %>
+       <form method="post" id="tag-form" phx-submit="new-tag">
+         <input type="hidden" name="ref" value="<%= Catenary.index_to_string(@entry) %>">
+         <p>
+           <%= for n <- 0..3 do %>
+             <label for="tag<%= n %>">#</label>
+        <input class="bg-white dark:bg-black" name="tag<%= n %>" type="text" size="16" /><br/>
+        <% end %>
          <hr/>
          <button phx-disable-with="𝄇" type="submit">➲</button>
        </form>
