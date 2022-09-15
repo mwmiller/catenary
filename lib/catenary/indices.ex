@@ -8,6 +8,16 @@ defmodule Catenary.Indices do
   for these.  We have no idea what to do if we fail.
   """
 
+  def clear_all() do
+    # This information is all over the place. :(
+    # One source of truth
+    for table <- [:refs, :tags, :aliases] do
+      Catenary.dets_open(table)
+      :dets.delete_all_objects(table)
+      Catenary.dets_close(table)
+    end
+  end
+
   def index_references(stored_info) do
     Catenary.dets_open(:refs)
     index(stored_info, Catenary.Quagga.log_ids_for_encoding(:cbor), :refs)

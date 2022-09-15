@@ -18,6 +18,11 @@ defmodule Catenary.Application do
     whoami = Catenary.Preferences.get(:identity)
     clump_id = Catenary.Preferences.get(:clump_id)
 
+    # I need a better signal for when to do this
+    # but the store is mutable by others
+    # slower start up tradeoff for now
+    Catenary.Indices.clear_all()
+
     children = [
       {Baby.Application, [identity: whoami, clump_id: clump_id]},
       # Start the Telemetry supervisor
