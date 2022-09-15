@@ -21,7 +21,7 @@ defmodule Catenary.Live.OasisBox do
         0 ->  "bg-emerald-200 dark:bg-cyan-700"
         1 -> "bg-emerald-400 dark:bg-sky-700"
       end %>"><img class="m-1 float-right align-middle" src="<%= Catenary.identicon(elem(recent.id, 0), @iconset, 2)%>">
-        <p><%= recent["name"] %> (<%= Catenary.short_id(elem(recent.id, 0)) %>)
+        <p><%= recent["name"] %> (<%= Catenary.linked_author(elem(recent.id, 0)) %>)
         <%= if recent.id in @connected do %>
           ⥀
         <% else %>

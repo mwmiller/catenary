@@ -47,6 +47,15 @@ defmodule Catenary do
     {a, String.to_integer(l), String.to_integer(e)}
   end
 
+  def linked_author({a, _, _}), do: linked_author(a)
+
+  def linked_author(a) do
+    Phoenix.HTML.raw(
+      "<button phx-click=\"view-entry\" value=\"" <>
+        index_to_string({a, 0, 0}) <> "\">" <> short_id(a) <> "</button>"
+    )
+  end
+
   def dets_open(table) do
     filename =
       Path.join([

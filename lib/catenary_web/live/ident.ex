@@ -12,7 +12,7 @@ defmodule Catenary.Live.Ident do
     <div class="align-top min-w-full font-sans">
        <div class="flex flex-row space-x-4">
          <div class="flex-auto">Logging as:</div>
-         <div class="flex-auto"><%= Catenary.short_id(@identity) %></div>
+         <div class="flex-auto"><%= Catenary.linked_author(@identity) %></div>
          <div class="flex-1/2"><img src="<%= Catenary.identicon(@identity, @iconset, 4) %>"></div>
        <div>
       <br/>

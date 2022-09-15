@@ -61,7 +61,7 @@ defmodule Catenary.Live.EntryViewer do
       <div class="min-w-full font-sans row-span-full">
         <img class = "float-left m-3" src="<%= Catenary.identicon(@card["author"], @iconset, 8) %>">
           <h1><%= @card["title"] %></h1>
-          <p class="text-sm font-light"><button phx-click="view-entry" value="<%= Catenary.index_to_string({@card["author"],0,0})%>"><%= Catenary.short_id(@card["author"]) %></button> &mdash; <%= @card["published"] %></p>
+          <p class="text-sm font-light"><%= Catenary.linked_author(@card["author"]) %> &mdash; <%= @card["published"] %></p>
           <p>
           <%= for {a,_,_} = entry <- @card["back-refs"] do %>
             <button value="<%= Catenary.index_to_string(entry) %>" phx-click="view-entry"><img src="<%= Catenary.identicon(a, @iconset, 2) %>"></button>&nbsp;
