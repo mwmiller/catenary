@@ -70,7 +70,7 @@ defmodule Catenary.Live.EntryViewer do
         </div>
         <div class="flex flex-row mt-10 space-x-4" text-xs>
           <%= for tname <- @card["tags"] do %>
-            <div class="flex-auto text-xs text-orange-600 dark:text-amber-200"><%= tname %></div>
+            <div class="flex-auto text-xs text-orange-600 dark:text-amber-200"><button value="<%= tname %>" phx-click="view-tag"><%= tname %></button></div>
           <% end %>
             <hr/>
             <div class="flex-auto"><%= icon_entries(@card["tagged-in"], @iconset) %></div>
@@ -261,10 +261,19 @@ defmodule Catenary.Live.EntryViewer do
     try do
       {:ok, data, ""} = CBOR.decode(cbor)
 
+      tagdivs =
+        data["tags"]
+        |> Enum.map(fn t ->
+          "<div class=\"flex-auto text-orange-600 dark:text-amber-200\"><button value=\"" <>
+            t <> "\" phx-click=\"view-tag\">" <> t <> "</button></div>"
+        end)
+
+      body = "<div class=\"flex flex-rows\">" <> Enum.join(tagdivs, "") <> "</div>"
+
       Map.merge(data, %{
         "title" => "Tagging",
         "back-refs" => maybe_refs(data["references"]),
-        "body" => data["tags"] |> Enum.join(", ") |> Phoenix.HTML.raw(),
+        "body" => Phoenix.HTML.raw(body),
         "published" => data["published"] |> nice_time
       })
     rescue

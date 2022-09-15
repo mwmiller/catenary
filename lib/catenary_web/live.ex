@@ -31,6 +31,7 @@ defmodule CatenaryWeb.Live do
          reffing: :not_running,
          tagging: :not_running,
          entry: entry,
+         tag: :none,
          connections: [],
          watering: [],
          identity: Catenary.Preferences.get(:identity) |> Baobab.b62identity()
@@ -47,6 +48,20 @@ defmodule CatenaryWeb.Live do
       <% else %>
         ⥀ any minute now ⥀
       <% end %>
+    </div>
+    """
+  end
+
+  def render(%{tag: tag} = assigns) when is_binary(tag) and tag != "" do
+    ~L"""
+     <div class="max-h-screen w-100 grid grid-cols-3 gap-2 justify-center font-mono">
+       <div class="col-span-2 overflow-y-auto max-h-screen m-2 p-x-2">
+       <%= live_component(Catenary.Live.TagViewer, id: :tags, store: @store, tag: @tag, iconset: @iconset) %>
+     </div>
+     <div>
+       <%= live_component(Catenary.Live.Ident, id: :ident, identity: @identity, iconset: @iconset) %>
+       <%= live_component(Catenary.Live.OasisBox, id: :recents, reffing: @reffing, aliasing: @aliasing, tagging: @tagging, connections: @connections, watering: @watering, iconset: @iconset) %>
+     </div>
     </div>
     """
   end
@@ -132,7 +147,11 @@ defmodule CatenaryWeb.Live do
   end
 
   def handle_event("view-entry", %{"value" => index_string}, socket) do
-    {:noreply, assign(socket, entry: Catenary.string_to_index(index_string))}
+    {:noreply, assign(socket, entry: Catenary.string_to_index(index_string), tag: :none)}
+  end
+
+  def handle_event("view-tag", %{"value" => tag}, socket) do
+    {:noreply, assign(socket, entry: :none, tag: tag)}
   end
 
   def handle_event(
