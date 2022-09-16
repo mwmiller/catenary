@@ -29,7 +29,7 @@ defmodule Catenary.Live.TagExplorer do
       <div class="min-w-full font-sans row-span-full">
         <h1 class="text=center">Tag Explorer</h1>
         <hr/>
-        <div class="grid grid-cols-4 mt-10">
+        <div class="grid grid-cols-3 mt-10">
         <%= @card["tags"] %>
       </div>
       </div>
