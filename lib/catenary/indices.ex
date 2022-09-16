@@ -58,7 +58,7 @@ defmodule Catenary.Indices do
     try do
       %Baobab.Entry{payload: payload} = entry
       {:ok, data, ""} = CBOR.decode(payload)
-      tags = data["tags"]
+      tags = data["tags"] |> Enum.map(fn s -> String.trim(s) end)
       [ent] = data["references"]
       e = List.to_tuple(ent)
       # Tags for entry
