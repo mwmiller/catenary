@@ -5,7 +5,7 @@ defmodule Catenary.Live.TagViewer do
 
   @impl true
   def update(%{tag: which} = assigns, socket) do
-    {:ok, assign(socket, Map.merge(assigns, %{card: extract(which, :svg)}))}
+    {:ok, assign(socket, Map.merge(assigns, %{card: extract(which, assigns.iconset)}))}
   end
 
   @impl true
