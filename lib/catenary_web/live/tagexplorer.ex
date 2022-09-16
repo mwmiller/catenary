@@ -41,13 +41,13 @@ defmodule Catenary.Live.TagExplorer do
 
     tags =
       :dets.match(:tags, :"$1")
-      |> Enum.reduce([], fn [{f, _} | _], a ->
+      |> Enum.reduce([], fn [{f, i} | _], a ->
         case is_binary(f) do
-          true -> [f | a]
+          true -> [{Enum.count(i), f} | a]
           false -> a
         end
       end)
-      |> Enum.sort()
+      |> Enum.sort(:desc)
       |> Enum.uniq()
       |> to_links()
 
@@ -59,9 +59,10 @@ defmodule Catenary.Live.TagExplorer do
 
   defp to_links(tags) do
     tags
-    |> Enum.map(fn t ->
+    |> Enum.map(fn {c, t} ->
       "<div class=\"text-orange-600 dark:text-amber-200\"><button value=\"" <>
-        t <> "\" phx-click=\"view-tag\">" <> t <> "</button></div>"
+        t <>
+        "\" phx-click=\"view-tag\">" <> t <> " (" <> Integer.to_string(c) <> ")</button></div>"
     end)
     |> Phoenix.HTML.raw()
   end
