@@ -508,6 +508,18 @@ defmodule CatenaryWeb.Live do
 
   defp self_prof(assigns), do: {assigns.identity, -1, 0}
 
+  # Prev and next should be combined with log_id logic 
+  # This is "profile" switching
+  defp next_author({author, l, s}, socket) when l < 0 do
+    possibles = socket.assigns.store |> Enum.sort(:asc)
+
+    case Enum.drop_while(possibles, fn {a, _, _} -> a <= author end) do
+      [] -> List.first(possibles)
+      [next | _] -> next
+    end
+    |> then(fn {a, _, _} -> {a, l, s} end)
+  end
+
   defp next_author({author, log_id, seq}, socket) do
     possibles =
       socket.assigns.store |> Enum.filter(fn {_, l, _} -> log_id == l end) |> Enum.sort(:asc)
@@ -520,6 +532,16 @@ defmodule CatenaryWeb.Live do
 
     # I recognise there is no relationship with the other seqnum
     # Exploration involves more kismet than determinism
+  end
+
+  defp prev_author({author, l, s}, socket) when l < 0 do
+    possibles = socket.assigns.store |> Enum.sort(:desc)
+
+    case Enum.drop_while(possibles, fn {a, _, _} -> a >= author end) do
+      [] -> List.first(possibles)
+      [next | _] -> next
+    end
+    |> then(fn {a, _, _} -> {a, l, s} end)
   end
 
   defp prev_author({author, log_id, seq}, socket) do
