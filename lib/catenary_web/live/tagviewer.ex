@@ -33,6 +33,7 @@ defmodule Catenary.Live.TagViewer do
         <div class="flex flex-row mt-10">
         <%= @card["entries"] %>
       </div>
+      <div class="mt-10 text-center"><button phx-click="tag-explorer">⧟ ### ⧟</button>
       </div>
     """
   end

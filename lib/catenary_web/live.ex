@@ -134,6 +134,10 @@ defmodule CatenaryWeb.Live do
     {:noreply, state_set(socket)}
   end
 
+  def handle_event("tag-explorer", _, socket) do
+    {:noreply, assign(socket, entry: :none, tag: :all)}
+  end
+
   def handle_event("toggle-posting", _, socket) do
     show_now =
       case socket.assigns.extra_nav do
