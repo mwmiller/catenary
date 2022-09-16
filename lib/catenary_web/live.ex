@@ -66,6 +66,20 @@ defmodule CatenaryWeb.Live do
     """
   end
 
+  def render(%{tag: tag} = assigns) when is_atom(tag) and tag != :none do
+    ~L"""
+     <div class="max-h-screen w-100 grid grid-cols-3 gap-2 justify-center font-mono">
+       <div class="col-span-2 overflow-y-auto max-h-screen m-2 p-x-2">
+       <%= live_component(Catenary.Live.TagExplorer, id: :tags, store: @store, tag: @tag, iconset: @iconset) %>
+     </div>
+     <div>
+       <%= live_component(Catenary.Live.Ident, id: :ident, identity: @identity, iconset: @iconset) %>
+       <%= live_component(Catenary.Live.OasisBox, id: :recents, reffing: @reffing, aliasing: @aliasing, tagging: @tagging, connections: @connections, watering: @watering, iconset: @iconset) %>
+     </div>
+    </div>
+    """
+  end
+
   def render(assigns) do
     ~L"""
     <div class="max-h-screen w-100 grid grid-cols-3 gap-2 justify-center font-mono">
@@ -109,7 +123,11 @@ defmodule CatenaryWeb.Live do
   end
 
   def handle_info(%{entry: which}, socket) do
-    {:noreply, assign(socket, entry: which)}
+    {:noreply, assign(socket, entry: which, tag: :none)}
+  end
+
+  def handle_info(%{tag: which}, socket) do
+    {:noreply, assign(socket, entry: :none, tag: which)}
   end
 
   def handle_info(:check_store, socket) do
