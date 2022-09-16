@@ -15,6 +15,13 @@ defmodule Catenary.Application do
     |> Path.expand()
     |> File.mkdir_p()
 
+    # Also the spool directory
+    # This should eventually go away
+    :baobab
+    |> Application.get_env(:spool_dir, "~/.baobab")
+    |> Path.expand()
+    |> File.mkdir_p()
+
     whoami = Catenary.Preferences.get(:identity)
     clump_id = Catenary.Preferences.get(:clump_id)
 
