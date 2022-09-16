@@ -68,12 +68,11 @@ defmodule Catenary.Live.EntryViewer do
         <div class="font-light">
         <%= @card["body"] %>
         </div>
-        <div class="flex flex-row mt-10 space-x-4" text-xs>
+        <div class="grid grid-cols-4 mt-10 space-x-4" text-xs>
           <%= for tname <- @card["tags"] do %>
-            <div class="flex-auto text-xs text-orange-600 dark:text-amber-200"><button value="<%= tname %>" phx-click="view-tag"><%= tname %></button></div>
+            <div class="auto text-xs text-orange-600 dark:text-amber-200"><button value="<%= tname %>" phx-click="view-tag"><%= tname %></button></div>
           <% end %>
-            <hr/>
-            <div class="flex-auto"><%= icon_entries(@card["tagged-in"], @iconset) %></div>
+            <div class="flex flex-rows"><%= icon_entries(@card["tagged-in"], @iconset) %></div>
         </div>
       </div>
     """
@@ -264,11 +263,11 @@ defmodule Catenary.Live.EntryViewer do
       tagdivs =
         data["tags"]
         |> Enum.map(fn t ->
-          "<div class=\"flex-auto text-orange-600 dark:text-amber-200\"><button value=\"" <>
+          "<div class=\"text-orange-600 dark:text-amber-200\"><button value=\"" <>
             t <> "\" phx-click=\"view-tag\">" <> t <> "</button></div>"
         end)
 
-      body = "<div class=\"flex flex-rows\">" <> Enum.join(tagdivs, "") <> "</div>"
+      body = "<div>" <> Enum.join(tagdivs, "") <> "</div>"
 
       Map.merge(data, %{
         "title" => "Tagging",

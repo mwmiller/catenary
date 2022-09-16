@@ -1,7 +1,6 @@
 defmodule Catenary.Live.TagViewer do
   require Logger
   use Phoenix.LiveComponent
-  alias Catenary.Quagga
 
   @impl true
   def update(%{tag: which} = assigns, socket) do
@@ -30,7 +29,7 @@ defmodule Catenary.Live.TagViewer do
       <div class="min-w-full font-sans row-span-full">
         <h1 class="text=center">Entries tagged with "<%= @tag %>"</h1>
         <hr/>
-        <div class="flex flex-row mt-10">
+        <div class="grid grid-cols-5 mt-10">
         <%= @card["entries"] %>
       </div>
       <div class="mt-10 text-center"><button phx-click="tag-explorer">⧟ ### ⧟</button>
@@ -63,7 +62,7 @@ defmodule Catenary.Live.TagViewer do
       rest,
       icons,
       acc <>
-        "<div class=\"flex-auto\"><button value=\"" <>
+        "<div><button value=\"" <>
         Catenary.index_to_string(entry) <>
         "\" phx-click=\"view-entry\"><img src=\"" <>
         Catenary.identicon(a, icons, 4) <> "\"></button></div>"
