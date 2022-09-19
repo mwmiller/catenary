@@ -80,6 +80,7 @@ defmodule Catenary.Application do
       {"File",
        [
          %{label: "Open dashboard", command: "dashboard", action: %{view: :dashboard}},
+         %{label: "Reset view", command: "reset"},
          %{label: "Quit", command: "quit"}
        ]},
       {"Explore",

@@ -22,6 +22,13 @@ defmodule Catenary.MenuMaker do
           end
         end
 
+        def handle_event("reset", menu) do
+          # Back to the starting URI
+          # If it's not a safe space, we don't have one
+          Desktop.Window.show(CatenaryWindow, CatenaryWeb.Endpoint.url())
+          menu
+        end
+
         def handle_event("quit", menu), do: Desktop.Window.quit()
 
         @impl true
