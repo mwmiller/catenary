@@ -100,7 +100,11 @@ defmodule Catenary.Application do
       {"Identity",
        for {i, _} <- Baobab.identities() do
          %{label: i, command: "id_" <> i, action: %{identity: i}}
-       end}
+       end ++
+         [
+           :rule,
+           %{label: "Manage...", command: "identity-manager", action: %{view: :idents}}
+         ]}
     ]
   end
 end

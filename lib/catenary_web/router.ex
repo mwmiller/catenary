@@ -18,6 +18,7 @@ defmodule CatenaryWeb.Router do
     pipe_through :browser
 
     live("/", Live)
+    post "/export", ExportController, :create
   end
 
   # Other scopes may use custom stacks.

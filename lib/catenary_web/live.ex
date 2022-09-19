@@ -26,6 +26,7 @@ defmodule CatenaryWeb.Live do
          store: [],
          ui_speed: @ui_slow,
          iconset: Catenary.Preferences.get(:iconset),
+         view: :entries,
          extra_nav: :none,
          aliasing: :not_running,
          reffing: :not_running,
@@ -52,7 +53,21 @@ defmodule CatenaryWeb.Live do
     """
   end
 
-  def render(%{tag: tag} = assigns) when is_binary(tag) and tag != "" do
+  def render(%{view: :idents} = assigns) do
+    ~L"""
+     <div class="max-h-screen w-100 grid grid-cols-3 gap-2 justify-center font-mono">
+       <div class="col-span-2 overflow-y-auto max-h-screen m-2 p-x-2">
+       <%= live_component(Catenary.Live.IdentityManager, id: :idents, store: @store, iconset: @iconset) %>
+     </div>
+     <div>
+       <%= live_component(Catenary.Live.Ident, id: :ident, identity: @identity, iconset: @iconset) %>
+       <%= live_component(Catenary.Live.OasisBox, id: :recents, reffing: @reffing, aliasing: @aliasing, tagging: @tagging, connections: @connections, watering: @watering, iconset: @iconset) %>
+     </div>
+    </div>
+    """
+  end
+
+  def render(%{view: :tags, tag: tag} = assigns) when is_binary(tag) and tag != "" do
     ~L"""
      <div class="max-h-screen w-100 grid grid-cols-3 gap-2 justify-center font-mono">
        <div class="col-span-2 overflow-y-auto max-h-screen m-2 p-x-2">
@@ -66,7 +81,7 @@ defmodule CatenaryWeb.Live do
     """
   end
 
-  def render(%{tag: tag} = assigns) when is_atom(tag) and tag != :none do
+  def render(%{view: :tags} = assigns) do
     ~L"""
      <div class="max-h-screen w-100 grid grid-cols-3 gap-2 justify-center font-mono">
        <div class="col-span-2 overflow-y-auto max-h-screen m-2 p-x-2">
@@ -80,7 +95,7 @@ defmodule CatenaryWeb.Live do
     """
   end
 
-  def render(assigns) do
+  def render(%{view: :entries} = assigns) do
     ~L"""
     <div class="max-h-screen w-100 grid grid-cols-3 gap-2 justify-center font-mono">
       <div class="col-span-2 overflow-y-auto max-h-screen m-2 p-x-2">
@@ -118,16 +133,20 @@ defmodule CatenaryWeb.Live do
     {:noreply, ns}
   end
 
+  def handle_info(%{view: :idents}, socket) do
+    {:noreply, assign(socket, view: :idents)}
+  end
+
   def handle_info(%{view: :dashboard}, socket) do
     {:noreply, push_redirect(socket, to: Routes.live_dashboard_path(socket, :home))}
   end
 
   def handle_info(%{entry: which}, socket) do
-    {:noreply, assign(socket, entry: which, tag: :none)}
+    {:noreply, assign(socket, view: :entries, entry: which)}
   end
 
   def handle_info(%{tag: which}, socket) do
-    {:noreply, assign(socket, entry: :none, tag: which)}
+    {:noreply, assign(socket, view: :tags, tag: which)}
   end
 
   def handle_info(:check_store, socket) do
@@ -135,7 +154,7 @@ defmodule CatenaryWeb.Live do
   end
 
   def handle_event("tag-explorer", _, socket) do
-    {:noreply, assign(socket, entry: :none, tag: :all)}
+    {:noreply, assign(socket, view: :tags, tag: :all)}
   end
 
   def handle_event("toggle-posting", _, socket) do
@@ -169,11 +188,11 @@ defmodule CatenaryWeb.Live do
   end
 
   def handle_event("view-entry", %{"value" => index_string}, socket) do
-    {:noreply, assign(socket, entry: Catenary.string_to_index(index_string), tag: :none)}
+    {:noreply, assign(socket, view: :entries, entry: Catenary.string_to_index(index_string))}
   end
 
   def handle_event("view-tag", %{"value" => tag}, socket) do
-    {:noreply, assign(socket, entry: :none, tag: tag)}
+    {:noreply, assign(socket, view: :tags, tag: tag)}
   end
 
   def handle_event(
@@ -370,7 +389,7 @@ defmodule CatenaryWeb.Live do
         true -> {na, nl, ne}
       end
 
-    {:noreply, assign(socket, entry: next)}
+    {:noreply, assign(socket, view: :entries, entry: next)}
   end
 
   defp state_set(socket) do

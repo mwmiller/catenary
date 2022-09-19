@@ -49,17 +49,17 @@ defmodule Catenary.MenuMaker do
   def actual_bar([], acc), do: acc <> "</menubar>"
 
   def actual_bar([{label, items} | rest], acc) do
-    menu =
-      items
-      |> Enum.reduce(
-        "<menu label=\"" <>
-          label <> "\">",
-        fn i, a ->
-          a <> "<item onclick=\"" <> i.command <> "\">" <> i.label <> "</item>"
-        end
-      )
-      |> then(fn a -> a <> "</menu>" end)
-
-    actual_bar(rest, acc <> menu)
+    actual_bar(
+      rest,
+      acc <>
+        "<menu label=\"" <> label <> "\">" <> menu_items(items) <> "</menu>"
+    )
   end
+
+  defp menu_items(items, acc \\ "")
+  defp menu_items([], acc), do: acc
+  defp menu_items([:rule | rest], acc), do: menu_items(rest, acc <> "<hr/>")
+
+  defp menu_items([%{label: label, command: command} | rest], acc),
+    do: menu_items(rest, acc <> "<item onclick=\"" <> command <> "\">" <> label <> "</item>")
 end
