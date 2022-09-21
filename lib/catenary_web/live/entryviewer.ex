@@ -341,7 +341,8 @@ defmodule Catenary.Live.EntryViewer do
         "<button value=\"" <>
         Catenary.index_to_string(entry) <>
         "\" phx-click=\"view-entry\"><img src=\"" <>
-        Catenary.identicon(a, icons, 2) <> "\"></button>&nbsp;"
+        Catenary.identicon(a, icons, 2) <>
+        "\" title=\"" <> Catenary.short_id(a) <> "\" \></button>&nbsp;"
     )
   end
 end

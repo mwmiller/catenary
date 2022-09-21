@@ -29,16 +29,29 @@ defmodule Catenary.Live.TagViewer do
       <div class="min-w-full font-sans row-span-full">
         <h1 class="text=center">Entries tagged with "<%= @tag %>"</h1>
         <hr/>
-        <div class="grid grid-cols-5 mt-10">
-        <%= @card["entries"] %>
+        <%= for {type, entries} <- @card do %>
+          <h3  class="pt-5 text-slate-600 dark:text-slate-300"><%= type %></h3>
+        <div class="grid grid-cols-5 my-2">
+        <%= entries %>
       </div>
+    <% end %>
       <div class="mt-10 text-center"><button phx-click="tag-explorer">⧟ ### ⧟</button>
       </div>
     """
   end
 
   defp extract(tag, icons) do
-    %{"entries" => from_dets(tag, :tags) |> icon_entries(icons)}
+    tag
+    |> from_dets(:tags)
+    |> Enum.group_by(fn {_, l, _} -> l end)
+    |> Enum.map(fn {k, v} ->
+      {k
+       |> Catenary.Quagga.log_def()
+       |> Map.get(:name)
+       |> Atom.to_string()
+       |> String.capitalize(), icon_entries(v, icons)}
+    end)
+    |> Enum.sort(:asc)
   end
 
   defp from_dets(entry, table) do
@@ -57,7 +70,7 @@ defmodule Catenary.Live.TagViewer do
   defp icon_entries(list, icons, acc \\ "")
   defp icon_entries([], _icons, acc), do: Phoenix.HTML.raw(acc)
 
-  defp icon_entries([{a, _, _} = entry | rest], icons, acc) do
+  defp icon_entries([{a, _, e} = entry | rest], icons, acc) do
     icon_entries(
       rest,
       icons,
@@ -65,7 +78,11 @@ defmodule Catenary.Live.TagViewer do
         "<div><button value=\"" <>
         Catenary.index_to_string(entry) <>
         "\" phx-click=\"view-entry\"><img src=\"" <>
-        Catenary.identicon(a, icons, 4) <> "\"></button></div>"
+        Catenary.identicon(a, icons, 4) <>
+        "\" title=\"" <> entry_title(entry) <> "\"\></button></div>"
     )
   end
+
+  defp entry_title({a, _, e} = entry),
+    do: "entry " <> Integer.to_string(e) <> " from " <> Catenary.short_id(a)
 end

@@ -70,8 +70,14 @@ defmodule Catenary.Indices do
       # Entries for tag
       for tag <- tags do
         case :dets.lookup(:tags, tag) do
-          [] -> :dets.insert(:tags, {tag, [e]})
-          [{^tag, val}] -> :dets.insert(:tags, {tag, Enum.uniq(val ++ [e])})
+          [] ->
+            :dets.insert(:tags, {tag, [e]})
+
+          [{^tag, val}] ->
+            :dets.insert(
+              :tags,
+              {tag, [e | val] |> Enum.sort_by(fn e -> elem(e, 2) end, &>=/2) |> Enum.uniq()}
+            )
         end
       end
     rescue
