@@ -20,5 +20,5 @@ defmodule CatenaryWeb.ExportController do
     |> send_resp(200, json_data)
   end
 
-  def quoted_filename(whom), do: (whom <> ".json") |> IO.inspect()
+  def quoted_filename(whom), do: whom <> ".json"
 end

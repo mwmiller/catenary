@@ -6,7 +6,7 @@ defmodule Catenary.Preferences do
   # When adding a key here be sure to create function
   # heads for enum listing acceptable values or [] if free form
   # default which will generate a value if missing from the db
-  @keys [:iconset, :identity, :clump_id]
+  @keys [:iconset, :identity, :clump_id, :shown]
 
   defp default(:iconset), do: :svg
 
@@ -18,9 +18,11 @@ defmodule Catenary.Preferences do
   end
 
   defp default(:clump_id), do: "Quagga"
+  defp default(:shown), do: MapSet.new()
 
   defp enum(:iconset), do: [:png, :svg]
   defp enum(:identity), do: []
+  defp enum(:shown), do: []
   defp enum(:clump_id), do: []
 
   def get(key) when key in @keys do
@@ -57,4 +59,39 @@ defmodule Catenary.Preferences do
   end
 
   def set(_, _), do: {:error, "No such key"}
+
+  def update(key, fun) when key in @keys and is_function(fun, 1) do
+    val = get(key) |> fun.()
+    set(key, val)
+  end
+
+  def update(_, _), do: {:error, "update/2 requires a defined key and function/1 to apply"}
+
+  def mark_all_entries(:unshown), do: set(:shown, MapSet.new())
+
+  def mark_all_entries(:shown) do
+    # Thsi should be (and probably soon will be)
+    # available from Baobab directly. It munges
+    # from what we want into the stored_info format
+    all =
+      Baobab.stored_info()
+      |> all_entries([])
+      |> MapSet.new()
+
+    set(:shown, all)
+  end
+
+  def mark_all_entries(_), do: {:error, "mark_all_entries/1 takes an atom (:shown, :unshown)"}
+
+  def shown?(entry), do: get(:shown) |> MapSet.member?(entry)
+
+  defp all_entries([], acc), do: acc
+
+  defp all_entries([{a, l, _} | rest], acc) do
+    these =
+      Baobab.all_seqnum(a, log_id: l)
+      |> Enum.map(fn s -> {a, l, s} end)
+
+    all_entries(rest, List.flatten([these | acc]))
+  end
 end

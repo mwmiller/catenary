@@ -113,6 +113,10 @@ defmodule Catenary.Live.EntryViewer do
   end
 
   def extract({a, l, e} = entry) do
+    # We want failure to save here to fail loudly without any further work
+    # But if it does fail later we don't mind having said it was shown
+    Catenary.Preferences.update(:shown, fn ms -> MapSet.put(ms, entry) end)
+
     try do
       payload =
         case Baobab.log_entry(a, e, log_id: l) do
@@ -334,15 +338,6 @@ defmodule Catenary.Live.EntryViewer do
   defp icon_entries([], _icons, acc), do: Phoenix.HTML.raw(acc)
 
   defp icon_entries([{a, _, _} = entry | rest], icons, acc) do
-    icon_entries(
-      rest,
-      icons,
-      acc <>
-        "<button value=\"" <>
-        Catenary.index_to_string(entry) <>
-        "\" phx-click=\"view-entry\"><img src=\"" <>
-        Catenary.identicon(a, icons, 2) <>
-        "\" title=\"" <> Catenary.short_id(a) <> "\" \></button>&nbsp;"
-    )
+    icon_entries(rest, icons, acc <> Catenary.entry_icon_link(entry, icons, 2) <> "&nbsp;")
   end
 end

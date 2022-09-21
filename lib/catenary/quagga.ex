@@ -28,4 +28,12 @@ defmodule Catenary.Quagga do
   # This should work off the def, but I need more metadata and
   # I am still cranky this morning.
   def log_type(), do: [:reply, :journal] |> Enum.random()
+
+  def pretty_log_name(log_id) do
+    log_id
+    |> log_def()
+    |> Map.get(:name)
+    |> Atom.to_string()
+    |> String.capitalize()
+  end
 end

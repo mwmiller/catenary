@@ -61,6 +61,39 @@ defmodule Catenary do
     )
   end
 
+  def entry_icon_link({a, _, _} = entry, icons, size) do
+    "<button value=\"" <>
+      Catenary.index_to_string(entry) <>
+      "\" phx-click=\"view-entry\"><img " <>
+      maybe_border(entry) <>
+      " src=\"" <>
+      Catenary.identicon(a, icons, size) <>
+      "\" title=\"" <> entry_title(entry) <> "\"\></button>"
+  end
+
+  defp entry_title({a, l, e}) do
+    Enum.join(
+      [
+        Catenary.Quagga.pretty_log_name(l),
+        "entry",
+        Integer.to_string(e),
+        "from",
+        Catenary.short_id(a)
+      ],
+      " "
+    )
+  end
+
+  defp maybe_border(entry) do
+    case Catenary.Preferences.shown?(entry) do
+      true ->
+        ""
+
+      false ->
+        "class=\"border border-dotted border-orange-600 dark:border-amber-200 rounded \""
+    end
+  end
+
   def dets_open(table) do
     filename =
       Path.join([
