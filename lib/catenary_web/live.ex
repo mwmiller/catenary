@@ -9,15 +9,7 @@ defmodule CatenaryWeb.Live do
     {:asc, :desc, :author, :logid, :seq}
     Phoenix.PubSub.subscribe(Catenary.PubSub, "ui")
 
-    entry =
-      case connected?(socket) do
-        true ->
-          Process.send_after(self(), :check_store, @ui_fast, [])
-          :random
-
-        false ->
-          :none
-      end
+    whoami = Catenary.Preferences.get(:identity) |> Baobab.b62identity()
 
     {:ok,
      state_set(
@@ -31,11 +23,11 @@ defmodule CatenaryWeb.Live do
          aliasing: :not_running,
          reffing: :not_running,
          tagging: :not_running,
-         entry: entry,
-         tag: :none,
+         entry: {whoami, -1, 0},
+         tag: :all,
          connections: [],
          watering: [],
-         identity: Catenary.Preferences.get(:identity) |> Baobab.b62identity()
+         identity: whoami
        )
      )}
   end
