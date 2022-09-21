@@ -18,11 +18,11 @@ defmodule Catenary.Live.Navigation do
     <div class="align-top min-w-full font-sans">
       <div class="text-xl">
         <button value="origin" phx-click="nav"><img src="<%= Catenary.identicon(@identity, @iconset, 2) %>"></button>
-        <button value="prev-author" phx-click="nav">⇧</button>
-        <button value="prev-entry" phx-click="nav">☚</button>
-        <button value="next-entry" phx-click="nav">☛</button>
-        <button value="next-author" phx-click="nav">⇩</button>
-        <button phx-click="toggle-posting">✎</button>
+        <button value="prev-author" phx-click="nav">↥</button>
+        <button value="prev-entry" phx-click="nav">⇜</button>
+        <button value="next-entry" phx-click="nav">⇝</button>
+        <button value="next-author" phx-click="nav">↧</button>
+        <button phx-click="toggle-posting">🄰</button>
         <button phx-click="toggle-aliases">∼</button>
         <button phx-click="toggle-tags">#</button>
       </div>
