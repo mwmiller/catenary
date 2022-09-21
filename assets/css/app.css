@@ -17,11 +17,26 @@
     @apply mt-1;
     @apply p-1;
   }
+  a {
+    @apply underline;
+  }
   ul {
     @apply list-disc;
+    @apply list-inside;
+    @apply ml-4;
   }
   ol {
     @apply list-decimal;
+    @apply list-inside;
+    @apply ml-4;
+  }
+  pre {
+    @apply p-3 text-sm my-6;
+    @apply border rounded-sm border-slate-500 dark:border-slate-600;
+    @apply bg-slate-300 dark:bg-slate-700;
+  }
+  code {
+    @apply bg-slate-300 dark:bg-slate-700;
   }
   blockquote {
     @apply border-l-2;
