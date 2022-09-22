@@ -90,7 +90,7 @@ defmodule Catenary do
         ""
 
       false ->
-        "class=\"border border-dotted border-orange-600 dark:border-amber-200 rounded \""
+        "class=\"new-border rounded \""
     end
   end
 

@@ -43,12 +43,12 @@ defmodule Catenary.Live.TagExplorer do
       :dets.match(:tags, :"$1")
       |> Enum.reduce([], fn [{f, i} | _], a ->
         case is_binary(f) do
-          true -> [{Enum.count(i), f} | a]
+          true -> [{f, Enum.any?(i, fn e -> not Catenary.Preferences.shown?(e) end)} | a]
           false -> a
         end
       end)
-      |> Enum.sort(:desc)
       |> Enum.uniq()
+      |> Enum.shuffle()
       |> to_links()
 
     Catenary.dets_close(:tags)
@@ -59,11 +59,15 @@ defmodule Catenary.Live.TagExplorer do
 
   defp to_links(tags) do
     tags
-    |> Enum.map(fn {c, t} ->
-      "<div class=\"text-orange-600 dark:text-amber-200\"><button value=\"" <>
+    |> Enum.map(fn {t, n} ->
+      "<div><button value=\"" <>
         t <>
-        "\" phx-click=\"view-tag\">" <> t <> " (" <> Integer.to_string(c) <> ")</button></div>"
+        "\" phx-click=\"view-tag\"><p class=\"tighter text-orange-600 dark:text-amber-200 " <>
+        new_or_not(n) <> "\">" <> t <> "</p></button></div>"
     end)
     |> Phoenix.HTML.raw()
   end
+
+  defp new_or_not(true), do: "underline decoration-dotted"
+  defp new_or_not(false), do: ""
 end
