@@ -13,7 +13,8 @@ defmodule CatenaryWeb.Live do
 
     {:ok,
      state_set(
-       assign(socket,
+       socket,
+       %{
          store_hash: <<>>,
          store: [],
          ui_speed: @ui_slow,
@@ -28,7 +29,8 @@ defmodule CatenaryWeb.Live do
          connections: [],
          watering: [],
          identity: whoami
-       )
+       },
+       true
      )}
   end
 
@@ -48,7 +50,7 @@ defmodule CatenaryWeb.Live do
   def render(%{view: :idents} = assigns) do
     ~L"""
      <div class="max-h-screen w-100 grid grid-cols-3 gap-2 justify-center font-mono">
-       <div class="col-span-2 overflow-y-auto max-h-screen m-2 p-x-2">
+       <div id="identview-wrap" class="col-span-2 overflow-y-auto max-h-screen m-2 p-x-2">
        <%= live_component(Catenary.Live.IdentityManager, id: :idents, store: @store, iconset: @iconset) %>
      </div>
      <div>
@@ -62,7 +64,7 @@ defmodule CatenaryWeb.Live do
   def render(%{view: :tags, tag: tag} = assigns) when is_binary(tag) and tag != "" do
     ~L"""
      <div class="max-h-screen w-100 grid grid-cols-3 gap-2 justify-center font-mono">
-       <div class="col-span-2 overflow-y-auto max-h-screen m-2 p-x-2">
+       <div id="tagview-wrap" class="col-span-2 overflow-y-auto max-h-screen m-2 p-x-2">
        <%= live_component(Catenary.Live.TagViewer, id: :tags, store: @store, tag: @tag, iconset: @iconset) %>
      </div>
      <div>
@@ -76,7 +78,7 @@ defmodule CatenaryWeb.Live do
   def render(%{view: :tags} = assigns) do
     ~L"""
      <div class="max-h-screen w-100 grid grid-cols-3 gap-2 justify-center font-mono">
-       <div class="col-span-2 overflow-y-auto max-h-screen m-2 p-x-2">
+       <div id="tagexplore-wrap" class="col-span-2 overflow-y-auto max-h-screen m-2 p-x-2">
        <%= live_component(Catenary.Live.TagExplorer, id: :tags, store: @store, tag: @tag, iconset: @iconset) %>
      </div>
      <div>
@@ -90,7 +92,7 @@ defmodule CatenaryWeb.Live do
   def render(%{view: :entries} = assigns) do
     ~L"""
     <div class="max-h-screen w-100 grid grid-cols-3 gap-2 justify-center font-mono">
-      <div class="col-span-2 overflow-y-auto max-h-screen m-2 p-x-2">
+      <div id="entryview-wrap" class="col-span-2 overflow-y-auto max-h-screen m-2 p-x-2">
       <%= live_component(Catenary.Live.EntryViewer, id: :entry, store: @store, entry: @entry, iconset: @iconset) %>
     </div>
     <div>
@@ -105,7 +107,7 @@ defmodule CatenaryWeb.Live do
 
   def handle_info(%{icons: which}, socket) do
     case Catenary.Preferences.set(:iconset, which) do
-      :ok -> {:noreply, assign(socket, iconset: which)}
+      :ok -> {:noreply, state_set(socket, %{iconset: which})}
       _ -> {:noreply, socket}
     end
   end
@@ -116,7 +118,7 @@ defmodule CatenaryWeb.Live do
         :ok ->
           whonow = Baobab.b62identity(who)
           Catenary.Indices.index_aliases(whonow)
-          assign(socket, identity: whonow)
+          state_set(socket, %{identity: whonow})
 
         _ ->
           socket
@@ -126,7 +128,7 @@ defmodule CatenaryWeb.Live do
   end
 
   def handle_info(%{view: :idents}, socket) do
-    {:noreply, assign(socket, view: :idents)}
+    {:noreply, state_set(socket, %{view: :idents})}
   end
 
   def handle_info(%{view: :dashboard}, socket) do
@@ -134,19 +136,19 @@ defmodule CatenaryWeb.Live do
   end
 
   def handle_info(%{entry: which}, socket) do
-    {:noreply, assign(socket, view: :entries, entry: which)}
+    {:noreply, state_set(socket, %{view: :entries, entry: which})}
   end
 
   def handle_info(%{tag: which}, socket) do
-    {:noreply, assign(socket, view: :tags, tag: which)}
+    {:noreply, state_set(socket, %{view: :tags, tag: which})}
   end
 
   def handle_info(:check_store, socket) do
-    {:noreply, state_set(socket)}
+    {:noreply, state_set(socket, %{}, true)}
   end
 
   def handle_event("tag-explorer", _, socket) do
-    {:noreply, assign(socket, view: :tags, tag: :all)}
+    {:noreply, state_set(socket, %{view: :tags, tag: :all})}
   end
 
   def handle_event("toggle-posting", _, socket) do
@@ -156,7 +158,7 @@ defmodule CatenaryWeb.Live do
         _ -> :posting
       end
 
-    {:noreply, assign(socket, extra_nav: show_now)}
+    {:noreply, state_set(socket, %{extra_nav: show_now})}
   end
 
   def handle_event("toggle-aliases", _, socket) do
@@ -166,7 +168,7 @@ defmodule CatenaryWeb.Live do
         _ -> :aliases
       end
 
-    {:noreply, assign(socket, extra_nav: show_now)}
+    {:noreply, state_set(socket, %{extra_nav: show_now})}
   end
 
   def handle_event("toggle-tags", _, socket) do
@@ -176,15 +178,16 @@ defmodule CatenaryWeb.Live do
         _ -> :tags
       end
 
-    {:noreply, assign(socket, extra_nav: show_now)}
+    {:noreply, state_set(socket, %{extra_nav: show_now})}
   end
 
   def handle_event("view-entry", %{"value" => index_string}, socket) do
-    {:noreply, assign(socket, view: :entries, entry: Catenary.string_to_index(index_string))}
+    {:noreply,
+     state_set(socket, %{view: :entries, entry: Catenary.string_to_index(index_string)})}
   end
 
   def handle_event("view-tag", %{"value" => tag}, socket) do
-    {:noreply, assign(socket, view: :tags, tag: tag)}
+    {:noreply, state_set(socket, %{view: :tags, tag: tag})}
   end
 
   def handle_event(
@@ -208,7 +211,7 @@ defmodule CatenaryWeb.Live do
     entry = {b62author, l, e}
     Catenary.Indices.index_tags([entry])
     Catenary.Indices.index_references([entry])
-    {:noreply, state_set(assign(socket, entry: entry))}
+    {:noreply, state_set(socket, %{entry: entry})}
   end
 
   def handle_event(
@@ -241,7 +244,7 @@ defmodule CatenaryWeb.Live do
     entry = {b62author, l, e}
     Catenary.Indices.index_aliases(b62author)
     Catenary.Indices.index_references([entry])
-    {:noreply, state_set(assign(socket, entry: entry))}
+    {:noreply, state_set(socket, %{entry: entry})}
   end
 
   def handle_event(
@@ -290,7 +293,7 @@ defmodule CatenaryWeb.Live do
     entry = {Baobab.b62identity(a), l, e}
     Catenary.Indices.index_references([entry])
 
-    {:noreply, assign(socket, entry: entry)}
+    {:noreply, state_set(socket, %{entry: entry})}
   end
 
   def handle_event(
@@ -308,7 +311,7 @@ defmodule CatenaryWeb.Live do
     entry = {Baobab.b62identity(a), l, e}
     Catenary.Indices.index_references([entry])
 
-    {:noreply, assign(socket, entry: entry)}
+    {:noreply, state_set(socket, %{entry: entry})}
   end
 
   def handle_event("init-connect", _, socket) do
@@ -318,8 +321,7 @@ defmodule CatenaryWeb.Live do
 
     case Baby.connect(Keyword.get(which, :host), Keyword.get(which, :port)) do
       {:ok, pid} ->
-        {:noreply,
-         state_set(assign(socket, connections: [{pid, %{}} | socket.assigns.connections]))}
+        {:noreply, state_set(socket, %{connections: [{pid, %{}} | socket.assigns.connections]})}
 
       _ ->
         {:noreply, socket}
@@ -330,12 +332,13 @@ defmodule CatenaryWeb.Live do
     with {a, l, e} = index <- Catenary.string_to_index(where),
          %Baobab.Entry{payload: payload} <- Baobab.log_entry(a, e, log_id: l),
          {:ok, map, ""} <- CBOR.decode(payload),
-         {:ok, pid} <- Baby.connect(map["host"], map["port"]) do
+         {:ok, pid} = Baby.connect(map["host"], map["port"]) do
       {:noreply,
        state_set(
-         assign(socket,
+         socket,
+         %{
            connections: [{pid, Map.put(map, :id, index)} | socket.assigns.connections]
-         )
+         }
        )}
     else
       _ -> {:noreply, socket}
@@ -381,11 +384,12 @@ defmodule CatenaryWeb.Live do
         true -> {na, nl, ne}
       end
 
-    {:noreply, assign(socket, view: :entries, entry: next)}
+    {:noreply, state_set(socket, %{view: :entries, entry: next})}
   end
 
-  defp state_set(socket) do
-    state = socket.assigns
+  defp state_set(socket, from_caller, reup? \\ false) do
+    full_socket = assign(socket, from_caller)
+    state = full_socket.assigns
     si = Baobab.stored_info()
     curr = si |> CBOR.encode() |> Blake2.hash2b()
     updated? = curr != state.store_hash
@@ -416,8 +420,9 @@ defmodule CatenaryWeb.Live do
           {speed, []}
       end
 
-    Process.send_after(self(), :check_store, ui_speed, [])
-    assign(socket, common ++ extra)
+    if reup?, do: Process.send_after(self(), :check_store, ui_speed, [])
+
+    assign(full_socket, common ++ extra)
   end
 
   defp check_aliases(pid, new, data) when is_pid(pid) do
