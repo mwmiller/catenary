@@ -5,7 +5,6 @@ defmodule Catenary.MenuMaker do
         use Desktop.Menu
         @impl true
         def mount(menu) do
-          menu = assign(menu, iconset: :png)
           {:ok, menu}
         end
 

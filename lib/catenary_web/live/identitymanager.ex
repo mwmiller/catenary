@@ -16,7 +16,7 @@ defmodule Catenary.Live.IdentityManager do
         <hr/>
         <div class="grid grid-cols-2 mt-10">
           <%= for {n, k} <- @identities do %>
-            <div><img src="<%= Catenary.identicon(k, @iconset, 8) %>">
+            <div><img src="<%= Catenary.identicon(k, 8) %>">
               Name: <%= n %><br/>
               AKA: <%= Catenary.short_id(k) %><br/>
               Activity: <%= log_info_string(@store, k) %><br/>

@@ -31,16 +31,8 @@ defmodule Catenary do
   def id_for_key([{ali, key} | _], key), do: ali
   def id_for_key([_ | rest], key), do: id_for_key(rest, key)
 
-  def identicon(id, type, mag \\ 4) do
-    b64 = Excon.ident(id, base64: true, type: type, magnification: mag)
-
-    mime =
-      case type do
-        :png -> "image/png"
-        :svg -> "image/svg+xml"
-      end
-
-    "data:" <> mime <> ";base64," <> b64
+  def identicon(id, mag \\ 4) do
+    "data:image/svg+xml;base64," <> Excon.ident(id, base64: true, type: :svg, magnification: mag)
   end
 
   def index_to_string(tuple) do
@@ -61,13 +53,13 @@ defmodule Catenary do
     )
   end
 
-  def entry_icon_link({a, _, _} = entry, icons, size) do
+  def entry_icon_link({a, _, _} = entry, size) do
     "<button value=\"" <>
       Catenary.index_to_string(entry) <>
       "\" phx-click=\"view-entry\"><img " <>
       maybe_border(entry) <>
       " src=\"" <>
-      Catenary.identicon(a, icons, size) <>
+      Catenary.identicon(a, size) <>
       "\" title=\"" <> entry_title(entry) <> "\"\></button>"
   end
 

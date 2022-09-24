@@ -57,10 +57,10 @@ defmodule Catenary.Live.EntryViewer do
   def render(assigns) do
     ~L"""
       <div class="min-w-full font-sans row-span-full">
-        <img class = "float-left m-3" src="<%= Catenary.identicon(@card["author"], @iconset, 8) %>">
+        <img class = "float-left m-3" src="<%= Catenary.identicon(@card["author"], 8) %>">
           <h1><%= @card["title"] %></h1>
           <p class="text-sm font-light"><%= Catenary.linked_author(@card["author"]) %> &mdash; <%= @card["published"] %></p>
-          <p><%= icon_entries(@card["back-refs"], @iconset) %>&nbsp;↹&nbsp;<%= icon_entries(@card["fore-refs"], @iconset) %></p>
+          <p><%= icon_entries(@card["back-refs"]) %>&nbsp;↹&nbsp;<%= icon_entries(@card["fore-refs"]) %></p>
         <hr/>
         <br/>
         <div class="font-light">
@@ -70,7 +70,7 @@ defmodule Catenary.Live.EntryViewer do
           <%= for tname <- @card["tags"] do %>
             <div class="auto text-xs text-orange-600 dark:text-amber-200"><button value="<%= tname %>" phx-click="view-tag"><%= tname %></button></div>
           <% end %>
-            <div class="flex flex-rows"><%= icon_entries(@card["tagged-in"], @iconset) %></div>
+            <div class="flex flex-rows"><%= icon_entries(@card["tagged-in"]) %></div>
         </div>
       </div>
     """
@@ -330,10 +330,10 @@ defmodule Catenary.Live.EntryViewer do
     %{"tagged-in" => tags, "fore-refs" => others}
   end
 
-  defp icon_entries(list, icons, acc \\ "")
-  defp icon_entries([], _icons, acc), do: Phoenix.HTML.raw(acc)
+  defp icon_entries(list, acc \\ "")
+  defp icon_entries([], acc), do: Phoenix.HTML.raw(acc)
 
-  defp icon_entries([entry | rest], icons, acc) do
-    icon_entries(rest, icons, acc <> Catenary.entry_icon_link(entry, icons, 2) <> "&nbsp;")
+  defp icon_entries([entry | rest], acc) do
+    icon_entries(rest, acc <> Catenary.entry_icon_link(entry, 2) <> "&nbsp;")
   end
 end

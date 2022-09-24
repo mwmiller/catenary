@@ -8,8 +8,7 @@ defmodule Catenary.Live.Navigation do
     posts_avail = posts_avail(assigns.entry)
     na = Map.merge(assigns, %{whom: whom, ali: ali, posts_avail: posts_avail})
 
-    {:ok,
-     assign(socket, identity: assigns.identity, iconset: assigns.iconset, lower_nav: extra_nav(na))}
+    {:ok, assign(socket, identity: assigns.identity, lower_nav: extra_nav(na))}
   end
 
   @impl true
@@ -17,7 +16,7 @@ defmodule Catenary.Live.Navigation do
     ~L"""
     <div class="align-top min-w-full font-sans">
       <div class="text-xl">
-        <button value="origin" phx-click="nav"><img src="<%= Catenary.identicon(@identity, @iconset, 2) %>"></button>
+        <button value="origin" phx-click="nav"><img src="<%= Catenary.identicon(@identity, 2) %>"></button>
         <button value="prev-author" phx-click="nav">↥</button>
         <button value="prev-entry" phx-click="nav">⇜</button>
         <button value="next-entry" phx-click="nav">⇝</button>
@@ -71,7 +70,7 @@ defmodule Catenary.Live.Navigation do
          </div>
          <div class="flex flex-row p-2">
           <div class="flex-auto"><%= Catenary.short_id(@whom) %></div>
-          <div class="flex-auto"><img src="<%= Catenary.identicon(@whom, @iconset, 4) %>"></div>
+          <div class="flex-auto"><img src="<%= Catenary.identicon(@whom, 4) %>"></div>
          </div>
          <label for="alias">～</label>
          <input class="bg-white dark:bg-black" name="alias" value="<%= @ali %>" type="text" size="16" />

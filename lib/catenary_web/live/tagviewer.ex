@@ -4,7 +4,7 @@ defmodule Catenary.Live.TagViewer do
 
   @impl true
   def update(%{tag: which} = assigns, socket) do
-    {:ok, assign(socket, Map.merge(assigns, %{card: extract(which, assigns.iconset)}))}
+    {:ok, assign(socket, Map.merge(assigns, %{card: extract(which)}))}
   end
 
   @impl true
@@ -40,25 +40,24 @@ defmodule Catenary.Live.TagViewer do
     """
   end
 
-  defp extract(tag, icons) do
+  defp extract(tag) do
     tag
     |> from_dets(:tags)
     |> Enum.group_by(fn {_, l, _} -> l end)
     |> Map.to_list()
-    |> prettify(icons, [])
+    |> prettify([])
     |> Enum.sort(:asc)
   end
 
-  defp prettify([], _, acc), do: acc
+  defp prettify([], acc), do: acc
 
-  defp prettify([{k, v} | rest], icons, acc),
-    do:
-      prettify(rest, icons, [{Catenary.Quagga.pretty_log_name(k), icon_entries(v, icons)} | acc])
+  defp prettify([{k, v} | rest], acc),
+    do: prettify(rest, [{Catenary.Quagga.pretty_log_name(k), icon_entries(v)} | acc])
 
-  defp icon_entries(entries, icons) do
+  defp icon_entries(entries) do
     entries
     |> Enum.reduce("", fn e, a ->
-      a <> "<div>" <> Catenary.entry_icon_link(e, icons, 4) <> "</div>"
+      a <> "<div>" <> Catenary.entry_icon_link(e, 4) <> "</div>"
     end)
     |> Phoenix.HTML.raw()
   end

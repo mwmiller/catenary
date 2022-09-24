@@ -92,11 +92,6 @@ defmodule Catenary.Application do
          %{label: "Oases", command: "oasis", action: %{entry: :oasis}},
          %{label: "Test posts", command: "test", action: %{entry: :test}}
        ]},
-      {"Icons",
-       [
-         %{label: "Blocky", command: "png", action: %{icons: :png}},
-         %{label: "Curvy", command: "svg", action: %{icons: :svg}}
-       ]},
       {"Identity",
        for {i, _} <- Baobab.identities() do
          %{label: i, command: "id_" <> i, action: %{identity: i}}

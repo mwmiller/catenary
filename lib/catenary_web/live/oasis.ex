@@ -8,7 +8,6 @@ defmodule Catenary.Live.OasisBox do
        reffing: assigns.reffing,
        tagging: assigns.tagging,
        nodes: assigns.watering,
-       iconset: assigns.iconset,
        connected: Enum.map(assigns.connections, &id_mapper/1)
      )}
   end
@@ -21,7 +20,7 @@ defmodule Catenary.Live.OasisBox do
         <div class="my-1 p-1 <%= case rem(index, 2)  do
         0 ->  "bg-emerald-200 dark:bg-cyan-700"
         1 -> "bg-emerald-400 dark:bg-sky-700"
-      end %>"><img class="m-1 float-right align-middle" src="<%= Catenary.identicon(elem(recent.id, 0), @iconset, 2)%>">
+      end %>"><img class="m-1 float-right align-middle" src="<%= Catenary.identicon(elem(recent.id, 0), 2)%>">
         <p><%= recent["name"] %> (<%= Catenary.linked_author(elem(recent.id, 0)) %>)
         <%= if recent.id in @connected do %>
           ⥀

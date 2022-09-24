@@ -6,9 +6,7 @@ defmodule Catenary.Preferences do
   # When adding a key here be sure to create function
   # heads for enum listing acceptable values or [] if free form
   # default which will generate a value if missing from the db
-  @keys [:iconset, :identity, :clump_id, :shown]
-
-  defp default(:iconset), do: :svg
+  @keys [:identity, :clump_id, :shown]
 
   defp default(:identity) do
     case Baobab.identities() do
@@ -20,7 +18,6 @@ defmodule Catenary.Preferences do
   defp default(:clump_id), do: "Quagga"
   defp default(:shown), do: MapSet.new()
 
-  defp enum(:iconset), do: [:png, :svg]
   defp enum(:identity), do: []
   defp enum(:shown), do: []
   defp enum(:clump_id), do: []
