@@ -38,7 +38,7 @@ defmodule Catenary.Live.Navigation do
       <form method="post" id="posting-form" phx-submit="new-entry">
         <select name=log_id  class="bg-white dark:bg-black">
           <%= for a <- @posts_avail do %>
-          <option value="<%= Quagga.log_id_for_name(a) %>"><%= String.capitalize(Atom.to_string(a)) %></option>
+          <option value="<%= Quagga.base_log_for_name(a) %>"><%= String.capitalize(Atom.to_string(a)) %></option>
           <% end %>
         </select>
         <%= if is_tuple(@entry) do %>

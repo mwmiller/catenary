@@ -5,7 +5,7 @@ defmodule Catenary.Live.EntryViewer do
 
   @impl true
   def update(%{entry: :random} = assigns, socket) do
-    update(Map.merge(assigns, %{entry: Quagga.log_type()}), socket)
+    update(Map.merge(assigns, %{entry: Quagga.good_random_read()}), socket)
   end
 
   def update(%{entry: :none}, socket) do
@@ -13,11 +13,9 @@ defmodule Catenary.Live.EntryViewer do
   end
 
   def update(%{entry: which} = assigns, socket) when is_atom(which) do
-    # Eventually there will be other selection criteria
-    # For now, all is latest from random author
-    target_log_id = Quagga.log_id_for_name(which)
+    targets = Quagga.log_ids_for_name(which)
 
-    case assigns.store |> Enum.filter(fn {_, l, _} -> l == target_log_id end) do
+    case assigns.store |> Enum.filter(fn {_, l, _} -> l == targets end) do
       [] ->
         {:ok, assign(socket, card: :none)}
 
@@ -79,26 +77,24 @@ defmodule Catenary.Live.EntryViewer do
   end
 
   # This is to create an identity "profile", but it'll also
-  # give "something" when thing's go sideways
+  # give "something" when things go sideways
   def extract({a, l, e}) when l < 0 or e < 1 do
     # We don't want to have the store in the assigns
     # just for this.  Extra rendering overhead
-    body =
+    log_map =
       Baobab.stored_info()
       |> Enum.filter(fn {author, _, _} -> author == a end)
-      |> Enum.reduce("<ul>", fn entry, a ->
-        a <>
-          case Catenary.Quagga.log_def(elem(entry, 1)) do
-            %{name: na} ->
-              "<li><button value=\"" <>
-                Catenary.index_to_string(entry) <>
-                "\" phx-click=\"view-entry\">" <>
-                String.capitalize(Atom.to_string(na)) <> "</button></li>"
+      |> Enum.group_by(fn {_, l, _} -> Quagga.log_def(l) end)
 
-            _ ->
-              ""
-          end
-      end)
+    items =
+      for {%{name: name}, [entry | _]} <- log_map do
+        "<li><button value=\"" <>
+          Catenary.index_to_string(entry) <>
+          "\" phx-click=\"view-entry\">" <>
+          String.capitalize(Atom.to_string(name)) <> "</button></li>"
+      end
+
+    body = "<ul>" <> Enum.join(items, "") <> "</ul>"
 
     %{
       "author" => a,
@@ -107,7 +103,7 @@ defmodule Catenary.Live.EntryViewer do
       "back-refs" => [],
       "tagged-in" => [],
       "tags" => [],
-      "body" => Phoenix.HTML.raw(body <> "</ul>"),
+      "body" => Phoenix.HTML.raw(body),
       "published" => "latest known"
     }
   end
@@ -134,7 +130,7 @@ defmodule Catenary.Live.EntryViewer do
           from_refs(entry)
         )
 
-      Map.merge(extract_type(payload, l), base)
+      Map.merge(extract_type(payload, Catenary.Quagga.log_def(l)), base)
     rescue
       e ->
         Logger.warn(e)
@@ -160,7 +156,7 @@ defmodule Catenary.Live.EntryViewer do
     }
   end
 
-  defp extract_type(text, 0) do
+  defp extract_type(text, %{name: :test}) do
     %{
       "title" => "Test Post, Please Ignore",
       "back-refs" => [],
@@ -169,7 +165,7 @@ defmodule Catenary.Live.EntryViewer do
     }
   end
 
-  defp extract_type(cbor, 53) do
+  defp extract_type(cbor, %{name: :alias}) do
     try do
       {:ok, data, ""} = CBOR.decode(cbor)
 
@@ -197,7 +193,7 @@ defmodule Catenary.Live.EntryViewer do
     end
   end
 
-  defp extract_type(cbor, 8483) do
+  defp extract_type(cbor, %{name: :oasis}) do
     try do
       {:ok, data, ""} = CBOR.decode(cbor)
 
@@ -220,7 +216,7 @@ defmodule Catenary.Live.EntryViewer do
     end
   end
 
-  defp extract_type(cbor, 360_360) do
+  defp extract_type(cbor, %{name: :journal}) do
     try do
       {:ok, data, ""} = CBOR.decode(cbor)
 
@@ -240,7 +236,7 @@ defmodule Catenary.Live.EntryViewer do
     end
   end
 
-  defp extract_type(cbor, 533) do
+  defp extract_type(cbor, %{name: :reply}) do
     try do
       {:ok, data, ""} = CBOR.decode(cbor)
 
@@ -260,7 +256,7 @@ defmodule Catenary.Live.EntryViewer do
     end
   end
 
-  defp extract_type(cbor, 749) do
+  defp extract_type(cbor, %{name: :tag}) do
     try do
       {:ok, data, ""} = CBOR.decode(cbor)
 
@@ -337,7 +333,7 @@ defmodule Catenary.Live.EntryViewer do
   defp icon_entries(list, icons, acc \\ "")
   defp icon_entries([], _icons, acc), do: Phoenix.HTML.raw(acc)
 
-  defp icon_entries([{a, _, _} = entry | rest], icons, acc) do
+  defp icon_entries([entry | rest], icons, acc) do
     icon_entries(rest, icons, acc <> Catenary.entry_icon_link(entry, icons, 2) <> "&nbsp;")
   end
 end

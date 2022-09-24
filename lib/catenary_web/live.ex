@@ -10,6 +10,10 @@ defmodule CatenaryWeb.Live do
     Phoenix.PubSub.subscribe(Catenary.PubSub, "ui")
 
     whoami = Catenary.Preferences.get(:identity) |> Baobab.b62identity()
+    # This might make more sense as a Preference.
+    # It's also dangerous and hard to figure the right UI
+    # So it sits in the config for now while I try things out
+    facet_id = Application.get_env(:catenary, :facet_id, 0)
 
     {:ok,
      state_set(
@@ -28,7 +32,8 @@ defmodule CatenaryWeb.Live do
          tag: :all,
          connections: [],
          watering: [],
-         identity: whoami
+         identity: whoami,
+         facet_id: facet_id
        },
        true
      )}
@@ -205,7 +210,7 @@ defmodule CatenaryWeb.Live do
         "published" => Timex.now() |> DateTime.to_string()
       }
       |> CBOR.encode()
-      |> Baobab.append_log(Catenary.id_for_key(socket.assigns.identity), log_id: 749)
+      |> append_log_for_socket(749, socket)
 
     b62author = Baobab.b62identity(a)
     entry = {b62author, l, e}
@@ -238,7 +243,7 @@ defmodule CatenaryWeb.Live do
         "published" => Timex.now() |> DateTime.to_string()
       }
       |> CBOR.encode()
-      |> Baobab.append_log(Catenary.id_for_key(socket.assigns.identity), log_id: 53)
+      |> append_log_for_socket(53, socket)
 
     b62author = Baobab.b62identity(a)
     entry = {b62author, l, e}
@@ -288,7 +293,7 @@ defmodule CatenaryWeb.Live do
         "published" => Timex.now() |> DateTime.to_string()
       }
       |> CBOR.encode()
-      |> Baobab.append_log(Catenary.id_for_key(socket.assigns.identity), log_id: 533)
+      |> append_log_for_socket(533, socket)
 
     entry = {Baobab.b62identity(a), l, e}
     Catenary.Indices.index_references([entry])
@@ -306,7 +311,7 @@ defmodule CatenaryWeb.Live do
     %Baobab.Entry{author: a, log_id: l, seqnum: e} =
       %{"body" => body, "title" => title, "published" => Timex.now() |> DateTime.to_string()}
       |> CBOR.encode()
-      |> Baobab.append_log(Catenary.id_for_key(socket.assigns.identity), log_id: 360_360)
+      |> append_log_for_socket(360_360, socket)
 
     entry = {Baobab.b62identity(a), l, e}
     Catenary.Indices.index_references([entry])
@@ -569,5 +574,11 @@ defmodule CatenaryWeb.Live do
       [next | _] -> next
     end
     |> then(fn {a, l, _} -> {a, l, seq} end)
+  end
+
+  defp append_log_for_socket(contents, log_id, socket) do
+    Baobab.append_log(contents, Catenary.id_for_key(socket.assigns.identity),
+      log_id: Catenary.Quagga.facet_log(log_id, socket.assigns.facet_id)
+    )
   end
 end
