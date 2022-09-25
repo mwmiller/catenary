@@ -79,6 +79,7 @@ defmodule Catenary.Indices do
         end
 
       insert = [{published(data), {ident, l, s}} | old] |> Enum.sort() |> Enum.uniq()
+
       :dets.insert(:timelines, {ident, insert})
     rescue
       _ -> :ok
@@ -152,6 +153,7 @@ defmodule Catenary.Indices do
           end
 
         new_val = (old_val ++ [{published(data), index}]) |> Enum.sort() |> Enum.uniq()
+
         :dets.insert(:refs, {tref, new_val})
       end
     rescue
@@ -170,7 +172,7 @@ defmodule Catenary.Indices do
       t ->
         t
         |> Timex.parse!("{ISO:Extended}")
-        |> Timex.Timezone.convert(Timex.Timezone.local())
+        |> Timex.to_unix()
     end
   end
 
