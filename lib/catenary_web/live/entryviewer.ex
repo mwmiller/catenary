@@ -79,22 +79,21 @@ defmodule Catenary.Live.EntryViewer do
   # This is to create an identity "profile", but it'll also
   # give "something" when things go sideways
   def extract({a, l, e}) when l < 0 or e < 1 do
-    # We don't want to have the store in the assigns
-    # just for this.  Extra rendering overhead
-    log_map =
-      Baobab.stored_info()
-      |> Enum.filter(fn {author, _, _} -> author == a end)
-      |> Enum.group_by(fn {_, l, _} -> Quagga.log_def(l) end)
+    body =
+      case from_dets(a, :timelines) do
+        [] ->
+          "No activity"
 
-    items =
-      for {%{name: name}, [entry | _]} <- log_map do
-        "<li><button value=\"" <>
-          Catenary.index_to_string(entry) <>
-          "\" phx-click=\"view-entry\">" <>
-          String.capitalize(Atom.to_string(name)) <> "</button></li>"
+        activity ->
+          first = activity |> hd
+          latest = activity |> Enum.reverse() |> hd
+
+          "<p><button phx-click=\"view-entry\" value=\"" <>
+            Catenary.index_to_string(first) <>
+            "\">Earliest log entry</button></p>" <>
+            "<p><button phx-click=\"view-entry\" value=\"" <>
+            Catenary.index_to_string(latest) <> "\">Latest log entry</button></p>"
       end
-
-    body = "<ul>" <> Enum.join(items, "") <> "</ul>"
 
     %{
       "author" => a,

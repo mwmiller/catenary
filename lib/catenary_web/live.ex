@@ -27,6 +27,7 @@ defmodule CatenaryWeb.Live do
          aliasing: :not_running,
          reffing: :not_running,
          tagging: :not_running,
+         timing: :not_running,
          entry: {whoami, -1, 0},
          tag: :all,
          connections: [],
@@ -395,8 +396,16 @@ defmodule CatenaryWeb.Live do
     tag = check_tags(state.tagging, updated?, si)
     ali = check_aliases(state.aliasing, updated?, state.identity)
     con = check_connections(state.connections, [])
+    seq = check_timelines(state.timing, updated?, si)
 
-    common = [reffing: ref, tagging: tag, connections: con, store_hash: curr, aliasing: ali]
+    common = [
+      reffing: ref,
+      tagging: tag,
+      timing: seq,
+      connections: con,
+      store_hash: curr,
+      aliasing: ali
+    ]
 
     {ui_speed, extra} =
       case updated? do
@@ -409,8 +418,8 @@ defmodule CatenaryWeb.Live do
 
         false ->
           speed =
-            case {ref, ali, tag, con} do
-              {:not_running, :not_running, :not_running, []} -> @ui_slow
+            case {ref, ali, tag, seq, con} do
+              {:not_running, :not_running, :not_running, :not_running, []} -> @ui_slow
               _ -> @ui_fast
             end
 
@@ -420,6 +429,23 @@ defmodule CatenaryWeb.Live do
     if reup?, do: Process.send_after(self(), :check_store, ui_speed, [])
 
     assign(full_socket, common ++ extra)
+  end
+
+  defp check_timelines(pid, new, data) when is_pid(pid) do
+    case Process.alive?(pid) do
+      true -> pid
+      false -> check_timelines(:not_running, new, data)
+    end
+  end
+
+  defp check_timelines(:not_running, false, _data), do: :not_running
+
+  # FYI these Task.start items do not work as might be expected
+  # We get the task pid, not the underlying task process pid
+  # This might seem like the same thing, but it's not sometimes
+  defp check_timelines(:not_running, true, data) do
+    {:ok, pid} = Task.start(Catenary.Indices, :index_timelines, [data])
+    pid
   end
 
   defp check_aliases(pid, new, data) when is_pid(pid) do

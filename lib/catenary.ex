@@ -9,7 +9,8 @@ defmodule Catenary do
     aliases: "aliases.dets",
     refs: "references.dets",
     prefs: "preferences.dets",
-    tags: "tags.dets"
+    tags: "tags.dets",
+    timelines: "timelines.dets"
   }
 
   def short_id(id) do

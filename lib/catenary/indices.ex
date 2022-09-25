@@ -11,7 +11,7 @@ defmodule Catenary.Indices do
   def clear_all() do
     # This information is all over the place. :(
     # One source of truth
-    for table <- [:refs, :tags, :aliases] do
+    for table <- [:refs, :tags, :aliases, :timelines] do
       Catenary.dets_open(table)
       :dets.delete_all_objects(table)
       Catenary.dets_close(table)
@@ -27,14 +27,20 @@ defmodule Catenary.Indices do
   def index_aliases(id) do
     Catenary.dets_open(:aliases)
     :dets.delete_all_objects(:aliases)
-    index([{id, 53, 1}], [53], :aliases)
+    index([{id, 53, 1}], Catenary.Quagga.log_ids_for_name(:alias), :aliases)
     Catenary.dets_close(:aliases)
   end
 
   def index_tags(stored_info) do
     Catenary.dets_open(:tags)
-    index(stored_info, [749], :tags)
+    index(stored_info, Catenary.Quagga.log_ids_for_name(:tag), :tags)
     Catenary.dets_close(:tags)
+  end
+
+  def index_timelines(stored_info) do
+    Catenary.dets_open(:timelines)
+    index(stored_info, Catenary.Quagga.log_ids_for_encoding(:cbor), :timelines)
+    Catenary.dets_close(:timelines)
   end
 
   defp index([], _, _), do: :ok
@@ -52,6 +58,27 @@ defmodule Catenary.Indices do
   # This could maybe give up on a CBOR failure, eventurally
   # Right now we have a lot of mixed types
   defp entries_index([], _), do: :ok
+
+  defp entries_index([entry | rest], :timelines) do
+    try do
+      %Baobab.Entry{author: a, log_id: l, seqnum: s, payload: payload} = entry
+      ident = Baobab.b62identity(a)
+      {:ok, data, ""} = CBOR.decode(payload)
+
+      old =
+        case :dets.lookup(:timelines, ident) do
+          [] -> []
+          [{^ident, val}] -> val
+        end
+
+      insert = [{published(data), {ident, l, s}} | old] |> Enum.sort() |> Enum.uniq()
+      :dets.insert(:timelines, {ident, insert})
+    rescue
+      _ -> :ok
+    end
+
+    entries_index(rest, :timelines)
+  end
 
   defp entries_index([entry | rest], :tags) do
     # This is a two-way index
