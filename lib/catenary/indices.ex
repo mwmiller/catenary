@@ -120,7 +120,7 @@ defmodule Catenary.Indices do
     try do
       %Baobab.Entry{payload: payload} = entry
       {:ok, data, ""} = CBOR.decode(payload)
-      :dets.insert(:aliases, {published(data), data["whom"], data["alias"]})
+      :dets.insert(:aliases, {data["whom"], data["alias"]})
     rescue
       _ ->
         :ok
