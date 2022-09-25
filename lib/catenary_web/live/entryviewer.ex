@@ -56,7 +56,8 @@ defmodule Catenary.Live.EntryViewer do
 
   def render(assigns) do
     ~L"""
-      <div class="min-w-full font-sans row-span-full">
+      <div id="entryview-wrap" class="col-span-2 overflow-y-auto max-h-screen m-2 p-x-2">
+        <div class="min-w-full font-sans row-span-full">
         <img class = "float-left m-3" src="<%= Catenary.identicon(@card["author"], 8) %>">
           <h1><%= @card["title"] %></h1>
           <p class="text-sm font-light"><%= Catenary.linked_author(@card["author"]) %> &mdash; <%= @card["published"] %></p>
@@ -73,6 +74,7 @@ defmodule Catenary.Live.EntryViewer do
             <div class="flex flex-rows"><%= icon_entries(@card["tagged-in"]) %></div>
         </div>
       </div>
+    </div>
     """
   end
 

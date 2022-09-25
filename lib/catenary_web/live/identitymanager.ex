@@ -11,6 +11,7 @@ defmodule Catenary.Live.IdentityManager do
   @impl true
   def render(assigns) do
     ~L"""
+     <div id="identview-wrap" class="col-span-2 overflow-y-auto max-h-screen m-2 p-x-2">
       <div class="min-w-full font-sans row-span-full">
         <h1 class="text=center">Identity Manager</h1>
         <hr/>
@@ -29,6 +30,7 @@ defmodule Catenary.Live.IdentityManager do
           <% end %>
       </div>
       </div>
+    </div>
     """
   end
 

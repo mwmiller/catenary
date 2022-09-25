@@ -54,10 +54,8 @@ defmodule CatenaryWeb.Live do
 
   def render(%{view: :idents} = assigns) do
     ~L"""
-     <div class="max-h-screen w-100 grid grid-cols-3 gap-2 justify-center font-mono">
-       <div id="identview-wrap" class="col-span-2 overflow-y-auto max-h-screen m-2 p-x-2">
-         <%= live_component(Catenary.Live.IdentityManager, id: :idents, store: @store) %>
-       </div>
+     <div class="max-h-screen w-100 grid grid-cols-3 gap-2 justify-center">
+       <%= live_component(Catenary.Live.IdentityManager, id: :idents, store: @store) %>
        <%= sidebar(assigns) %>
      </div>
     """
@@ -65,10 +63,8 @@ defmodule CatenaryWeb.Live do
 
   def render(%{view: :tags, tag: tag} = assigns) when is_binary(tag) and tag != "" do
     ~L"""
-     <div class="max-h-screen w-100 grid grid-cols-3 gap-2 justify-center font-mono">
-       <div id="tagview-wrap" class="col-span-2 overflow-y-auto max-h-screen m-2 p-x-2">
-         <%= live_component(Catenary.Live.TagViewer, id: :tags, store: @store, tag: @tag) %>
-       </div>
+     <div class="max-h-screen w-100 grid grid-cols-3 gap-2 justify-center">
+       <%= live_component(Catenary.Live.TagViewer, id: :tags, store: @store, tag: @tag) %>
        <%= sidebar(assigns) %>
      </div>
     """
@@ -76,10 +72,8 @@ defmodule CatenaryWeb.Live do
 
   def render(%{view: :tags} = assigns) do
     ~L"""
-     <div class="max-h-screen w-100 grid grid-cols-3 gap-2 justify-center font-mono">
-       <div id="tagexplore-wrap" class="col-span-2 overflow-y-auto max-h-screen m-2 p-x-2">
-         <%= live_component(Catenary.Live.TagExplorer, id: :tags, store: @store, tag: @tag) %>
-       </div>
+     <div class="max-h-screen w-100 grid grid-cols-3 gap-2 justify-center">
+       <%= live_component(Catenary.Live.TagExplorer, id: :tags, store: @store, tag: @tag) %>
        <%= sidebar(assigns) %>
      </div>
     """
@@ -87,10 +81,8 @@ defmodule CatenaryWeb.Live do
 
   def render(%{view: :entries} = assigns) do
     ~L"""
-    <div class="max-h-screen w-100 grid grid-cols-3 gap-2 justify-center font-mono">
-      <div id="entryview-wrap" class="col-span-2 overflow-y-auto max-h-screen m-2 p-x-2">
-        <%= live_component(Catenary.Live.EntryViewer, id: :entry, store: @store, entry: @entry) %>
-      </div>
+    <div class="max-h-screen w-100 grid grid-cols-3 gap-2 justify-center">
+      <%= live_component(Catenary.Live.EntryViewer, id: :entry, store: @store, entry: @entry) %>
       <%= sidebar(assigns) %>
     </div>
     """

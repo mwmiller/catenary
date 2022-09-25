@@ -26,6 +26,7 @@ defmodule Catenary.Live.TagViewer do
 
   def render(assigns) do
     ~L"""
+     <div id="tagview-wrap" class="col-span-2 overflow-y-auto max-h-screen m-2 p-x-2">
       <div class="min-w-full font-sans row-span-full">
         <h1 class="text=center">Entries tagged with "<%= @tag %>"</h1>
         <hr/>
@@ -37,6 +38,7 @@ defmodule Catenary.Live.TagViewer do
     <% end %>
       <div class="mt-10 text-center"><button phx-click="tag-explorer">⧟ ### ⧟</button>
       </div>
+    </div>
     """
   end
 
