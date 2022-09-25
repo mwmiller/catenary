@@ -8,11 +8,12 @@ defmodule Catenary.Live.Navigation do
     posts_avail = posts_avail(assigns.entry)
     na = Map.merge(assigns, %{whom: whom, ali: ali, posts_avail: posts_avail})
 
-    {:ok, assign(socket, identity: assigns.identity, lower_nav: extra_nav(na))}
+    {:ok,
+     assign(socket, view: assigns.view, identity: assigns.identity, lower_nav: extra_nav(na))}
   end
 
   @impl true
-  def render(assigns) do
+  def render(%{view: :entries} = assigns) do
     ~L"""
     <div class="align-top min-w-full font-sans">
       <div class="text-xl">
@@ -27,6 +28,13 @@ defmodule Catenary.Live.Navigation do
       </div>
       <br/>
       <%= @lower_nav %>
+    </div>
+    """
+  end
+
+  def render(assigns) do
+    ~L"""
+    <div class="align-top min-w-full font-sans">
     </div>
     """
   end

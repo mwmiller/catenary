@@ -56,13 +56,10 @@ defmodule CatenaryWeb.Live do
     ~L"""
      <div class="max-h-screen w-100 grid grid-cols-3 gap-2 justify-center font-mono">
        <div id="identview-wrap" class="col-span-2 overflow-y-auto max-h-screen m-2 p-x-2">
-       <%= live_component(Catenary.Live.IdentityManager, id: :idents, store: @store) %>
+         <%= live_component(Catenary.Live.IdentityManager, id: :idents, store: @store) %>
+       </div>
+       <%= sidebar(assigns) %>
      </div>
-     <div>
-       <%= live_component(Catenary.Live.Ident, id: :ident, identity: @identity) %>
-       <%= live_component(Catenary.Live.OasisBox, id: :recents, timing: @timing, reffing: @reffing, aliasing: @aliasing, tagging: @tagging, connections: @connections, watering: @watering) %>
-     </div>
-    </div>
     """
   end
 
@@ -70,13 +67,10 @@ defmodule CatenaryWeb.Live do
     ~L"""
      <div class="max-h-screen w-100 grid grid-cols-3 gap-2 justify-center font-mono">
        <div id="tagview-wrap" class="col-span-2 overflow-y-auto max-h-screen m-2 p-x-2">
-       <%= live_component(Catenary.Live.TagViewer, id: :tags, store: @store, tag: @tag) %>
+         <%= live_component(Catenary.Live.TagViewer, id: :tags, store: @store, tag: @tag) %>
+       </div>
+       <%= sidebar(assigns) %>
      </div>
-     <div>
-       <%= live_component(Catenary.Live.Ident, id: :ident, identity: @identity) %>
-       <%= live_component(Catenary.Live.OasisBox, id: :recents, timing: @timing, reffing: @reffing, aliasing: @aliasing, tagging: @tagging, connections: @connections, watering: @watering) %>
-     </div>
-    </div>
     """
   end
 
@@ -84,13 +78,10 @@ defmodule CatenaryWeb.Live do
     ~L"""
      <div class="max-h-screen w-100 grid grid-cols-3 gap-2 justify-center font-mono">
        <div id="tagexplore-wrap" class="col-span-2 overflow-y-auto max-h-screen m-2 p-x-2">
-       <%= live_component(Catenary.Live.TagExplorer, id: :tags, store: @store, tag: @tag) %>
+         <%= live_component(Catenary.Live.TagExplorer, id: :tags, store: @store, tag: @tag) %>
+       </div>
+       <%= sidebar(assigns) %>
      </div>
-     <div>
-       <%= live_component(Catenary.Live.Ident, id: :ident, identity: @identity) %>
-       <%= live_component(Catenary.Live.OasisBox, id: :recents, timing: @timing, reffing: @reffing, aliasing: @aliasing, tagging: @tagging, connections: @connections, watering: @watering) %>
-     </div>
-    </div>
     """
   end
 
@@ -98,14 +89,19 @@ defmodule CatenaryWeb.Live do
     ~L"""
     <div class="max-h-screen w-100 grid grid-cols-3 gap-2 justify-center font-mono">
       <div id="entryview-wrap" class="col-span-2 overflow-y-auto max-h-screen m-2 p-x-2">
-      <%= live_component(Catenary.Live.EntryViewer, id: :entry, store: @store, entry: @entry) %>
+        <%= live_component(Catenary.Live.EntryViewer, id: :entry, store: @store, entry: @entry) %>
+      </div>
+      <%= sidebar(assigns) %>
     </div>
+    """
+  end
+
+  defp sidebar(assigns) do
+    ~L"""
     <div>
       <%= live_component(Catenary.Live.Ident, id: :ident, identity: @identity) %>
       <%= live_component(Catenary.Live.OasisBox, id: :recents, timing: @timing, reffing: @reffing, aliasing: @aliasing, tagging: @tagging, connections: @connections, watering: @watering) %>
-      <%= live_component(Catenary.Live.Navigation, id: :nav,
-      entry: @entry, extra_nav: @extra_nav, identity: @identity) %>
-    </div>
+      <%= live_component(Catenary.Live.Navigation, id: :nav, entry: @entry, extra_nav: @extra_nav, identity: @identity, view: @view) %>
     </div>
     """
   end
