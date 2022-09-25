@@ -349,10 +349,10 @@ defmodule CatenaryWeb.Live do
     {na, nl, ne} =
       case move do
         "prev-entry" ->
-          {a, l, e - 1}
+          timeline({a, l, e}, :prev)
 
         "next-entry" ->
-          {a, l, e + 1}
+          timeline({a, l, e}, :next)
 
         "next-author" ->
           next_author({a, l, e}, socket)
@@ -383,6 +383,32 @@ defmodule CatenaryWeb.Live do
       end
 
     {:noreply, state_set(socket, %{view: :entries, entry: next})}
+  end
+
+  defp timeline({a, l, e} = entry, dir) do
+    Catenary.dets_open(:timelines)
+
+    timeline =
+      case :dets.lookup(:timelines, a) do
+        [] -> [{<<>>, {a, l, e}}]
+        [{^a, tl}] -> tl
+      end
+
+    Catenary.dets_close(:timelines)
+
+    wherearewe =
+      case Enum.find_index(timeline, fn {_, listed} -> listed == entry end) do
+        nil -> 0
+        n -> n
+      end
+
+    {_t, to_entry} =
+      case dir do
+        :prev -> Enum.at(timeline, wherearewe - 1)
+        :next -> Enum.at(timeline, wherearewe + 1, Enum.at(timeline, 0))
+      end
+
+    to_entry
   end
 
   defp state_set(socket, from_caller, reup? \\ false) do
