@@ -66,29 +66,9 @@ defmodule Catenary.Preferences do
 
   def mark_all_entries(:unshown), do: set(:shown, MapSet.new())
 
-  def mark_all_entries(:shown) do
-    # Thsi should be (and probably soon will be)
-    # available from Baobab directly. It munges
-    # from what we want into the stored_info format
-    all =
-      Baobab.stored_info()
-      |> all_entries([])
-      |> MapSet.new()
-
-    set(:shown, all)
-  end
+  def mark_all_entries(:shown), do: set(:shown, MapSet.new(Baobab.all_entries()))
 
   def mark_all_entries(_), do: {:error, "mark_all_entries/1 takes an atom (:shown, :unshown)"}
 
   def shown?(entry), do: get(:shown) |> MapSet.member?(entry)
-
-  defp all_entries([], acc), do: acc
-
-  defp all_entries([{a, l, _} | rest], acc) do
-    these =
-      Baobab.all_seqnum(a, log_id: l)
-      |> Enum.map(fn s -> {a, l, s} end)
-
-    all_entries(rest, List.flatten([these | acc]))
-  end
 end
