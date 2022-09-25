@@ -2,7 +2,7 @@ defmodule CatenaryWeb.Live do
   use CatenaryWeb, :live_view
 
   @ui_fast 1062
-  @ui_slow 57529
+  @ui_slow 11131
 
   def mount(_params, _session, socket) do
     # Making sure these exist, but also faux docs
@@ -402,9 +402,13 @@ defmodule CatenaryWeb.Live do
   defp state_set(socket, from_caller, reup? \\ false) do
     full_socket = assign(socket, from_caller)
     state = full_socket.assigns
-    si = Baobab.stored_info()
-    curr = si |> CBOR.encode() |> Blake2.hash2b()
-    updated? = curr != state.store_hash
+    curr = Baobab.current_hash(:content)
+
+    {updated?, si} =
+      case curr == state.store_hash do
+        true -> {false, state.store}
+        false -> {true, Baobab.stored_info()}
+      end
 
     ref = check_refindex(state.reffing, updated?, si)
     tag = check_tags(state.tagging, updated?, si)
