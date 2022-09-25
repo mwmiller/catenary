@@ -60,7 +60,7 @@ defmodule CatenaryWeb.Live do
      </div>
      <div>
        <%= live_component(Catenary.Live.Ident, id: :ident, identity: @identity) %>
-       <%= live_component(Catenary.Live.OasisBox, id: :recents, reffing: @reffing, aliasing: @aliasing, tagging: @tagging, connections: @connections, watering: @watering) %>
+       <%= live_component(Catenary.Live.OasisBox, id: :recents, timing: @timing, reffing: @reffing, aliasing: @aliasing, tagging: @tagging, connections: @connections, watering: @watering) %>
      </div>
     </div>
     """
@@ -74,7 +74,7 @@ defmodule CatenaryWeb.Live do
      </div>
      <div>
        <%= live_component(Catenary.Live.Ident, id: :ident, identity: @identity) %>
-       <%= live_component(Catenary.Live.OasisBox, id: :recents, reffing: @reffing, aliasing: @aliasing, tagging: @tagging, connections: @connections, watering: @watering) %>
+       <%= live_component(Catenary.Live.OasisBox, id: :recents, timing: @timing, reffing: @reffing, aliasing: @aliasing, tagging: @tagging, connections: @connections, watering: @watering) %>
      </div>
     </div>
     """
@@ -88,7 +88,7 @@ defmodule CatenaryWeb.Live do
      </div>
      <div>
        <%= live_component(Catenary.Live.Ident, id: :ident, identity: @identity) %>
-       <%= live_component(Catenary.Live.OasisBox, id: :recents, reffing: @reffing, aliasing: @aliasing, tagging: @tagging, connections: @connections, watering: @watering) %>
+       <%= live_component(Catenary.Live.OasisBox, id: :recents, timing: @timing, reffing: @reffing, aliasing: @aliasing, tagging: @tagging, connections: @connections, watering: @watering) %>
      </div>
     </div>
     """
@@ -102,7 +102,7 @@ defmodule CatenaryWeb.Live do
     </div>
     <div>
       <%= live_component(Catenary.Live.Ident, id: :ident, identity: @identity) %>
-      <%= live_component(Catenary.Live.OasisBox, id: :recents, reffing: @reffing, aliasing: @aliasing, tagging: @tagging, connections: @connections, watering: @watering) %>
+      <%= live_component(Catenary.Live.OasisBox, id: :recents, timing: @timing, reffing: @reffing, aliasing: @aliasing, tagging: @tagging, connections: @connections, watering: @watering) %>
       <%= live_component(Catenary.Live.Navigation, id: :nav,
       entry: @entry, extra_nav: @extra_nav, identity: @identity) %>
     </div>
