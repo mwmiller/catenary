@@ -15,7 +15,7 @@ defmodule Catenary.Live.EntryViewer do
   def update(%{entry: which} = assigns, socket) when is_atom(which) do
     targets = Quagga.log_ids_for_name(which)
 
-    case assigns.store |> Enum.filter(fn {_, l, _} -> l == targets end) do
+    case assigns.store |> Enum.filter(fn {_, l, _} -> l in targets end) do
       [] ->
         {:ok, assign(socket, card: :none)}
 
