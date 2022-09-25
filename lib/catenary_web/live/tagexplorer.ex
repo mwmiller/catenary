@@ -42,9 +42,9 @@ defmodule Catenary.Live.TagExplorer do
     tags =
       :dets.match(:tags, :"$1")
       |> Enum.reduce([], fn [{f, i} | _], a ->
-        case is_binary(f) do
-          true -> [{f, Enum.any?(i, fn e -> not Catenary.Preferences.shown?(e) end)} | a]
-          false -> a
+        case f do
+          {"", t} -> [{t, Enum.any?(i, fn {_t, e} -> not Catenary.Preferences.shown?(e) end)} | a]
+          _ -> a
         end
       end)
       |> Enum.uniq()

@@ -58,27 +58,29 @@ defmodule Catenary.Indices do
     try do
       %Baobab.Entry{payload: payload} = entry
       {:ok, data, ""} = CBOR.decode(payload)
-      tags = data["tags"] |> Enum.map(fn s -> String.trim(s) end)
+      tags = data["tags"] |> Enum.map(fn s -> {"", String.trim(s)} end)
       [ent] = data["references"]
       e = List.to_tuple(ent)
       # Tags for entry
-      case :dets.lookup(:tags, e) do
-        [] -> :dets.insert(:tags, {e, tags})
-        [{^e, val}] -> :dets.insert(:tags, {e, Enum.uniq(val ++ tags)})
-      end
+      old =
+        case :dets.lookup(:tags, e) do
+          [] -> []
+          [{^e, val}] -> val
+        end
+
+      into = (old ++ tags) |> Enum.sort() |> Enum.uniq()
+      :dets.insert(:tags, {e, into})
 
       # Entries for tag
       for tag <- tags do
-        case :dets.lookup(:tags, tag) do
-          [] ->
-            :dets.insert(:tags, {tag, [e]})
+        old_val =
+          case :dets.lookup(:tags, tag) do
+            [] -> []
+            [{^tag, val}] -> val
+          end
 
-          [{^tag, val}] ->
-            :dets.insert(
-              :tags,
-              {tag, [e | val] |> Enum.sort_by(fn e -> elem(e, 2) end, &>=/2) |> Enum.uniq()}
-            )
-        end
+        insert = [{published(data), e} | old_val] |> Enum.sort() |> Enum.uniq()
+        :dets.insert(:tags, {tag, insert})
       end
     rescue
       _ -> :ok
@@ -91,7 +93,7 @@ defmodule Catenary.Indices do
     try do
       %Baobab.Entry{payload: payload} = entry
       {:ok, data, ""} = CBOR.decode(payload)
-      :dets.insert(:aliases, {data["whom"], data["alias"]})
+      :dets.insert(:aliases, {published(data), data["whom"], data["alias"]})
     rescue
       _ ->
         :ok
@@ -109,10 +111,14 @@ defmodule Catenary.Indices do
       for lref <- Map.get(data, "references") do
         tref = lref |> List.to_tuple()
 
-        case :dets.lookup(:refs, tref) do
-          [] -> :dets.insert(:refs, {tref, [index]})
-          [{^tref, val}] -> :dets.insert(:refs, {tref, Enum.uniq(val ++ [index])})
-        end
+        old_val =
+          case :dets.lookup(:refs, tref) do
+            [] -> []
+            [{^tref, val}] -> val
+          end
+
+        new_val = (old_val ++ [{published(data), index}]) |> Enum.sort() |> Enum.uniq()
+        :dets.insert(:refs, {tref, new_val})
       end
     rescue
       _ ->
@@ -121,4 +127,18 @@ defmodule Catenary.Indices do
 
     entries_index(rest, :refs)
   end
+
+  defp published(data) when is_map(data) do
+    case data["published"] do
+      nil ->
+        ""
+
+      t ->
+        t
+        |> Timex.parse!("{ISO:Extended}")
+        |> Timex.Timezone.convert(Timex.Timezone.local())
+    end
+  end
+
+  defp published(_), do: ""
 end

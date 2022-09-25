@@ -45,6 +45,11 @@ defmodule Catenary.Quagga do
 
   def base_log_for_name(n), do: Map.get(@name_to_log, n, :unknown)
 
+  def base_log_for_id(n) do
+    {base_log, _} = log_id_unpack(n)
+    base_log
+  end
+
   def log_ids_for_name(n) do
     @name_to_log
     |> Map.get(n)

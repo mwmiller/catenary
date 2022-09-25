@@ -43,7 +43,7 @@ defmodule Catenary.Live.TagViewer do
   defp extract(tag) do
     tag
     |> from_dets(:tags)
-    |> Enum.group_by(fn {_, l, _} -> l end)
+    |> Enum.group_by(fn {_, {_, l, _}} -> Catenary.Quagga.base_log_for_id(l) end)
     |> Map.to_list()
     |> prettify([])
     |> Enum.sort(:asc)
@@ -56,7 +56,7 @@ defmodule Catenary.Live.TagViewer do
 
   defp icon_entries(entries) do
     entries
-    |> Enum.reduce("", fn e, a ->
+    |> Enum.reduce("", fn {_d, e}, a ->
       a <> "<div>" <> Catenary.entry_icon_link(e, 4) <> "</div>"
     end)
     |> Phoenix.HTML.raw()
@@ -66,9 +66,9 @@ defmodule Catenary.Live.TagViewer do
     Catenary.dets_open(table)
 
     val =
-      case :dets.lookup(table, entry) do
+      case :dets.lookup(table, {"", entry}) do
         [] -> []
-        [{^entry, v}] -> v
+        [{_, v}] -> v
       end
 
     Catenary.dets_close(table)

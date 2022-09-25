@@ -319,13 +319,17 @@ defmodule Catenary.Live.EntryViewer do
         [] -> []
         [{^entry, v}] -> v
       end
+      |> Enum.map(fn {_pub, v} -> v end)
 
     Catenary.dets_close(table)
     val
   end
 
   defp from_refs(entry) do
-    {tags, others} = entry |> from_dets(:refs) |> Enum.split_with(fn {_, l, _} -> l == 749 end)
+    {tags, others} =
+      entry
+      |> from_dets(:refs)
+      |> Enum.split_with(fn {_, l, _} -> Catenary.Quagga.base_log_for_id(l) == 749 end)
 
     %{"tagged-in" => tags, "fore-refs" => others}
   end
