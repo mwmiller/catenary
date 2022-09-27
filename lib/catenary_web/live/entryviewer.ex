@@ -81,19 +81,20 @@ defmodule Catenary.Live.EntryViewer do
   # This is to create an identity "profile", but it'll also
   # give "something" when things go sideways
   def extract({a, l, e}) when l < 0 or e < 1 do
+    Catenary.Preferences.update(:shown, fn ms -> MapSet.put(ms, {a, l, e}) end)
+
     body =
       case from_dets(a, :timelines) do
         [] ->
           "No activity"
 
         activity ->
-          first = activity |> hd
+          key = a |> Baobab.b62identity()
           latest = activity |> Enum.reverse() |> hd
 
-          "<p><button phx-click=\"view-entry\" value=\"" <>
-            Catenary.index_to_string(first) <>
-            "\">Earliest log entry</button></p>" <>
-            "<p><button phx-click=\"view-entry\" value=\"" <>
+          "<p>Full key: " <>
+            key <>
+            "</p><p><button phx-click=\"view-entry\" value=\"" <>
             Catenary.index_to_string(latest) <> "\">Latest log entry</button></p>"
       end
 
