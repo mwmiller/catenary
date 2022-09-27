@@ -12,7 +12,7 @@ defmodule Catenary.Live.EntryViewer do
     {:ok, assign(socket, card: :none)}
   end
 
-  def update(%{entry: which} = assigns, socket) when is_atom(which) do
+  def update(%{entry: which, clump_id: clump_id} = assigns, socket) when is_atom(which) do
     targets = Quagga.log_ids_for_name(which)
 
     case assigns.store |> Enum.filter(fn {_, l, _} -> l in targets end) do
@@ -22,7 +22,7 @@ defmodule Catenary.Live.EntryViewer do
       entries ->
         entry = Enum.random(entries)
 
-        case extract(entry) do
+        case extract(entry, clump_id) do
           :error ->
             update(assigns, socket)
 
@@ -33,8 +33,8 @@ defmodule Catenary.Live.EntryViewer do
     end
   end
 
-  def update(%{entry: which} = assigns, socket) do
-    {:ok, assign(socket, Map.merge(assigns, %{card: extract(which)}))}
+  def update(%{entry: which, clump_id: clump_id} = assigns, socket) do
+    {:ok, assign(socket, Map.merge(assigns, %{card: extract(which, clump_id)}))}
   end
 
   @impl true
@@ -80,7 +80,7 @@ defmodule Catenary.Live.EntryViewer do
 
   # This is to create an identity "profile", but it'll also
   # give "something" when things go sideways
-  def extract({a, l, e}) when l < 0 or e < 1 do
+  def extract({a, l, e}, _clump_id) when l < 0 or e < 1 do
     Catenary.Preferences.update(:shown, fn ms -> MapSet.put(ms, {a, l, e}) end)
 
     body =
@@ -110,14 +110,14 @@ defmodule Catenary.Live.EntryViewer do
     }
   end
 
-  def extract({a, l, e} = entry) do
+  def extract({a, l, e} = entry, clump_id) do
     # We want failure to save here to fail loudly without any further work
     # But if it does fail later we don't mind having said it was shown
     Catenary.Preferences.update(:shown, fn ms -> MapSet.put(ms, entry) end)
 
     try do
       payload =
-        case Baobab.log_entry(a, e, log_id: l) do
+        case Baobab.log_entry(a, e, log_id: l, clump_id: clump_id) do
           {:error, :missing} -> :missing
           %Baobab.Entry{payload: pl} -> pl
           _ -> :unknown

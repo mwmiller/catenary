@@ -64,7 +64,3 @@ config :phoenix, :stacktrace_depth, 20
 
 # Initialize plugs at runtime for faster development compilation
 config :phoenix, :plug_init_mode, :runtime
-
-# These should be subsumed into :catenary configs
-# Baobab
-config :baobab, spool_dir: "~/.baobab"

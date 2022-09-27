@@ -10,6 +10,7 @@ defmodule CatenaryWeb.Live do
     Phoenix.PubSub.subscribe(Catenary.PubSub, "ui")
 
     whoami = Catenary.Preferences.get(:identity) |> Baobab.b62identity()
+    clump_id = Catenary.Preferences.get(:clump_id)
     # This might make more sense as a Preference.
     # It's also dangerous and hard to figure the right UI
     # So it sits in the config for now while I try things out
@@ -32,6 +33,7 @@ defmodule CatenaryWeb.Live do
          tag: :all,
          connections: [],
          watering: [],
+         clump_id: clump_id,
          identity: whoami,
          facet_id: facet_id
        },
@@ -82,7 +84,7 @@ defmodule CatenaryWeb.Live do
   def render(%{view: :entries} = assigns) do
     ~L"""
     <div class="max-h-screen w-100 grid grid-cols-3 gap-2 justify-center">
-      <%= live_component(Catenary.Live.EntryViewer, id: :entry, store: @store, entry: @entry) %>
+      <%= live_component(Catenary.Live.EntryViewer, id: :entry, store: @store, entry: @entry, clump_id: @clump_id) %>
       <%= sidebar(assigns) %>
     </div>
     """
@@ -103,7 +105,7 @@ defmodule CatenaryWeb.Live do
       case Catenary.Preferences.set(:identity, who) do
         :ok ->
           whonow = Baobab.b62identity(who)
-          Catenary.Indices.index_aliases(whonow)
+          Catenary.Indices.index_aliases(whonow, socket.assigns.clump_id)
           state_set(socket, %{identity: whonow})
 
         _ ->
@@ -195,8 +197,8 @@ defmodule CatenaryWeb.Live do
 
     b62author = Baobab.b62identity(a)
     entry = {b62author, l, e}
-    Catenary.Indices.index_tags([entry])
-    Catenary.Indices.index_references([entry])
+    Catenary.Indices.index_tags([entry], socket.assigns.clump_id)
+    Catenary.Indices.index_references([entry], socket.assigns.clump_id)
     {:noreply, state_set(socket, %{entry: entry})}
   end
 
@@ -228,8 +230,8 @@ defmodule CatenaryWeb.Live do
 
     b62author = Baobab.b62identity(a)
     entry = {b62author, l, e}
-    Catenary.Indices.index_aliases(b62author)
-    Catenary.Indices.index_references([entry])
+    Catenary.Indices.index_aliases(b62author, socket.assigns.clump_id)
+    Catenary.Indices.index_references([entry], socket.assigns.clump_id)
     {:noreply, state_set(socket, %{entry: entry})}
   end
 
@@ -246,12 +248,15 @@ defmodule CatenaryWeb.Live do
     # Only single parent references, but maybe multiple children
     # We get a tuple here, we'll get an array back from CBOR
     {oa, ol, oe} = Catenary.string_to_index(ref)
+    clump_id = socket.assigns.clump_id
 
     t =
       case title do
         "" ->
           try do
-            %Baobab.Entry{payload: payload} = Baobab.log_entry(oa, oe, log_id: ol)
+            %Baobab.Entry{payload: payload} =
+              Baobab.log_entry(oa, oe, log_id: ol, clump_id: clump_id)
+
             {:ok, %{"title" => t}, ""} = CBOR.decode(payload)
 
             case t do
@@ -277,7 +282,7 @@ defmodule CatenaryWeb.Live do
       |> append_log_for_socket(533, socket)
 
     entry = {Baobab.b62identity(a), l, e}
-    Catenary.Indices.index_references([entry])
+    Catenary.Indices.index_references([entry], socket.assigns.clump_id)
 
     {:noreply, state_set(socket, %{entry: entry})}
   end
@@ -295,7 +300,7 @@ defmodule CatenaryWeb.Live do
       |> append_log_for_socket(360_360, socket)
 
     entry = {Baobab.b62identity(a), l, e}
-    Catenary.Indices.index_references([entry])
+    Catenary.Indices.index_references([entry], socket.assigns.clump_id)
 
     {:noreply, state_set(socket, %{entry: entry})}
   end
@@ -305,7 +310,10 @@ defmodule CatenaryWeb.Live do
     which =
       Application.get_env(:catenary, :fallback_node, host: "sally.nftease.online", port: 8483)
 
-    case Baby.connect(Keyword.get(which, :host), Keyword.get(which, :port)) do
+    case Baby.connect(Keyword.get(which, :host), Keyword.get(which, :port),
+           identity: Catenary.id_for_key(socket.assigns.identity),
+           clump_id: socket.assigns.clump_id
+         ) do
       {:ok, pid} ->
         {:noreply, state_set(socket, %{connections: [{pid, %{}} | socket.assigns.connections]})}
 
@@ -316,9 +324,14 @@ defmodule CatenaryWeb.Live do
 
   def handle_event("connect", %{"value" => where}, socket) do
     with {a, l, e} = index <- Catenary.string_to_index(where),
-         %Baobab.Entry{payload: payload} <- Baobab.log_entry(a, e, log_id: l),
+         %Baobab.Entry{payload: payload} <-
+           Baobab.log_entry(a, e, log_id: l, clump_id: socket.assigns.clump_id),
          {:ok, map, ""} <- CBOR.decode(payload),
-         {:ok, pid} = Baby.connect(map["host"], map["port"]) do
+         {:ok, pid} =
+           Baby.connect(map["host"], map["port"],
+             identity: Catenary.id_for_key(socket.assigns.identity),
+             clump_id: socket.assigns.clump_id
+           ) do
       {:noreply,
        state_set(
          socket,
@@ -402,19 +415,20 @@ defmodule CatenaryWeb.Live do
   defp state_set(socket, from_caller, reup? \\ false) do
     full_socket = assign(socket, from_caller)
     state = full_socket.assigns
-    curr = Baobab.current_hash(:content)
+    clump_id = state.clump_id
+    curr = Baobab.current_hash(:content, clump_id)
 
     {updated?, si} =
       case curr == state.store_hash do
         true -> {false, state.store}
-        false -> {true, Baobab.stored_info()}
+        false -> {true, Baobab.stored_info(clump_id)}
       end
 
-    ref = check_refindex(state.reffing, updated?, si)
-    tag = check_tags(state.tagging, updated?, si)
-    ali = check_aliases(state.aliasing, updated?, state.identity)
+    ref = check_refindex(state.reffing, clump_id, updated?, si)
+    tag = check_tags(state.tagging, clump_id, updated?, si)
+    ali = check_aliases(state.aliasing, clump_id, updated?, state.identity)
     con = check_connections(state.connections, [])
-    seq = check_timelines(state.timing, updated?, si)
+    seq = check_timelines(state.timing, clump_id, updated?, si)
 
     common = [
       reffing: ref,
@@ -431,7 +445,7 @@ defmodule CatenaryWeb.Live do
           {@ui_fast,
            [
              store: si,
-             watering: watering(si)
+             watering: watering(si, clump_id)
            ]}
 
         false ->
@@ -449,62 +463,62 @@ defmodule CatenaryWeb.Live do
     assign(full_socket, common ++ extra)
   end
 
-  defp check_timelines(pid, new, data) when is_pid(pid) do
+  defp check_timelines(pid, clump_id, new, data) when is_pid(pid) do
     case Process.alive?(pid) do
       true -> pid
-      false -> check_timelines(:not_running, new, data)
+      false -> check_timelines(:not_running, clump_id, new, data)
     end
   end
 
-  defp check_timelines(:not_running, false, _data), do: :not_running
+  defp check_timelines(:not_running, _clump_id, false, _data), do: :not_running
 
   # FYI these Task.start items do not work as might be expected
   # We get the task pid, not the underlying task process pid
   # This might seem like the same thing, but it's not sometimes
-  defp check_timelines(:not_running, true, data) do
-    {:ok, pid} = Task.start(Catenary.Indices, :index_timelines, [data])
+  defp check_timelines(:not_running, clump_id, true, data) do
+    {:ok, pid} = Task.start(Catenary.Indices, :index_timelines, [data, clump_id])
     pid
   end
 
-  defp check_aliases(pid, new, data) when is_pid(pid) do
+  defp check_aliases(pid, clump_id, new, data) when is_pid(pid) do
     case Process.alive?(pid) do
       true -> pid
-      false -> check_aliases(:not_running, new, data)
+      false -> check_aliases(:not_running, clump_id, new, data)
     end
   end
 
-  defp check_aliases(:not_running, false, _data), do: :not_running
+  defp check_aliases(:not_running, _clump_id, false, _data), do: :not_running
 
-  defp check_aliases(:not_running, true, id) do
-    {:ok, pid} = Task.start(Catenary.Indices, :index_aliases, [id])
+  defp check_aliases(:not_running, clump_id, true, id) do
+    {:ok, pid} = Task.start(Catenary.Indices, :index_aliases, [id, clump_id])
     pid
   end
 
-  defp check_tags(pid, new, data) when is_pid(pid) do
+  defp check_tags(pid, clump_id, new, data) when is_pid(pid) do
     case Process.alive?(pid) do
       true -> pid
-      false -> check_tags(:not_running, new, data)
+      false -> check_tags(:not_running, clump_id, new, data)
     end
   end
 
-  defp check_tags(:not_running, false, _si), do: :not_running
+  defp check_tags(:not_running, _clump_id, false, _si), do: :not_running
 
-  defp check_tags(:not_running, true, si) do
-    {:ok, pid} = Task.start(Catenary.Indices, :index_tags, [si])
+  defp check_tags(:not_running, clump_id, true, si) do
+    {:ok, pid} = Task.start(Catenary.Indices, :index_tags, [si, clump_id])
     pid
   end
 
-  defp check_refindex(pid, new, si) when is_pid(pid) do
+  defp check_refindex(pid, clump_id, new, si) when is_pid(pid) do
     case Process.alive?(pid) do
       true -> pid
-      false -> check_refindex(:not_running, new, si)
+      false -> check_refindex(:not_running, clump_id, new, si)
     end
   end
 
-  defp check_refindex(:not_running, false, _si), do: :not_running
+  defp check_refindex(:not_running, _clump_id, false, _si), do: :not_running
 
-  defp check_refindex(:not_running, true, si) do
-    {:ok, pid} = Task.start(Catenary.Indices, :index_references, [si])
+  defp check_refindex(:not_running, clump_id, true, si) do
+    {:ok, pid} = Task.start(Catenary.Indices, :index_references, [si, clump_id])
     pid
   end
 
@@ -520,13 +534,13 @@ defmodule CatenaryWeb.Live do
     end
   end
 
-  defp watering(store) do
+  defp watering(store, clump_id) do
     store
     |> Enum.filter(fn {_, l, _} -> l == 8483 end)
-    |> extract_recents(DateTime.now!("Etc/UTC"), [])
+    |> extract_recents(clump_id, DateTime.now!("Etc/UTC"), [])
   end
 
-  defp extract_recents([], _, acc) do
+  defp extract_recents([], _, _, acc) do
     # Put them in age order
     # Pick the most recent for any host/port dupes
     # Display a max of 3
@@ -536,9 +550,9 @@ defmodule CatenaryWeb.Live do
     |> Enum.take(4)
   end
 
-  defp extract_recents([{a, l, e} | rest], now, acc) do
+  defp extract_recents([{a, l, e} | rest], clump_id, now, acc) do
     try do
-      %Baobab.Entry{payload: payload} = Baobab.log_entry(a, e, log_id: l)
+      %Baobab.Entry{payload: payload} = Baobab.log_entry(a, e, log_id: l, clump_id: clump_id)
       {:ok, map, ""} = CBOR.decode(payload)
 
       case map do
@@ -547,19 +561,19 @@ defmodule CatenaryWeb.Live do
 
           cond do
             Timex.diff(then, now, :hour) > -49 ->
-              extract_recents(rest, now, [
+              extract_recents(rest, clump_id, now, [
                 Map.merge(map, %{:id => {a, l, e}, "running" => then}) | acc
               ])
 
             true ->
-              extract_recents(rest, now, acc)
+              extract_recents(rest, clump_id, now, acc)
           end
 
         _ ->
-          extract_recents(rest, now, acc)
+          extract_recents(rest, clump_id, now, acc)
       end
     rescue
-      _ -> extract_recents(rest, now, acc)
+      _ -> extract_recents(rest, clump_id, now, acc)
     end
   end
 
@@ -614,7 +628,8 @@ defmodule CatenaryWeb.Live do
 
   defp append_log_for_socket(contents, log_id, socket) do
     Baobab.append_log(contents, Catenary.id_for_key(socket.assigns.identity),
-      log_id: Catenary.Quagga.facet_log(log_id, socket.assigns.facet_id)
+      log_id: Catenary.Quagga.facet_log(log_id, socket.assigns.facet_id),
+      clump_id: socket.assigns.clump_id
     )
   end
 end

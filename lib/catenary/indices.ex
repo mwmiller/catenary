@@ -19,30 +19,31 @@ defmodule Catenary.Indices do
     end
   end
 
-  def index_references(stored_info) do
+  def index_references(stored_info, clump_id) do
     Catenary.dets_open(:refs)
-    index(stored_info, Quagga.log_ids_for_encoding(:cbor), :refs)
+    index(stored_info, clump_id, Quagga.log_ids_for_encoding(:cbor), :refs)
     Catenary.dets_close(:refs)
   end
 
-  def index_aliases(id) do
+  def index_aliases(id, clump_id) do
     Catenary.dets_open(:aliases)
     :dets.delete_all_objects(:aliases)
-    index([{id, 53, 1}], Quagga.log_ids_for_name(:alias), :aliases)
+    index([{id, 53, 1}], clump_id, Quagga.log_ids_for_name(:alias), :aliases)
     Catenary.dets_close(:aliases)
   end
 
-  def index_tags(stored_info) do
+  def index_tags(stored_info, clump_id) do
     Catenary.dets_open(:tags)
-    index(stored_info, Quagga.log_ids_for_name(:tag), :tags)
+    index(stored_info, clump_id, Quagga.log_ids_for_name(:tag), :tags)
     Catenary.dets_close(:tags)
   end
 
-  def index_timelines(stored_info) do
+  def index_timelines(stored_info, clump_id) do
     Catenary.dets_open(:timelines)
 
     index(
       stored_info,
+      clump_id,
       Enum.reduce([:reply, :journal], [], fn n, a -> a ++ Quagga.log_ids_for_name(n) end),
       :timelines
     )
@@ -50,16 +51,16 @@ defmodule Catenary.Indices do
     Catenary.dets_close(:timelines)
   end
 
-  defp index([], _, _), do: :ok
+  defp index([], _, _, _), do: :ok
 
-  defp index([{a, l, _} | rest], log_ids, which) do
+  defp index([{a, l, _} | rest], clump_id, log_ids, which) do
     # Side-effects everywhere!
     case l in log_ids do
-      true -> entries_index(Baobab.full_log(a, log_id: l), which)
+      true -> entries_index(Baobab.full_log(a, log_id: l, clump_id: clump_id), which)
       false -> :ok
     end
 
-    index(rest, log_ids, which)
+    index(rest, clump_id, log_ids, which)
   end
 
   # This could maybe give up on a CBOR failure, eventurally

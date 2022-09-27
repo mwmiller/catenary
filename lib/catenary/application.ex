@@ -10,17 +10,14 @@ defmodule Catenary.Application do
   @impl true
   def start(_type, _args) do
     # Ensure the application directory exists
-    :catenary
-    |> Application.get_env(:application_dir, "~/.catenary")
-    |> Path.expand()
-    |> File.mkdir_p()
+    app_dir =
+      :catenary
+      |> Application.get_env(:application_dir, "~/.catenary")
+      |> Path.expand()
 
-    # Also the spool directory
-    # This should eventually go away
-    :baobab
-    |> Application.get_env(:spool_dir, "~/.baobab")
-    |> Path.expand()
-    |> File.mkdir_p()
+    # Including the spool directory
+    spool_dir = Path.join(app_dir, "spool")
+    File.mkdir_p(spool_dir)
 
     whoami = Catenary.Preferences.get(:identity)
     clump_id = Catenary.Preferences.get(:clump_id)
@@ -31,7 +28,7 @@ defmodule Catenary.Application do
     Catenary.Indices.clear_all()
 
     children = [
-      {Baby.Application, [identity: whoami, clump_id: clump_id]},
+      {Baby.Application, [spool_dir: spool_dir, identity: whoami, clump_id: clump_id]},
       # Start the Telemetry supervisor
       CatenaryWeb.Telemetry,
       # Start the PubSub system
@@ -91,15 +88,7 @@ defmodule Catenary.Application do
          %{label: "Aliases", command: "alias", action: %{entry: :alias}},
          %{label: "Oases", command: "oasis", action: %{entry: :oasis}},
          %{label: "Test posts", command: "test", action: %{entry: :test}}
-       ]},
-      {"Identity",
-       for {i, _} <- Baobab.identities() do
-         %{label: i, command: "id_" <> i, action: %{identity: i}}
-       end ++
-         [
-           :rule,
-           %{label: "Manage...", command: "identity-manager", action: %{view: :idents}}
-         ]}
+       ]}
     ]
   end
 end
