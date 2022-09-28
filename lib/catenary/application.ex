@@ -78,6 +78,9 @@ defmodule Catenary.Application do
        [
          %{label: "Open dashboard", command: "dashboard", action: %{view: :dashboard}},
          %{label: "Manage identities", command: "idents", action: %{view: :idents}},
+         :rule,
+         %{label: "Reset view", command: "reset"},
+         :rule,
          %{label: "Quit", command: "quit"}
        ]},
       {"Explore",
