@@ -26,6 +26,13 @@ defmodule Catenary.Live.IdentityManager do
             <td><button phx-click="view-entry" value="<%= Catenary.index_to_string({k,0,0}) %>"><%= log_info_string(@store, k) %></a></td>
           </tr>
         <% end %>
+        <tr class="my-10 border border-slate-200 dark:border-slate-800">
+          <td class="py=5">&nbsp;</td>
+          <td><input class="bg-white dark:bg-black" type="text" size=16 id="new-id" phx-blur="new-id" /></td>
+          <td>&nbsp;</td>
+          <td>&nbsp;</td>
+          <td>None.</td>
+        </tr>
       </tbody>
     </table>
     </form>

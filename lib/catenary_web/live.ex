@@ -126,6 +126,20 @@ defmodule CatenaryWeb.Live do
     {:noreply, state_set(socket, %{identity: whom |> Baobab.b62identity()})}
   end
 
+  def handle_event("new-id", %{"value" => whom}, socket) do
+    # We auto-switch to new identity.  Switching is cheap.
+    # If they give the same name, just switch to it, don't overwrite
+    # Let's make deletion explicit!
+    {name, pk} =
+      case Enum.find(Baobab.identities(), fn {n, _} -> n == whom end) do
+        nil -> {whom, Baobab.create_identity(whom)}
+        match -> match
+      end
+
+    Catenary.Preferences.set(:identity, name)
+    {:noreply, state_set(socket, %{identity: pk})}
+  end
+
   def handle_event("tag-explorer", _, socket) do
     {:noreply, state_set(socket, %{view: :tags, tag: :all})}
   end
