@@ -57,8 +57,7 @@ defmodule CatenaryWeb.Live do
   def render(%{view: :idents} = assigns) do
     ~L"""
      <div class="max-h-screen w-100 grid grid-cols-3 gap-2 justify-center">
-       <%= live_component(Catenary.Live.IdentityManager, id: :idents, store: @store) %>
-       <%= sidebar(assigns) %>
+       <%= live_component(Catenary.Live.IdentityManager, id: :idents, identity: @identity, store: @store) %>
      </div>
     """
   end
@@ -100,21 +99,6 @@ defmodule CatenaryWeb.Live do
     """
   end
 
-  def handle_info(%{identity: who}, socket) do
-    ns =
-      case Catenary.Preferences.set(:identity, who) do
-        :ok ->
-          whonow = Baobab.b62identity(who)
-          Catenary.Indices.index_aliases(whonow, socket.assigns.clump_id)
-          state_set(socket, %{identity: whonow})
-
-        _ ->
-          socket
-      end
-
-    {:noreply, ns}
-  end
-
   def handle_info(%{view: :idents}, socket) do
     {:noreply, state_set(socket, %{view: :idents})}
   end
@@ -133,6 +117,13 @@ defmodule CatenaryWeb.Live do
 
   def handle_info(:check_store, socket) do
     {:noreply, state_set(socket, %{}, true)}
+  end
+
+  # I keep thinking I will write these with `phx-target` to the component
+  # but then I realise I need the global state updates
+  def handle_event("identity-change", %{"selection" => whom}, socket) do
+    Catenary.Preferences.set(:identity, whom)
+    {:noreply, state_set(socket, %{identity: whom |> Baobab.b62identity()})}
   end
 
   def handle_event("tag-explorer", _, socket) do

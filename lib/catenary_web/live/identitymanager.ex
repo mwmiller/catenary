@@ -1,7 +1,6 @@
 defmodule Catenary.Live.IdentityManager do
   use Phoenix.LiveComponent
   use Phoenix.HTML
-  alias CatenaryWeb.Router.Helpers, as: Routes
 
   @impl true
   def update(assigns, socket) do
@@ -11,25 +10,25 @@ defmodule Catenary.Live.IdentityManager do
   @impl true
   def render(assigns) do
     ~L"""
-     <div id="identview-wrap" class="col-span-2 overflow-y-auto max-h-screen m-2 p-x-2">
-      <div class="min-w-full font-sans row-span-full">
-        <h1 class="text=center">Identity Manager</h1>
-        <hr/>
-        <div class="grid grid-cols-2 mt-10">
-          <%= for {n, k} <- @identities do %>
-            <div><img src="<%= Catenary.identicon(k, 8) %>">
-              Name: <%= n %><br/>
-              AKA: <%= Catenary.short_id(k) %><br/>
-              Activity: <%= log_info_string(@store, k) %><br/>
-              Keys:
-             <%= form_tag(Routes.export_path(@socket, :create)) %>
-              <input type="hidden" value="<%= n %>" name="whom"/>
-              <%= submit "Export", class: "btn btn-secondary w-full" %>
-            </form>
-            </div>
-          <% end %>
-      </div>
-      </div>
+     <div id="identview-wrap" class="col-span-full overflow-y-auto max-h-screen m-2 p-x-2">
+      <h1 class="text-center">Identity Manager</h1>
+      <form method="post" id="identity-form" phx-submit="identity-change" phx-change="identity-change">
+      <table class="min-w-full"><thead>
+        <tr class="border border-slate-200 dark:border-slate-800"><th>Selection</th><th>Name</th><th>Identicon</th><th>AKA</th><th>Activity</th></tr>
+      </thead>
+      <tbody class="text-center">
+        <%= for {n, k} <- @identities do %>
+          <tr class="my-10 border <%= if k == @identity, do: "bg-emerald-100 border-emerald-200 dark:bg-cyan-800 dark:border-cyan-900", else: "border-slate-200 dark:border-slate-800" %>">
+            <td class="py-5"><input type="radio" name="selection" value="<%= n %>" <%= if k == @identity, do: "checked" %>></td>
+            <td><%= n %></td>
+            <td><img class="mx-auto" src="<%= Catenary.identicon(k, 4) %>"></td>
+            <td><%= Catenary.linked_author(k) %></td>
+            <td><button phx-click="view-entry" value="<%= Catenary.index_to_string({k,0,0}) %>"><%= log_info_string(@store, k) %></a></td>
+          </tr>
+        <% end %>
+      </tbody>
+    </table>
+    </form>
     </div>
     """
   end
