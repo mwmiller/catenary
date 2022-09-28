@@ -19,6 +19,7 @@ defmodule Catenary.Quagga do
     808_003 => %{encoding: :raw, type: "image/gif", name: :gif}
   }
 
+  @timeline_logs [:journal, :reply]
   @name_to_log @log_to_def |> Enum.reduce(%{}, fn {l, %{name: n}}, a -> Map.put(a, n, l) end)
   @encoding_to_logs @log_to_def
                     |> Enum.reduce(%{}, fn {l, %{encoding: e}}, a ->
@@ -77,7 +78,8 @@ defmodule Catenary.Quagga do
 
   defp samebase_logs(_), do: []
 
-  def good_random_read(), do: [:reply, :journal] |> Enum.random()
+  def timeline_logs, do: @timeline_logs
+  def random_timeline_log(), do: @timeline_logs |> Enum.random()
 
   def pretty_log_name(log_id) do
     case log_id_unpack(log_id) do

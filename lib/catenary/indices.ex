@@ -44,7 +44,7 @@ defmodule Catenary.Indices do
     index(
       stored_info,
       clump_id,
-      Enum.reduce([:reply, :journal], [], fn n, a -> a ++ Quagga.log_ids_for_name(n) end),
+      Enum.reduce(Quagga.timeline_logs(), [], fn n, a -> a ++ Quagga.log_ids_for_name(n) end),
       :timelines
     )
 

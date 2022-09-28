@@ -5,7 +5,7 @@ defmodule Catenary.Live.EntryViewer do
 
   @impl true
   def update(%{entry: :random} = assigns, socket) do
-    update(Map.merge(assigns, %{entry: Quagga.good_random_read()}), socket)
+    update(Map.merge(assigns, %{entry: Quagga.random_timeline_log()}), socket)
   end
 
   def update(%{entry: :none}, socket) do

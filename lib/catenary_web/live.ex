@@ -416,7 +416,12 @@ defmodule CatenaryWeb.Live do
     {:noreply, state_set(socket, %{view: :entries, entry: next})}
   end
 
-  defp timeline({a, l, e} = entry, dir) do
+  # Compile-tie computed so it can be used in the guard clause
+  @timeline_ids Enum.reduce(Catenary.Quagga.timeline_logs(), [], fn l, a ->
+                  [Catenary.Quagga.log_ids_for_name(l) | a]
+                end)
+
+  defp timeline({a, l, e} = entry, dir) when l in @timeline_ids do
     Catenary.dets_open(:timelines)
 
     timeline =
@@ -441,6 +446,9 @@ defmodule CatenaryWeb.Live do
 
     to_entry
   end
+
+  defp timeline({a, l, e}, :prev), do: {a, l, e - 1}
+  defp timeline({a, l, e}, :next), do: {a, l, e + 1}
 
   defp state_set(socket, from_caller, reup? \\ false) do
     full_socket = assign(socket, from_caller)
