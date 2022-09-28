@@ -22,6 +22,8 @@ defmodule CatenaryWeb.Live do
        %{
          store_hash: <<>>,
          store: [],
+         id_hash: <<>>,
+         identities: [],
          ui_speed: @ui_slow,
          view: :idents,
          extra_nav: :none,
@@ -57,7 +59,7 @@ defmodule CatenaryWeb.Live do
   def render(%{view: :idents} = assigns) do
     ~L"""
      <div class="max-h-screen w-100 grid grid-cols-3 gap-2 justify-center">
-       <%= live_component(Catenary.Live.IdentityManager, id: :idents, identity: @identity, store: @store) %>
+       <%= live_component(Catenary.Live.IdentityManager, id: :idents, identity: @identity, identities: @identities, store: @store) %>
      </div>
     """
   end
@@ -136,7 +138,7 @@ defmodule CatenaryWeb.Live do
     # If they give the same name, just switch to it, don't overwrite
     # Let's make deletion explicit!
     {name, pk} =
-      case Enum.find(Baobab.identities(), fn {n, _} -> n == whom end) do
+      case Enum.find(socket.assigns.identities, fn {n, _} -> n == whom end) do
         nil -> {whom, Baobab.create_identity(whom)}
         match -> match
       end
@@ -146,6 +148,22 @@ defmodule CatenaryWeb.Live do
   end
 
   def handle_event("new-id", _, socket), do: {:noreply, socket}
+
+  def handle_event(<<"rename-id-", old::binary>>, %{"value" => tobe}, socket)
+      when is_binary(tobe) and byte_size(tobe) > 0 do
+    case Enum.find(socket.assigns.identities, fn {n, _} -> n == tobe end) do
+      # We'll let this crash and not pay attention
+      nil -> Baobab.rename_identity(old, tobe)
+      # Refuse to rename over an extant name
+      _ -> %{}
+    end
+
+    # We set this to make it obvious what happened
+    # if anything
+    {:noreply, state_set(socket, %{identity: tobe |> Baobab.b62identity()})}
+  end
+
+  def handle_event(<<"rename-id-", _::binary>>, _, socket), do: {:noreply, socket}
 
   def handle_event("tag-explorer", _, socket) do
     {:noreply, state_set(socket, %{view: :tags, tag: :all})}
@@ -428,12 +446,20 @@ defmodule CatenaryWeb.Live do
     full_socket = assign(socket, from_caller)
     state = full_socket.assigns
     clump_id = state.clump_id
-    curr = Baobab.current_hash(:content, clump_id)
+    sihash = Baobab.current_hash(:content, clump_id)
 
     {updated?, si} =
-      case curr == state.store_hash do
-        true -> {false, state.store}
-        false -> {true, Baobab.stored_info(clump_id)}
+      case state.store_hash do
+        ^sihash -> {false, state.store}
+        _ -> {true, Baobab.stored_info(clump_id)}
+      end
+
+    ihash = Baobab.current_hash(:identity, clump_id)
+
+    ids =
+      case state.id_hash do
+        ^ihash -> state.identities
+        _ -> Baobab.identities()
       end
 
     ref = check_refindex(state.reffing, clump_id, updated?, si)
@@ -443,11 +469,13 @@ defmodule CatenaryWeb.Live do
     seq = check_timelines(state.timing, clump_id, updated?, si)
 
     common = [
+      identities: ids,
+      id_hash: ihash,
       reffing: ref,
       tagging: tag,
       timing: seq,
       connections: con,
-      store_hash: curr,
+      store_hash: sihash,
       aliasing: ali
     ]
 

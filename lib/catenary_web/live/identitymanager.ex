@@ -3,9 +3,7 @@ defmodule Catenary.Live.IdentityManager do
   use Phoenix.HTML
 
   @impl true
-  def update(assigns, socket) do
-    {:ok, assign(socket, Map.merge(assigns, %{identities: Baobab.identities()}))}
-  end
+  def update(assigns, socket), do: {:ok, assign(socket, assigns)}
 
   @impl true
   def render(assigns) do
@@ -20,7 +18,7 @@ defmodule Catenary.Live.IdentityManager do
         <%= for {n, k} <- @identities do %>
           <tr class="my-10 border <%= if k == @identity, do: "bg-emerald-100 border-emerald-200 dark:bg-cyan-800 dark:border-cyan-900", else: "border-slate-200 dark:border-slate-800" %>">
             <td class="py-5"><input type="radio" name="selection" value="<%= n %>" <%= if k == @identity, do: "checked" %>></td>
-            <td><%= n %></td>
+            <td><input class="bg-white dark:bg-black" type="text" size=16 id="<%= n %>" value="<%= n %>" phx-blur="rename-id-<%= n %>" /></td>
             <td><img class="mx-auto" src="<%= Catenary.identicon(k, 4) %>"></td>
             <td><%= Catenary.linked_author(k) %></td>
             <td><button phx-click="view-entry" value="<%= Catenary.index_to_string({k,0,0}) %>"><%= log_info_string(@store, k) %></a></td>
