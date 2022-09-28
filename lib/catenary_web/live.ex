@@ -126,7 +126,12 @@ defmodule CatenaryWeb.Live do
     {:noreply, state_set(socket, %{identity: whom |> Baobab.b62identity()})}
   end
 
-  def handle_event("new-id", %{"value" => whom}, socket) do
+  # A lot of overhead for a no-op.  Discover how to do this properly
+  def handle_event("identity-change", _, socket), do: {:noreply, socket}
+
+  # Empty is technically legal and works.  Just bad UX
+  def handle_event("new-id", %{"value" => whom}, socket)
+      when is_binary(whom) and byte_size(whom) > 0 do
     # We auto-switch to new identity.  Switching is cheap.
     # If they give the same name, just switch to it, don't overwrite
     # Let's make deletion explicit!
@@ -139,6 +144,8 @@ defmodule CatenaryWeb.Live do
     Catenary.Preferences.set(:identity, name)
     {:noreply, state_set(socket, %{identity: pk})}
   end
+
+  def handle_event("new-id", _, socket), do: {:noreply, socket}
 
   def handle_event("tag-explorer", _, socket) do
     {:noreply, state_set(socket, %{view: :tags, tag: :all})}

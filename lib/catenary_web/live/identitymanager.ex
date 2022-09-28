@@ -12,7 +12,7 @@ defmodule Catenary.Live.IdentityManager do
     ~L"""
      <div id="identview-wrap" class="col-span-full overflow-y-auto max-h-screen m-2 p-x-2">
       <h1 class="text-center">Identity Manager</h1>
-      <form method="post" id="identity-form" phx-submit="identity-change" phx-change="identity-change">
+      <form method="post" id="identity-form" phx-change="identity-change">
       <table class="min-w-full"><thead>
         <tr class="border border-slate-200 dark:border-slate-800"><th>Selection</th><th>Name</th><th>Identicon</th><th>AKA</th><th>Activity</th></tr>
       </thead>
