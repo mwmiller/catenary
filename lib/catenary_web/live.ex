@@ -23,7 +23,7 @@ defmodule CatenaryWeb.Live do
          store_hash: <<>>,
          store: [],
          ui_speed: @ui_slow,
-         view: :entries,
+         view: :idents,
          extra_nav: :none,
          aliasing: :not_running,
          reffing: :not_running,
