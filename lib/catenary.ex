@@ -80,10 +80,10 @@ defmodule Catenary do
   defp maybe_border(entry) do
     case Catenary.Preferences.shown?(entry) do
       true ->
-        ""
+        "class=\"mx-auto\""
 
       false ->
-        "class=\"new-border rounded \""
+        "class=\"mx-auto new-border rounded \""
     end
   end
 
