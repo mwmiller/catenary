@@ -38,5 +38,5 @@ defmodule Catenary.Live.OasisBox do
   end
 
   defp id_mapper({_, %{id: id}}), do: id
-  defp id_mapper({_, _}), do: ""
+  defp id_mapper(_), do: ""
 end

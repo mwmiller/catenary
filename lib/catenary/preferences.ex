@@ -4,23 +4,42 @@ defmodule Catenary.Preferences do
   """
 
   # When adding a key here be sure to create function
-  # heads for enum listing acceptable values or [] if free form
-  # default which will generate a value if missing from the db
-  @keys [:identity, :clump_id, :shown]
+  # heads for is_valid? to maintain the sanity of the store
+  # Provide resonable defaults. We'd prefer not to use these
+  # defaults as "unset" signals.. just working values.
+  @keys [:identity, :clump_id, :shown, :view]
+  def keys(), do: @keys
 
   defp default(:identity) do
-    case Baobab.identities() do
-      [{nick, _pk} | _] -> nick
-      _ -> "catenary-user"
-    end
+    # It's hard to get into a state where this is unset and
+    # we'll destroy an extant identity with a static name
+    # Nevertheless, I don't wan to leave a "how many times
+    # was this comment wrong?" counter here.
+    rando = "catenary-user-" <> BaseX.Base62.encode(:crypto.strong_rand_bytes(2))
+    id = Baobab.create_identity(rando)
+    # We do end up having to come through here a couple times before they might 
+    # set the preference themselves so we set it ourselves
+    set(:identity, id)
+    id
   end
+
+  defp default(:view), do: :idents
 
   defp default(:clump_id), do: "Quagga"
   defp default(:shown), do: MapSet.new()
 
-  defp enum(:identity), do: []
-  defp enum(:shown), do: []
-  defp enum(:clump_id), do: []
+  # `:identity` should in the known list when it is set
+  defp is_valid?(identity, :identity),
+    do: is_binary(identity) && Enum.any?(Baobab.identities(), fn {_, k} -> k == identity end)
+
+  # `:shown` should be a mapset.  We'll hope they
+  # keep the values sane on their own
+  defp is_valid?(%MapSet{}, :shown), do: true
+  defp is_valid?(_, :shown), do: false
+  # Shorter are technically legal; I just don't care.
+  defp is_valid?(clump_id, :clump_id), do: is_binary(clump_id) and byte_size(clump_id) >= 3
+  # Views are always atoms, for now
+  defp is_valid?(view, :view), do: is_atom(view)
 
   def get(key) when key in @keys do
     Catenary.dets_open(:prefs)
@@ -38,13 +57,7 @@ defmodule Catenary.Preferences do
   def get(_, _), do: {:error, "No such key"}
 
   def set(key, value) when key in @keys do
-    valok =
-      case enum(key) do
-        [] -> true
-        okvals -> value in okvals
-      end
-
-    case valok do
+    case is_valid?(value, key) do
       false ->
         {:error, "Improper value for key"}
 

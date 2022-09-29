@@ -18,8 +18,11 @@ defmodule Catenary.Application do
     # Including the spool directory
     spool_dir = Path.join(app_dir, "spool")
     File.mkdir_p(spool_dir)
+    # `Baby` does this at start up but we need it sooner
+    # Bad form all around
+    Baby.global_setup(spool_dir: spool_dir)
 
-    whoami = Catenary.Preferences.get(:identity)
+    whoami = Catenary.Preferences.get(:identity) |> Catenary.id_for_key()
     clump_id = Catenary.Preferences.get(:clump_id)
 
     # I need a better signal for when to do this

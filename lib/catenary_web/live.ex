@@ -9,8 +9,9 @@ defmodule CatenaryWeb.Live do
     {:asc, :desc, :author, :logid, :seq}
     Phoenix.PubSub.subscribe(Catenary.PubSub, "ui")
 
-    whoami = Catenary.Preferences.get(:identity) |> Baobab.b62identity()
+    whoami = Catenary.Preferences.get(:identity)
     clump_id = Catenary.Preferences.get(:clump_id)
+    view = Catenary.Preferences.get(:view)
     # This might make more sense as a Preference.
     # It's also dangerous and hard to figure the right UI
     # So it sits in the config for now while I try things out
@@ -25,7 +26,7 @@ defmodule CatenaryWeb.Live do
          id_hash: <<>>,
          identities: [],
          ui_speed: @ui_slow,
-         view: :idents,
+         view: view,
          extra_nav: :none,
          aliasing: :not_running,
          reffing: :not_running,
@@ -47,10 +48,10 @@ defmodule CatenaryWeb.Live do
     ~L"""
     <div>
       <h1>No data just yet</h1>
-      <%= if @connections == []  do %>
-        <button phx-click="init-connect">⇆ Sync with a well-known node ⇆</button>
+      <%= if @connections == [] do %>
+        <button phx-click="init-connect">⇆ Get started on the <%= @clump_id %> network ⇆</button>
       <% else %>
-        ⥀ any minute now ⥀
+        ⥀ any time now ⥀
       <% end %>
     </div>
     """
@@ -124,7 +125,6 @@ defmodule CatenaryWeb.Live do
   # I keep thinking I will write these with `phx-target` to the component
   # but then I realise I need the global state updates
   def handle_event("identity-change", %{"selection" => whom}, socket) do
-    Catenary.Preferences.set(:identity, whom)
     {:noreply, state_set(socket, %{identity: whom |> Baobab.b62identity()})}
   end
 
@@ -137,13 +137,12 @@ defmodule CatenaryWeb.Live do
     # We auto-switch to new identity.  Switching is cheap.
     # If they give the same name, just switch to it, don't overwrite
     # Let's make deletion explicit!
-    {name, pk} =
+    pk =
       case Enum.find(socket.assigns.identities, fn {n, _} -> n == whom end) do
-        nil -> {whom, Baobab.create_identity(whom)}
-        match -> match
+        {^whom, key} -> key
+        nil -> Baobab.create_identity(whom)
       end
 
-    Catenary.Preferences.set(:identity, name)
     {:noreply, state_set(socket, %{identity: pk})}
   end
 
@@ -450,8 +449,19 @@ defmodule CatenaryWeb.Live do
   defp timeline({a, l, e}, :prev), do: {a, l, e - 1}
   defp timeline({a, l, e}, :next), do: {a, l, e + 1}
 
+  @prefs_keys Catenary.Preferences.keys()
+  defp do_prefs([]), do: :ok
+
+  defp do_prefs([{key, val} | rest]) when key in @prefs_keys do
+    Catenary.Preferences.set(key, val)
+    do_prefs(rest)
+  end
+
+  defp do_prefs([_ | rest]), do: do_prefs(rest)
+
   defp state_set(socket, from_caller, reup? \\ false) do
     full_socket = assign(socket, from_caller)
+    do_prefs(from_caller |> Map.to_list())
     state = full_socket.assigns
     clump_id = state.clump_id
     sihash = Baobab.current_hash(:content, clump_id)
@@ -572,10 +582,10 @@ defmodule CatenaryWeb.Live do
 
   defp check_connections([], acc), do: acc
 
-  defp check_connections([{pid, map} | rest], acc) do
+  defp check_connections([{pid, _} = val | rest], acc) do
     case Process.alive?(pid) do
       true ->
-        check_connections(rest, [{pid, map} | acc])
+        check_connections(rest, [val | acc])
 
       false ->
         check_connections(rest, acc)
