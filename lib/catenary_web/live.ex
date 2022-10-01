@@ -17,6 +17,16 @@ defmodule CatenaryWeb.Live do
     # So it sits in the config for now while I try things out
     facet_id = Application.get_env(:catenary, :facet_id, 0)
 
+    # Enable context menu in webview
+    # Its nice enough I guess, but mostly here as a reminder
+    # that I want to figure out how to enable my unicode keyboard
+    # and other conveniences.
+    :wx.set_env(Desktop.Env.wx_env())
+
+    CatenaryWindow
+    |> Desktop.Window.webview()
+    |> :wxWebView.enableContextMenu()
+
     {:ok,
      state_set(
        socket,
