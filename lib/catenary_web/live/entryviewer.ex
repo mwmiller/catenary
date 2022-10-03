@@ -12,17 +12,18 @@ defmodule Catenary.Live.EntryViewer do
     {:ok, assign(socket, card: :none)}
   end
 
-  def update(%{entry: which, clump_id: clump_id} = assigns, socket) when is_atom(which) do
+  def update(%{store: store, entry: which, clump_id: clump_id} = assigns, socket)
+      when is_atom(which) do
     targets = Quagga.log_ids_for_name(which)
 
-    case assigns.store |> Enum.filter(fn {_, l, _} -> l in targets end) do
+    case store |> Enum.filter(fn {_, l, _} -> l in targets end) do
       [] ->
         {:ok, assign(socket, card: :none)}
 
       entries ->
         entry = Enum.random(entries)
 
-        case extract(entry, clump_id) do
+        case extract(entry, clump_id, store) do
           :error ->
             update(assigns, socket)
 
@@ -33,8 +34,8 @@ defmodule Catenary.Live.EntryViewer do
     end
   end
 
-  def update(%{entry: which, clump_id: clump_id} = assigns, socket) do
-    {:ok, assign(socket, Map.merge(assigns, %{card: extract(which, clump_id)}))}
+  def update(%{store: store, entry: which, clump_id: clump_id} = assigns, socket) do
+    {:ok, assign(socket, Map.merge(assigns, %{card: extract(which, clump_id, store)}))}
   end
 
   @impl true
@@ -80,7 +81,7 @@ defmodule Catenary.Live.EntryViewer do
 
   # This is to create an identity "profile", but it'll also
   # give "something" when things go sideways
-  def extract({a, l, e}, clump_id) when l < 0 or e < 1 do
+  def extract({a, l, e}, clump_id, si) when l < 0 or e < 1 do
     Catenary.Preferences.update(:shown, fn ms -> MapSet.put(ms, {a, l, e}) end)
     key = "<p>Full key: " <> Baobab.b62identity(a) <> "</p>"
 
@@ -98,6 +99,25 @@ defmodule Catenary.Live.EntryViewer do
             Catenary.index_to_string(latest) <> "\">Latest timeline activity</button></p>"
       end
 
+    log_map =
+      si
+      |> Enum.filter(fn {author, _, _} -> author == a end)
+      |> Enum.group_by(fn {_, l, _} -> Quagga.log_def(l) end)
+
+    items =
+      for {%{name: name}, [entry | _]} <- log_map do
+        "<div class=\"row-auto m-5\"><button value=\"" <>
+          Catenary.index_to_string(entry) <>
+          "\" phx-click=\"view-entry\">" <>
+          String.capitalize(Atom.to_string(name)) <> "</button></div>"
+      end
+
+    others =
+      case length(items) do
+        0 -> ""
+        _ -> "<div class=\"flex flex-row\">" <> Enum.join(items) <> "</div>"
+      end
+
     %{
       "author" => a,
       "title" => clump_id <> " Overview",
@@ -105,12 +125,12 @@ defmodule Catenary.Live.EntryViewer do
       "back-refs" => [],
       "tagged-in" => [],
       "tags" => [],
-      "body" => Phoenix.HTML.raw(key <> timeline),
+      "body" => Phoenix.HTML.raw(key <> timeline <> others),
       "published" => "latest known"
     }
   end
 
-  def extract({a, l, e} = entry, clump_id) do
+  def extract({a, l, e} = entry, clump_id, _si) do
     # We want failure to save here to fail loudly without any further work
     # But if it does fail later we don't mind having said it was shown
     Catenary.Preferences.update(:shown, fn ms -> MapSet.put(ms, entry) end)
