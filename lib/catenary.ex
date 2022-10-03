@@ -77,7 +77,7 @@ defmodule Catenary do
     )
   end
 
-  defp maybe_border(entry) do
+  def maybe_border(entry) do
     case Catenary.Preferences.shown?(entry) do
       true ->
         "class=\"mx-auto\""

@@ -42,7 +42,7 @@ defmodule CatenaryWeb.Live do
          reffing: :not_running,
          tagging: :not_running,
          timing: :not_running,
-         entry: {whoami, -1, 0},
+         entry: {whoami, 0, 0},
          tag: :all,
          connections: [],
          watering: [],
@@ -78,7 +78,7 @@ defmodule CatenaryWeb.Live do
   def render(%{view: :tags, tag: tag} = assigns) when is_binary(tag) and tag != "" do
     ~L"""
      <div class="max-h-screen w-100 grid grid-cols-3 gap-2 justify-center">
-       <%= live_component(Catenary.Live.TagViewer, id: :tags, store: @store, tag: @tag) %>
+       <%= live_component(Catenary.Live.TagViewer, id: :tags, tag: @tag) %>
        <%= sidebar(assigns) %>
      </div>
     """
@@ -87,7 +87,7 @@ defmodule CatenaryWeb.Live do
   def render(%{view: :tags} = assigns) do
     ~L"""
      <div class="max-h-screen w-100 grid grid-cols-3 gap-2 justify-center">
-       <%= live_component(Catenary.Live.TagExplorer, id: :tags, store: @store, tag: @tag) %>
+       <%= live_component(Catenary.Live.TagExplorer, id: :tags, tag: @tag) %>
        <%= sidebar(assigns) %>
      </div>
     """
@@ -645,7 +645,7 @@ defmodule CatenaryWeb.Live do
     end
   end
 
-  defp self_prof(assigns), do: {assigns.identity, -1, 0}
+  defp self_prof(assigns), do: {assigns.identity, 0, 0}
 
   # Prev and next should be combined with log_id logic 
   # This is "profile" switching

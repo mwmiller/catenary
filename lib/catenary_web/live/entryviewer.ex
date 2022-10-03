@@ -80,32 +80,32 @@ defmodule Catenary.Live.EntryViewer do
 
   # This is to create an identity "profile", but it'll also
   # give "something" when things go sideways
-  def extract({a, l, e}, _clump_id) when l < 0 or e < 1 do
+  def extract({a, l, e}, clump_id) when l < 0 or e < 1 do
     Catenary.Preferences.update(:shown, fn ms -> MapSet.put(ms, {a, l, e}) end)
+    key = "<p>Full key: " <> Baobab.b62identity(a) <> "</p>"
 
-    body =
+    timeline =
       case from_dets(a, :timelines) do
         [] ->
-          "No activity"
+          ""
 
         activity ->
-          key = a |> Baobab.b62identity()
           latest = activity |> Enum.reverse() |> hd
 
-          "<p>Full key: " <>
-            key <>
-            "</p><p><button phx-click=\"view-entry\" value=\"" <>
-            Catenary.index_to_string(latest) <> "\">Latest log entry</button></p>"
+          "<p><button  " <>
+            Catenary.maybe_border(latest) <>
+            " phx-click=\"view-entry\" value=\"" <>
+            Catenary.index_to_string(latest) <> "\">Latest timeline activity</button></p>"
       end
 
     %{
       "author" => a,
-      "title" => "Activity",
+      "title" => clump_id <> " Overview",
       "fore-refs" => [],
       "back-refs" => [],
       "tagged-in" => [],
       "tags" => [],
-      "body" => Phoenix.HTML.raw(body),
+      "body" => Phoenix.HTML.raw(key <> timeline),
       "published" => "latest known"
     }
   end
@@ -183,15 +183,7 @@ defmodule Catenary.Live.EntryViewer do
         "published" => data["published"] |> nice_time
       }
     rescue
-      _ ->
-        differ = cbor |> Blake2.hash2b(5) |> BaseX.Base62.encode()
-
-        %{
-          "title" => "Legacy Alias",
-          "back-refs" => [],
-          "body" => maybe_text(cbor),
-          "published" => "long ago: " <> differ
-        }
+      e -> malformed(e, cbor)
     end
   end
 
@@ -206,15 +198,7 @@ defmodule Catenary.Live.EntryViewer do
         "published" => data["running"] |> nice_time
       }
     rescue
-      _ ->
-        differ = cbor |> Blake2.hash2b(5) |> BaseX.Base62.encode()
-
-        %{
-          "title" => "Legacy Oasis",
-          "back-refs" => [],
-          "body" => maybe_text(cbor),
-          "published" => "long ago: " <> differ
-        }
+      e -> malformed(e, cbor)
     end
   end
 
@@ -228,13 +212,7 @@ defmodule Catenary.Live.EntryViewer do
         "published" => nice_time(data["published"])
       })
     rescue
-      _ ->
-        %{
-          "title" => "Malformed Entry",
-          "body" => maybe_text(cbor),
-          "back-refs" => [],
-          "published" => "unknown"
-        }
+      e -> malformed(e, cbor)
     end
   end
 
@@ -248,13 +226,7 @@ defmodule Catenary.Live.EntryViewer do
         "published" => data["published"] |> nice_time
       })
     rescue
-      _ ->
-        %{
-          "title" => "Malformed Entry",
-          "back-refs" => [],
-          "body" => maybe_text(cbor),
-          "published" => "unknown"
-        }
+      e -> malformed(e, cbor)
     end
   end
 
@@ -272,19 +244,13 @@ defmodule Catenary.Live.EntryViewer do
       body = "<div>" <> Enum.join(tagdivs, "") <> "</div>"
 
       Map.merge(data, %{
-        "title" => "Tagging",
+        "title" => "Tags Added",
         "back-refs" => maybe_refs(data["references"]),
         "body" => Phoenix.HTML.raw(body),
         "published" => data["published"] |> nice_time
       })
     rescue
-      _ ->
-        %{
-          "title" => "Malformed Entry",
-          "back-refs" => [],
-          "body" => maybe_text(cbor),
-          "published" => "unknown"
-        }
+      e -> malformed(e, cbor)
     end
   end
 
@@ -293,6 +259,17 @@ defmodule Catenary.Live.EntryViewer do
     |> Timex.parse!("{ISO:Extended}")
     |> Timex.Timezone.convert(Timex.Timezone.local())
     |> Timex.Format.DateTime.Formatter.format!("{YYYY}-{0M}-{0D} {kitchen}")
+  end
+
+  defp malformed(error, body) do
+    Logger.debug(error)
+
+    %{
+      "title" => "Malformed Entry",
+      "back-refs" => [],
+      "body" => maybe_text(body),
+      "published" => "unknown"
+    }
   end
 
   defp maybe_text(t) when is_binary(t) do
