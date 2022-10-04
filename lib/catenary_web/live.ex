@@ -488,7 +488,7 @@ defmodule CatenaryWeb.Live do
         _ -> Baobab.identities()
       end
 
-    indexing = check_indices(state, updated?)
+    indexing = check_indices(state, updated?, si)
     con = check_connections(state.connections, [])
 
     common = [
@@ -523,14 +523,14 @@ defmodule CatenaryWeb.Live do
     assign(full_socket, common ++ extra)
   end
 
-  defp check_indices(state, updated?) do
-    Enum.reduce(@indices, %{}, fn w, a -> Map.merge(a, check_index(w, state, updated?)) end)
+  defp check_indices(state, updated?, si) do
+    Enum.reduce(@indices, %{}, fn w, a -> Map.merge(a, check_index(w, state, updated?, si)) end)
   end
 
   # We have to match on literals, so we macro this.
   # I expected something different
   for index <- @indices do
-    defp check_index(unquote(index), %{indexing: %{unquote(index) => pid}} = state, updated?)
+    defp check_index(unquote(index), %{indexing: %{unquote(index) => pid}} = state, updated?, si)
          when is_pid(pid) do
       case Process.alive?(pid) do
         true ->
@@ -538,31 +538,31 @@ defmodule CatenaryWeb.Live do
 
         false ->
           idx = Map.merge(state.indexing, %{unquote(index) => :not_running})
-          check_index(unquote(index), Map.merge(state, %{indexing: idx}), updated?)
+          check_index(unquote(index), Map.merge(state, %{indexing: idx}), updated?, si)
       end
     end
 
-    defp check_index(unquote(index), %{indexing: %{unquote(index) => :not_running}}, false),
+    defp check_index(unquote(index), %{indexing: %{unquote(index) => :not_running}}, false, _si),
       do: %{unquote(index) => :not_running}
   end
 
   # FYI these Task.start items do not work as might be expected
   # We get the task pid, not the underlying task process pid
   # This might seem like the same thing, but it's not sometimes
-  defp check_index(which, state, true) do
+  defp check_index(which, state, true, si) do
     {:ok, pid} =
       case which do
         :timelines ->
-          Task.start(Catenary.Indices, :index_timelines, [state.store, state.clump_id])
+          Task.start(Catenary.Indices, :index_timelines, [si, state.clump_id])
 
         :aliases ->
           Task.start(Catenary.Indices, :index_aliases, [state.identity, state.clump_id])
 
         :tags ->
-          Task.start(Catenary.Indices, :index_tags, [state.store, state.clump_id])
+          Task.start(Catenary.Indices, :index_tags, [si, state.clump_id])
 
         :references ->
-          Task.start(Catenary.Indices, :index_references, [state.store, state.clump_id])
+          Task.start(Catenary.Indices, :index_references, [si, state.clump_id])
       end
 
     %{which => pid}
