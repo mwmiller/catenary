@@ -40,7 +40,7 @@ defmodule CatenaryWeb.Live do
          view: view,
          extra_nav: :none,
          indexing: Enum.reduce(@indices, %{}, fn i, a -> Map.merge(a, %{i => :not_running}) end),
-         entry: {whoami, 0, 0},
+         entry: {whoami, -1, 0},
          tag: :all,
          connections: [],
          watering: [],
@@ -399,7 +399,7 @@ defmodule CatenaryWeb.Live do
           prev_author({a, l, e}, socket)
 
         "origin" ->
-          self_prof(socket.assigns)
+          {socket.assigns.identity, -1, 0}
 
         _ ->
           {a, l, e}
@@ -622,8 +622,6 @@ defmodule CatenaryWeb.Live do
       _ -> extract_recents(rest, clump_id, now, acc)
     end
   end
-
-  defp self_prof(assigns), do: {assigns.identity, 0, 0}
 
   # Prev and next should be combined with log_id logic 
   # This is "profile" switching
