@@ -4,10 +4,7 @@ defmodule Catenary.Live.OasisBox do
   def update(assigns, socket) do
     {:ok,
      assign(socket,
-       aliasing: assigns.aliasing,
-       reffing: assigns.reffing,
-       tagging: assigns.tagging,
-       timing: assigns.timing,
+       indexing: index_status(assigns.indexing),
        nodes: assigns.watering,
        connected: Enum.map(assigns.connections, &id_mapper/1)
      )}
@@ -32,10 +29,27 @@ defmodule Catenary.Live.OasisBox do
 
         </div>
       <% end %>
-        <p class="text-center"><%= if @reffing == :not_running, do: "※", else: "𝍂" %>&nbsp;<%= if @aliasing == :not_running, do: "⍱", else: "⍲" %>&nbsp;<%= if @tagging == :not_running, do: "‽", else: "⸘" %>&nbsp;<%= if @timing == :not_running, do: "∥", else: "∦" %></p>
+        <%= @indexing %>
     </div>
     """
   end
+
+  defp index_status(index_map), do: istatus(Map.to_list(index_map) |> Enum.sort(:desc), [])
+
+  defp istatus([], chars) do
+    stat = Enum.join(chars, "&nbsp;")
+    Phoenix.HTML.raw("<p class=\"text-center\">" <> stat <> "</p>")
+  end
+
+  # These should likely be macros as well, but I wrote them by hand first.
+  defp istatus([{:references, :not_running} | rest], chars), do: istatus(rest, ["※" | chars])
+  defp istatus([{:references, _pid} | rest], chars), do: istatus(rest, ["𝍂" | chars])
+  defp istatus([{:aliases, :not_running} | rest], chars), do: istatus(rest, ["⍱" | chars])
+  defp istatus([{:aliases, _pid} | rest], chars), do: istatus(rest, ["⍲" | chars])
+  defp istatus([{:tags, :not_running} | rest], chars), do: istatus(rest, ["‽" | chars])
+  defp istatus([{:tags, _pid} | rest], chars), do: istatus(rest, ["⸘" | chars])
+  defp istatus([{:timelines, :not_running} | rest], chars), do: istatus(rest, ["∥" | chars])
+  defp istatus([{:timelines, _pid} | rest], chars), do: istatus(rest, ["∦" | chars])
 
   defp id_mapper({_, %{id: id}}), do: id
   defp id_mapper(_), do: ""

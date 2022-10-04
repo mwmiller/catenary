@@ -3,6 +3,7 @@ defmodule CatenaryWeb.Live do
 
   @ui_fast 1062
   @ui_slow 11131
+  @indices [:tags, :references, :timelines, :aliases]
 
   def mount(_params, _session, socket) do
     # Making sure these exist, but also faux docs
@@ -38,10 +39,7 @@ defmodule CatenaryWeb.Live do
          ui_speed: @ui_slow,
          view: view,
          extra_nav: :none,
-         aliasing: :not_running,
-         reffing: :not_running,
-         tagging: :not_running,
-         timing: :not_running,
+         indexing: Enum.reduce(@indices, %{}, fn i, a -> Map.merge(a, %{i => :not_running}) end),
          entry: {whoami, 0, 0},
          tag: :all,
          connections: [],
@@ -106,7 +104,7 @@ defmodule CatenaryWeb.Live do
     ~L"""
     <div>
       <%= live_component(Catenary.Live.Ident, id: :ident, identity: @identity) %>
-      <%= live_component(Catenary.Live.OasisBox, id: :recents, timing: @timing, reffing: @reffing, aliasing: @aliasing, tagging: @tagging, connections: @connections, watering: @watering) %>
+      <%= live_component(Catenary.Live.OasisBox, id: :recents, indexing: @indexing, connections: @connections, watering: @watering) %>
       <%= live_component(Catenary.Live.Navigation, id: :nav, entry: @entry, extra_nav: @extra_nav, identity: @identity, view: @view) %>
     </div>
     """
@@ -490,21 +488,15 @@ defmodule CatenaryWeb.Live do
         _ -> Baobab.identities()
       end
 
-    ref = check_refindex(state.reffing, clump_id, updated?, si)
-    tag = check_tags(state.tagging, clump_id, updated?, si)
-    ali = check_aliases(state.aliasing, clump_id, updated?, state.identity)
+    indexing = check_indices(state, updated?)
     con = check_connections(state.connections, [])
-    seq = check_timelines(state.timing, clump_id, updated?, si)
 
     common = [
       identities: ids,
       id_hash: ihash,
-      reffing: ref,
-      tagging: tag,
-      timing: seq,
+      indexing: indexing,
       connections: con,
-      store_hash: sihash,
-      aliasing: ali
+      store_hash: sihash
     ]
 
     {ui_speed, extra} =
@@ -518,8 +510,8 @@ defmodule CatenaryWeb.Live do
 
         false ->
           speed =
-            case {ref, ali, tag, seq, con} do
-              {:not_running, :not_running, :not_running, :not_running, []} -> @ui_slow
+            case con do
+              [] -> @ui_slow
               _ -> @ui_fast
             end
 
@@ -531,63 +523,49 @@ defmodule CatenaryWeb.Live do
     assign(full_socket, common ++ extra)
   end
 
-  defp check_timelines(pid, clump_id, new, data) when is_pid(pid) do
-    case Process.alive?(pid) do
-      true -> pid
-      false -> check_timelines(:not_running, clump_id, new, data)
-    end
+  defp check_indices(state, updated?) do
+    Enum.reduce(@indices, %{}, fn w, a -> Map.merge(a, check_index(w, state, updated?)) end)
   end
 
-  defp check_timelines(:not_running, _clump_id, false, _data), do: :not_running
+  # We have to match on literals, so we macro this.
+  # I expected something different
+  for index <- @indices do
+    defp check_index(unquote(index), %{indexing: %{unquote(index) => pid}} = state, updated?)
+         when is_pid(pid) do
+      case Process.alive?(pid) do
+        true ->
+          %{unquote(index) => pid}
+
+        false ->
+          idx = Map.merge(state.indexing, %{unquote(index) => :not_running})
+          check_index(unquote(index), Map.merge(state, %{indexing: idx}), updated?)
+      end
+    end
+
+    defp check_index(unquote(index), %{indexing: %{unquote(index) => :not_running}}, false),
+      do: %{unquote(index) => :not_running}
+  end
 
   # FYI these Task.start items do not work as might be expected
   # We get the task pid, not the underlying task process pid
   # This might seem like the same thing, but it's not sometimes
-  defp check_timelines(:not_running, clump_id, true, data) do
-    {:ok, pid} = Task.start(Catenary.Indices, :index_timelines, [data, clump_id])
-    pid
-  end
+  defp check_index(which, state, true) do
+    {:ok, pid} =
+      case which do
+        :timelines ->
+          Task.start(Catenary.Indices, :index_timelines, [state.store, state.clump_id])
 
-  defp check_aliases(pid, clump_id, new, data) when is_pid(pid) do
-    case Process.alive?(pid) do
-      true -> pid
-      false -> check_aliases(:not_running, clump_id, new, data)
-    end
-  end
+        :aliases ->
+          Task.start(Catenary.Indices, :index_aliases, [state.identity, state.clump_id])
 
-  defp check_aliases(:not_running, _clump_id, false, _data), do: :not_running
+        :tags ->
+          Task.start(Catenary.Indices, :index_tags, [state.store, state.clump_id])
 
-  defp check_aliases(:not_running, clump_id, true, id) do
-    {:ok, pid} = Task.start(Catenary.Indices, :index_aliases, [id, clump_id])
-    pid
-  end
+        :references ->
+          Task.start(Catenary.Indices, :index_references, [state.store, state.clump_id])
+      end
 
-  defp check_tags(pid, clump_id, new, data) when is_pid(pid) do
-    case Process.alive?(pid) do
-      true -> pid
-      false -> check_tags(:not_running, clump_id, new, data)
-    end
-  end
-
-  defp check_tags(:not_running, _clump_id, false, _si), do: :not_running
-
-  defp check_tags(:not_running, clump_id, true, si) do
-    {:ok, pid} = Task.start(Catenary.Indices, :index_tags, [si, clump_id])
-    pid
-  end
-
-  defp check_refindex(pid, clump_id, new, si) when is_pid(pid) do
-    case Process.alive?(pid) do
-      true -> pid
-      false -> check_refindex(:not_running, clump_id, new, si)
-    end
-  end
-
-  defp check_refindex(:not_running, _clump_id, false, _si), do: :not_running
-
-  defp check_refindex(:not_running, clump_id, true, si) do
-    {:ok, pid} = Task.start(Catenary.Indices, :index_references, [si, clump_id])
-    pid
+    %{which => pid}
   end
 
   defp check_connections([], acc), do: acc
