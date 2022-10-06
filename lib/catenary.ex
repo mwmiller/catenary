@@ -49,8 +49,8 @@ defmodule Catenary do
 
   def linked_author(a) do
     Phoenix.HTML.raw(
-      "<button phx-click=\"view-entry\" value=\"" <>
-        index_to_string({a, -1, 0}) <> "\">" <> short_id(a) <> "</button>"
+      "<a class=\"author\" href=\"/entries/" <>
+        index_to_string({a, -1, 0}) <> "\">" <> short_id(a) <> "</a>"
     )
   end
 

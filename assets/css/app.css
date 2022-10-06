@@ -20,6 +20,9 @@
   a {
     @apply underline;
   }
+  .author {
+    @apply decoration-dotted decoration-slate-800 dark:decoration-slate-200 underline-offset-2; 
+  }
   ul {
     @apply list-disc;
     @apply list-inside;

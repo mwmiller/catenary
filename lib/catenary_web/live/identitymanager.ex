@@ -21,7 +21,7 @@ defmodule Catenary.Live.IdentityManager do
             <td><input class="bg-white dark:bg-black" type="text" size=16 id="<%= n %>" value="<%= n %>" phx-blur="rename-id-<%= n %>" /></td>
             <td><img class="mx-auto" src="<%= Catenary.identicon(k, 4) %>"></td>
             <td><%= Catenary.linked_author(k) %></td>
-            <td><button phx-click="view-entry" value="<%= Catenary.index_to_string({k,0,0}) %>"><%= log_info_string(@store, k) %></a></td>
+            <td><%= log_info_string(@store, k) %></td>
           </tr>
         <% end %>
         <tr class="my-10 border border-slate-200 dark:border-slate-800">
