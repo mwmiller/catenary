@@ -18,6 +18,8 @@ defmodule CatenaryWeb.Router do
     pipe_through :browser
 
     live("/", Live)
+    get "/entries/:index_format", EntryController, :view
+    get "/entries/:identity/:log_id/:seqnum", EntryController, :view
     post "/export", ExportController, :create
   end
 

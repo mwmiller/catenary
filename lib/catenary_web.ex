@@ -23,6 +23,7 @@ defmodule CatenaryWeb do
 
       import Plug.Conn
       import CatenaryWeb.Gettext
+      import Phoenix.LiveView.Controller
       alias CatenaryWeb.Router.Helpers, as: Routes
     end
   end

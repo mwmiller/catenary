@@ -5,14 +5,26 @@ defmodule CatenaryWeb.Live do
   @ui_slow 11131
   @indices [:tags, :references, :timelines, :aliases]
 
-  def mount(_params, _session, socket) do
+  def mount(_params, session, socket) do
     # Making sure these exist, but also faux docs
     {:asc, :desc, :author, :logid, :seq}
     Phoenix.PubSub.subscribe(Catenary.PubSub, "ui")
 
     whoami = Catenary.Preferences.get(:identity)
     clump_id = Catenary.Preferences.get(:clump_id)
-    view = Catenary.Preferences.get(:view)
+
+    view =
+      case session do
+        %{"view" => v} -> v
+        _ -> Catenary.Preferences.get(:view)
+      end
+
+    entry =
+      case session do
+        %{"entry" => e} -> e
+        _ -> {whoami, -1, 0}
+      end
+
     # This might make more sense as a Preference.
     # It's also dangerous and hard to figure the right UI
     # So it sits in the config for now while I try things out
@@ -40,7 +52,7 @@ defmodule CatenaryWeb.Live do
          view: view,
          extra_nav: :none,
          indexing: Enum.reduce(@indices, %{}, fn i, a -> Map.merge(a, %{i => :not_running}) end),
-         entry: {whoami, -1, 0},
+         entry: entry,
          tag: :all,
          connections: [],
          watering: [],
