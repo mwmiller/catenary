@@ -29,7 +29,7 @@ defmodule Catenary.Live.IdentityManager do
           <td><input class="bg-white dark:bg-black" type="text" size=16 id="new-id" phx-blur="new-id" /></td>
           <td>&nbsp;</td>
           <td>&nbsp;</td>
-          <td>None.</td>
+          <td>none yet</td>
         </tr>
       </tbody>
     </table>
@@ -42,7 +42,29 @@ defmodule Catenary.Live.IdentityManager do
     logs = store |> Enum.filter(fn {a, _, _} -> a == k end)
     entries = logs |> Enum.reduce(0, fn {_, _, e}, a -> a + e end)
 
-    Integer.to_string(entries) <>
-      " entries across " <> Integer.to_string(Enum.count(logs)) <> " logs"
+    humane_count(entries) <> " entries across " <> humane_count(logs) <> " logs"
   end
+
+  defp humane_count(flt) when is_float(flt), do: humane_count(trunc(flt))
+  defp humane_count(list) when is_list(list), do: humane_count(length(list))
+
+  defp humane_count(str) when is_binary(str) do
+    amt =
+      try do
+        String.to_integer(str)
+      rescue
+        _ -> String.length(str)
+      end
+
+    humane_count(amt)
+  end
+
+  defp humane_count(0), do: "no"
+  defp humane_count(e) when e < 3, do: "a couple"
+  defp humane_count(e) when e < 5, do: "a few"
+  defp humane_count(e) when e < 10, do: "several"
+  defp humane_count(e) when e < 144, do: "dozens of"
+  defp humane_count(e) when e < 451, do: "hundreds of"
+  defp humane_count(e) when is_integer(e), do: "very many"
+  defp humane_count(_), do: "‽"
 end
