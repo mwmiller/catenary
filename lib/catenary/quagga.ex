@@ -19,7 +19,8 @@ defmodule Catenary.Quagga do
     808_003 => %{encoding: :raw, type: "image/gif", name: :gif}
   }
 
-  @timeline_logs [:journal, :reply]
+  # This is essentially CBOR minus oasis
+  @timeline_logs [:journal, :reply, :tag, :alias]
   @name_to_log @log_to_def |> Enum.reduce(%{}, fn {l, %{name: n}}, a -> Map.put(a, n, l) end)
   @encoding_to_logs @log_to_def
                     |> Enum.reduce(%{}, fn {l, %{encoding: e}}, a ->

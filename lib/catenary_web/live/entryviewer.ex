@@ -81,7 +81,7 @@ defmodule Catenary.Live.EntryViewer do
 
   # This is to create an identity "profile", but it'll also
   # give "something" when things go sideways
-  def extract({a, l, e}, clump_id, si) when l < 0 or e < 1 do
+  def extract({a, l, e} = entry, clump_id, si) when l < 0 or e < 1 do
     Catenary.Preferences.update(:shown, fn ms -> MapSet.put(ms, {a, l, e}) end)
     key = "<p>Full key: " <> Baobab.b62identity(a) <> "</p>"
 
@@ -93,7 +93,7 @@ defmodule Catenary.Live.EntryViewer do
         activity ->
           latest = activity |> Enum.reverse() |> hd
 
-          "<p><button  " <>
+          "<p><button  class=\"text-xl\" " <>
             Catenary.maybe_border(latest) <>
             " phx-click=\"view-entry\" value=\"" <>
             Catenary.index_to_string(latest) <> "\">Latest timeline activity</button></p>"
@@ -103,6 +103,7 @@ defmodule Catenary.Live.EntryViewer do
       si
       |> Enum.filter(fn {author, _, _} -> author == a end)
       |> Enum.group_by(fn {_, l, _} -> Quagga.log_def(l) end)
+      |> Enum.reject(fn {%{name: name}, _} -> name in Catenary.Quagga.timeline_logs() end)
 
     items =
       for {%{name: name}, [entry | _]} <- log_map do
@@ -114,20 +115,25 @@ defmodule Catenary.Live.EntryViewer do
 
     others =
       case length(items) do
-        0 -> ""
-        _ -> "<div class=\"flex flex-row\">" <> Enum.join(items) <> "</div>"
+        0 ->
+          ""
+
+        _ ->
+          "<p class=\"min-w-full text-sm text-center\">Other Logging</p><div class=\"flex flex-row\">" <>
+            Enum.join(items) <> "</div>"
       end
 
-    %{
-      "author" => a,
-      "title" => clump_id <> " Overview",
-      "fore-refs" => [],
-      "back-refs" => [],
-      "tagged-in" => [],
-      "tags" => [],
-      "body" => Phoenix.HTML.raw(key <> timeline <> others),
-      "published" => "latest known"
-    }
+    Map.merge(
+      %{
+        "author" => a,
+        "title" => clump_id <> " Overview",
+        "back-refs" => [],
+        "tags" => [],
+        "body" => Phoenix.HTML.raw(key <> timeline <> others),
+        "published" => "latest known"
+      },
+      from_refs(entry)
+    )
   end
 
   def extract({a, l, e} = entry, clump_id, _si) do
