@@ -83,7 +83,6 @@ defmodule Catenary.Live.EntryViewer do
   # give "something" when things go sideways
   def extract({a, l, e} = entry, clump_id, si) when l < 0 or e < 1 do
     Catenary.Preferences.update(:shown, fn ms -> MapSet.put(ms, {a, l, e}) end)
-    key = "<p>Full key: " <> Baobab.b62identity(a) <> "</p>"
 
     timeline =
       case from_dets(a, :timelines) do
@@ -96,7 +95,7 @@ defmodule Catenary.Live.EntryViewer do
           "<p><button  class=\"text-xl\" " <>
             Catenary.maybe_border(latest) <>
             " phx-click=\"view-entry\" value=\"" <>
-            Catenary.index_to_string(latest) <> "\">Latest timeline activity</button></p>"
+            Catenary.index_to_string(latest) <> "\">Explore Contribution Timeline</button></p>"
       end
 
     log_map =
@@ -107,7 +106,7 @@ defmodule Catenary.Live.EntryViewer do
 
     items =
       for {%{name: name}, [entry | _]} <- log_map do
-        "<div class=\"row-auto m-5\"><button value=\"" <>
+        "<div class=\"border-y row-auto m-2 p-1 \"><button class=\"text-xs\" value=\"" <>
           Catenary.index_to_string(entry) <>
           "\" phx-click=\"view-entry\">" <>
           String.capitalize(Atom.to_string(name)) <> "</button></div>"
@@ -119,8 +118,7 @@ defmodule Catenary.Live.EntryViewer do
           ""
 
         _ ->
-          "<p class=\"min-w-full text-sm text-center\">Other Logging</p><div class=\"flex flex-row\">" <>
-            Enum.join(items) <> "</div>"
+          "<div class=\"mt-20 flex flex-row\">" <> Enum.join(items) <> "</div>"
       end
 
     Map.merge(
@@ -129,7 +127,7 @@ defmodule Catenary.Live.EntryViewer do
         "title" => clump_id <> " Overview",
         "back-refs" => [],
         "tags" => [],
-        "body" => Phoenix.HTML.raw(key <> timeline <> others),
+        "body" => Phoenix.HTML.raw(timeline <> others),
         "published" => "latest known"
       },
       from_refs(entry)
@@ -199,12 +197,7 @@ defmodule Catenary.Live.EntryViewer do
 
       %{
         "title" => "Alias: ~" <> data["alias"],
-        "body" =>
-          Phoenix.HTML.raw(
-            "For: " <>
-              Catenary.short_id(data["whom"]) <>
-              "<br/>Full key: " <> data["whom"]
-          ),
+        "body" => Phoenix.HTML.raw("AKA: " <> Catenary.short_id(data["whom"])),
         "back-refs" => maybe_refs(data["references"]),
         "published" => data["published"] |> nice_time
       }
