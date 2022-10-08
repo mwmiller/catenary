@@ -255,22 +255,15 @@ defmodule CatenaryWeb.Live do
         "new-alias",
         %{
           "alias" => ali,
-          "doref" => doref,
           "ref" => ref,
           "whom" => whom
         },
         socket
       ) do
-    references =
-      case doref == "include" do
-        true -> [Catenary.string_to_index(ref)]
-        false -> []
-      end
-
     %Baobab.Entry{author: a, log_id: l, seqnum: e} =
       %{
         "whom" => whom,
-        "references" => references,
+        "references" => [Catenary.string_to_index(ref)],
         "alias" => ali,
         "published" => Timex.now() |> DateTime.to_string()
       }

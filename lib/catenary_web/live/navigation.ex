@@ -69,16 +69,9 @@ defmodule Catenary.Live.Navigation do
        <form method="post" id="alias-form" phx-submit="new-alias">
          <input type="hidden" name="ref" value="<%= Catenary.index_to_string(@entry) %>">
          <p>
-           <input type="hidden" name="whom" value="<%= @whom %>" />
-         <div class="flex flex-row space-x-4">
-          <label for="wref">↹</label>
-          <div class="flex-auto"><input type="radio" id="wref" name="doref" value="include" checked/></div>
-          <label for="noref">⊗</label>
-          <div class="flex-auto"><input type="radio" id="noref" name="doref" value="exclude" /></div>
-         </div>
-         <div class="flex flex-row p-2">
-          <div class="flex-auto"><%= Catenary.short_id(@whom) %></div>
-          <div class="flex-auto"><img src="<%= Catenary.identicon(@whom, 4) %>"></div>
+         <input type="hidden" name="whom" value="<%= @whom %>" />
+         <img class="mx-auto" src="<%= Catenary.identicon(@whom, 4) %>">
+           <h3><%= Catenary.short_id(@whom) %></h3>
          </div>
          <label for="alias">～</label>
          <input class="bg-white dark:bg-black" name="alias" value="<%= @ali %>" type="text" size="16" />
