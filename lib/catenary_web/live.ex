@@ -592,9 +592,11 @@ defmodule CatenaryWeb.Live do
     end
   end
 
+  @oasis_log_ids Catenary.Quagga.log_ids_for_name(:oasis)
+
   defp watering(store, clump_id) do
     store
-    |> Enum.filter(fn {_, l, _} -> l == 8483 end)
+    |> Enum.filter(fn {_, l, _} -> l in @oasis_log_ids end)
     |> extract_recents(clump_id, DateTime.now!("Etc/UTC"), [])
   end
 
