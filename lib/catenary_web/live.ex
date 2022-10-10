@@ -329,6 +329,12 @@ defmodule CatenaryWeb.Live do
     {:noreply, state_set(socket, %{entry: entry})}
   end
 
+  def handle_event("new-entry", %{"body" => body, "log_id" => "0"}, socket) do
+    %Baobab.Entry{author: a, log_id: l, seqnum: e} = append_log_for_socket(body, 0, socket)
+    entry = {Baobab.b62identity(a), l, e}
+    {:noreply, state_set(socket, %{entry: entry})}
+  end
+
   def handle_event(
         "new-entry",
         %{"body" => body, "log_id" => "360360", "title" => title},

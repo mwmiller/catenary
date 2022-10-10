@@ -122,7 +122,7 @@ defmodule Catenary.Live.Navigation do
   defp alias_info({a, _, _}), do: {a, ""}
   defp alias_info(_), do: {"", ""}
 
-  defp posts_avail(atom) when is_atom(atom), do: [:journal]
+  defp posts_avail(atom) when is_atom(atom), do: [:journal, :test]
   # This will have more logic later
   defp posts_avail(_), do: [:reply | posts_avail(:none)]
 end
