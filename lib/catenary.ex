@@ -51,8 +51,7 @@ defmodule Catenary do
     Phoenix.HTML.raw(
       "<abbr title=\"" <>
         a <>
-        "\"><a class=\"author\" href=\"/entries/" <>
-        index_to_string({a, -1, 0}) <> "\">" <> short_id(a) <> "</a></abbr>"
+        "\"><a class=\"author\" href=\"/authors/" <> a <> "\">" <> short_id(a) <> "</a></abbr>"
     )
   end
 

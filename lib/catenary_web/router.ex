@@ -20,6 +20,7 @@ defmodule CatenaryWeb.Router do
     live("/", Live)
     get "/entries/:index_format", EntryController, :view
     get "/entries/:identity/:log_id/:seqnum", EntryController, :view
+    get "/authors/:identity", ProfileController, :view
     post "/export", ExportController, :create
   end
 
