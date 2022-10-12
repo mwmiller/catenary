@@ -1,6 +1,5 @@
 defmodule Catenary.Indices do
   require Logger
-  alias Catenary.Quagga
 
   @moduledoc """
   Functions to recompute indices
@@ -21,20 +20,20 @@ defmodule Catenary.Indices do
 
   def index_references(stored_info, clump_id) do
     Catenary.dets_open(:refs)
-    index(stored_info, clump_id, Quagga.log_ids_for_encoding(:cbor), :refs)
+    index(stored_info, clump_id, QuaggaDef.logs_for_encoding(:cbor), :refs)
     Catenary.dets_close(:refs)
   end
 
   def index_aliases(id, clump_id) do
     Catenary.dets_open(:aliases)
     :dets.delete_all_objects(:aliases)
-    index([{id, 53, 1}], clump_id, Quagga.log_ids_for_name(:alias), :aliases)
+    index([{id, 53, 1}], clump_id, QuaggaDef.logs_for_name(:alias), :aliases)
     Catenary.dets_close(:aliases)
   end
 
   def index_tags(stored_info, clump_id) do
     Catenary.dets_open(:tags)
-    index(stored_info, clump_id, Quagga.log_ids_for_name(:tag), :tags)
+    index(stored_info, clump_id, QuaggaDef.logs_for_name(:tag), :tags)
     Catenary.dets_close(:tags)
   end
 
@@ -44,7 +43,7 @@ defmodule Catenary.Indices do
     index(
       stored_info,
       clump_id,
-      Enum.reduce(Quagga.timeline_logs(), [], fn n, a -> a ++ Quagga.log_ids_for_name(n) end),
+      Enum.reduce(Catenary.timeline_logs(), [], fn n, a -> a ++ QuaggaDef.logs_for_name(n) end),
       :timelines
     )
 

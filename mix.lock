@@ -49,6 +49,7 @@
   "plug_crypto": {:hex, :plug_crypto, "1.2.3", "8f77d13aeb32bfd9e654cb68f0af517b371fb34c56c9f2b58fe3df1235c1251a", [:mix], [], "hexpm", "b5672099c6ad5c202c45f5a403f21a3411247f164e4a8fab056e5cd8a290f4a2"},
   "png": {:hex, :png, "0.2.1", "b25c17c8dcdc40096d46ae2d7c2777c63fede48fa8c8312cc708c88554049d3b", [:rebar3], [], "hexpm", "279345e07108c604871a21f1c91f716810ab559af2b20d6f302e0a98265ef72e"},
   "poly1305": {:hex, :poly1305, "1.0.4", "7cdc8961a0a6e00a764835918cdb8ade868044026df8ef5d718708ea6cc06611", [:mix], [{:chacha20, "~> 1.0", [hex: :chacha20, repo: "hexpm", optional: false]}, {:equivalex, "~> 1.0", [hex: :equivalex, repo: "hexpm", optional: false]}], "hexpm", "e14e684661a5195e149b3139db4a1693579d4659d65bba115a307529c47dbc3b"},
+  "quagga_def": {:hex, :quagga_def, "0.1.0", "a9f296e1e896ca0c114b27b5207b4009d8f3753abc7eeaf143fa8ffb4b450ae6", [:mix], [], "hexpm", "8127eac72756a0656947047873bf633e8dba7c313c8e76fc023dfeb26ae85478"},
   "ranch": {:hex, :ranch, "1.8.0", "8c7a100a139fd57f17327b6413e4167ac559fbc04ca7448e9be9057311597a1d", [:make, :rebar3], [], "hexpm", "49fbcfd3682fab1f5d109351b61257676da1a2fdbe295904176d5e521a2ddfe5"},
   "salsa20": {:hex, :salsa20, "1.0.3", "fb900fc9b26b713a98618f3c6d6b6c35a5514477c6047caca8d03f3a70175ab0", [:mix], [], "hexpm", "91cbfa537f369d074a79f926f36a6c2ac24fba12cbadcb23aa04a759282887fe"},
   "saxy": {:hex, :saxy, "1.4.0", "c7203ad20001f72eaaad07d08f82be063fa94a40924e6bb39d93d55f979abcba", [:mix], [], "hexpm", "3fe790354d3f2234ad0b5be2d99822a23fa2d4e8ccd6657c672901dac172e9a9"},

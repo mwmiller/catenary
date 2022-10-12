@@ -1,11 +1,10 @@
 defmodule Catenary.Live.EntryViewer do
   require Logger
   use Phoenix.LiveComponent
-  alias Catenary.Quagga
 
   @impl true
   def update(%{entry: :random} = assigns, socket) do
-    update(Map.merge(assigns, %{entry: Quagga.random_timeline_log()}), socket)
+    update(Map.merge(assigns, %{entry: Catenary.random_timeline_log()}), socket)
   end
 
   def update(%{entry: :none}, socket) do
@@ -14,7 +13,7 @@ defmodule Catenary.Live.EntryViewer do
 
   def update(%{store: store, entry: which, clump_id: clump_id} = assigns, socket)
       when is_atom(which) do
-    targets = Quagga.log_ids_for_name(which)
+    targets = QuaggaDef.logs_for_name(which)
 
     case store |> Enum.filter(fn {_, l, _} -> l in targets end) do
       [] ->
@@ -101,8 +100,8 @@ defmodule Catenary.Live.EntryViewer do
     log_map =
       si
       |> Enum.filter(fn {author, _, _} -> author == a end)
-      |> Enum.group_by(fn {_, l, _} -> Quagga.log_def(l) end)
-      |> Enum.reject(fn {%{name: name}, _} -> name in Catenary.Quagga.timeline_logs() end)
+      |> Enum.group_by(fn {_, l, _} -> QuaggaDef.log_def(l) end)
+      |> Enum.reject(fn {%{name: name}, _} -> name in Catenary.timeline_logs() end)
 
     items =
       for {%{name: name}, [entry | _]} <- log_map do
@@ -156,7 +155,7 @@ defmodule Catenary.Live.EntryViewer do
           from_refs(entry)
         )
 
-      Map.merge(extract_type(payload, Catenary.Quagga.log_def(l)), base)
+      Map.merge(extract_type(payload, QuaggaDef.log_def(l)), base)
     rescue
       e ->
         Logger.warn(e)
@@ -327,7 +326,7 @@ defmodule Catenary.Live.EntryViewer do
     {tags, others} =
       entry
       |> from_dets(:refs)
-      |> Enum.split_with(fn {_, l, _} -> Catenary.Quagga.base_log_for_id(l) == 749 end)
+      |> Enum.split_with(fn {_, l, _} -> QuaggaDef.base_log(l) == 749 end)
 
     %{"tagged-in" => tags, "fore-refs" => others}
   end

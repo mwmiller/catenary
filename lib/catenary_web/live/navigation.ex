@@ -1,6 +1,5 @@
 defmodule Catenary.Live.Navigation do
   use Phoenix.LiveComponent
-  alias Catenary.Quagga
 
   @impl true
   def update(assigns, socket) do
@@ -45,7 +44,7 @@ defmodule Catenary.Live.Navigation do
       <form method="post" id="posting-form" phx-submit="new-entry">
         <select name=log_id  class="bg-white dark:bg-black">
           <%= for a <- @posts_avail do %>
-          <option value="<%= Quagga.base_log_for_name(a) %>"><%= String.capitalize(Atom.to_string(a)) %></option>
+          <option value="<%= QuaggaDef.base_log(a) %>"><%= String.capitalize(Atom.to_string(a)) %></option>
           <% end %>
         </select>
         <%= if is_tuple(@entry) do %>

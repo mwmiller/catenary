@@ -68,7 +68,7 @@ defmodule Catenary do
   defp entry_title({a, l, e}) do
     Enum.join(
       [
-        Catenary.Quagga.pretty_log_name(l),
+        pretty_log_name(l),
         "entry",
         Integer.to_string(e),
         "from",
@@ -102,4 +102,22 @@ defmodule Catenary do
 
   # For symmetry, but maybe we'll have something we want to do here.
   def dets_close(table), do: :dets.close(table)
+
+  @timeline_logs [:journal, :reply, :tag, :alias]
+  def timeline_logs, do: @timeline_logs
+  def random_timeline_log(), do: @timeline_logs |> Enum.random()
+
+  def pretty_log_name(log_id) do
+    case QuaggaDef.log_id_unpack(log_id) do
+      {base_log, _} ->
+        base_log
+        |> QuaggaDef.log_def()
+        |> Map.get(:name)
+        |> Atom.to_string()
+        |> String.capitalize()
+
+      _ ->
+        ""
+    end
+  end
 end

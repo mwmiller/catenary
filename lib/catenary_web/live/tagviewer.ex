@@ -45,7 +45,7 @@ defmodule Catenary.Live.TagViewer do
   defp extract(tag) do
     tag
     |> from_dets(:tags)
-    |> Enum.group_by(fn {_, {_, l, _}} -> Catenary.Quagga.base_log_for_id(l) end)
+    |> Enum.group_by(fn {_, {_, l, _}} -> QuaggaDef.base_log(l) end)
     |> Map.to_list()
     |> prettify([])
     |> Enum.sort(:asc)
@@ -54,7 +54,7 @@ defmodule Catenary.Live.TagViewer do
   defp prettify([], acc), do: acc
 
   defp prettify([{k, v} | rest], acc),
-    do: prettify(rest, [{Catenary.Quagga.pretty_log_name(k), icon_entries(v)} | acc])
+    do: prettify(rest, [{Catenary.pretty_log_name(k), icon_entries(v)} | acc])
 
   defp icon_entries(entries) do
     entries

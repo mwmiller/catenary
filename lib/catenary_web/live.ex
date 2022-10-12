@@ -435,8 +435,8 @@ defmodule CatenaryWeb.Live do
   end
 
   # Compile-time computed so it can be used in the guard clause
-  @timeline_ids Enum.reduce(Catenary.Quagga.timeline_logs(), [], fn l, a ->
-                  a ++ Catenary.Quagga.log_ids_for_name(l)
+  @timeline_ids Enum.reduce(Catenary.timeline_logs(), [], fn l, a ->
+                  a ++ QuaggaDef.logs_for_name(l)
                 end)
 
   defp timeline({a, l, e} = entry, dir) when l in @timeline_ids do
@@ -591,7 +591,7 @@ defmodule CatenaryWeb.Live do
     end
   end
 
-  @oasis_log_ids Catenary.Quagga.log_ids_for_name(:oasis)
+  @oasis_log_ids QuaggaDef.logs_for_name(:oasis)
 
   defp watering(store, clump_id) do
     store
@@ -685,7 +685,7 @@ defmodule CatenaryWeb.Live do
 
   defp append_log_for_socket(contents, log_id, socket) do
     Baobab.append_log(contents, Catenary.id_for_key(socket.assigns.identity),
-      log_id: Catenary.Quagga.facet_log(log_id, socket.assigns.facet_id),
+      log_id: QuaggaDef.facet_log(log_id, socket.assigns.facet_id),
       clump_id: socket.assigns.clump_id
     )
   end
