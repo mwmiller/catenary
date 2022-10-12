@@ -46,8 +46,14 @@ defmodule Catenary.Preferences do
 
     val =
       case :dets.lookup(:prefs, key) do
-        [] -> default(key)
-        [{^key, val}] -> val
+        [] ->
+          default(key)
+
+        [{^key, val}] ->
+          case is_valid?(val, key) do
+            true -> val
+            false -> default(key)
+          end
       end
 
     Catenary.dets_close(:prefs)
