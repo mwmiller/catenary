@@ -31,7 +31,8 @@ defmodule Catenary.Application do
     Catenary.Indices.clear_all()
 
     children = [
-      {Baby.Application, [spool_dir: spool_dir, identity: whoami, clump_id: clump_id]},
+      {Baby.Application,
+       [spool_dir: spool_dir, controlling_identity: whoami, clump_id: clump_id]},
       # Start the Telemetry supervisor
       CatenaryWeb.Telemetry,
       # Start the PubSub system
