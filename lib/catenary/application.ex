@@ -9,18 +9,9 @@ defmodule Catenary.Application do
 
   @impl true
   def start(_type, _args) do
-    # Ensure the application directory exists
-    app_dir =
-      :catenary
-      |> Application.get_env(:application_dir, "~/.catenary")
-      |> Path.expand()
-
-    # Including the spool directory
-    spool_dir = Path.join(app_dir, "spool")
-    File.mkdir_p(spool_dir)
     # `Baby` does this at start up but we need it sooner
     # Bad form all around
-    Baby.global_setup(spool_dir: spool_dir)
+    Baby.global_setup(spool_dir: spool_dir())
 
     whoami = Catenary.Preferences.get(:identity) |> Catenary.id_for_key()
     clump_id = Catenary.Preferences.get(:clump_id)
@@ -56,6 +47,19 @@ defmodule Catenary.Application do
     # for other strategies and supported options
     opts = [strategy: :one_for_one, name: Catenary.Supervisor]
     Supervisor.start_link(children, opts)
+  end
+
+  def spool_dir do
+    # Ensure the application directory exists
+    app_dir =
+      :catenary
+      |> Application.get_env(:application_dir, "~/.catenary")
+      |> Path.expand()
+
+    # Including the spool directory
+    spool_dir = Path.join(app_dir, "spool")
+    File.mkdir_p(spool_dir)
+    spool_dir
   end
 
   # Tell Phoenix to update the endpoint configuration

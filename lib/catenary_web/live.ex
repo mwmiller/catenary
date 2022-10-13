@@ -80,7 +80,7 @@ defmodule CatenaryWeb.Live do
   def render(%{view: :prefs} = assigns) do
     ~L"""
      <div class="max-h-screen w-100 grid grid-cols-3 gap-2 justify-center">
-       <%= live_component(Catenary.Live.PrefsManager, id: :prefs, identity: @identity, identities: @identities, store: @store) %>
+       <%= live_component(Catenary.Live.PrefsManager, id: :prefs, clump_id: @clump_id, identity: @identity, identities: @identities, store: @store) %>
      </div>
     """
   end
@@ -150,6 +150,13 @@ defmodule CatenaryWeb.Live do
     end
 
     {:noreply, state_set(socket, %{})}
+  end
+
+  def handle_event("clump-change", %{"value" => clump_id}, socket) do
+    # Make it easier to get started
+    # Baobab needs an entry point
+    File.mkdir_p(Path.join([Catenary.Application.spool_dir(), clump_id]))
+    {:noreply, state_set(socket, %{clump_id: clump_id})}
   end
 
   # I keep thinking I will write these with `phx-target` to the component
