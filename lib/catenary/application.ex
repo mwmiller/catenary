@@ -80,8 +80,8 @@ defmodule Catenary.Application do
     [
       {"File",
        [
-         %{label: "Open dashboard", command: "dashboard", action: %{view: :dashboard}},
-         %{label: "Manage identities", command: "idents", action: %{view: :idents}},
+         %{label: "Dashboard", command: "dashboard", action: %{view: :dashboard}},
+         %{label: "Preferences...", command: "prefs", action: %{view: :prefs}},
          :rule,
          %{label: "Reset view", command: "reset"},
          :rule,

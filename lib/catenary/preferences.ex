@@ -23,7 +23,7 @@ defmodule Catenary.Preferences do
     id
   end
 
-  defp default(:view), do: :idents
+  defp default(:view), do: :prefs
 
   defp default(:clump_id), do: "Quagga"
   defp default(:shown), do: MapSet.new()
@@ -85,7 +85,7 @@ defmodule Catenary.Preferences do
 
   def mark_all_entries(:unshown), do: set(:shown, MapSet.new())
 
-  def mark_all_entries(:shown), do: set(:shown, MapSet.new(Baobab.all_entries()))
+  def mark_all_entries(:shown), do: set(:shown, MapSet.new(Baobab.all_entries(get(:clump_id))))
 
   def mark_all_entries(_), do: {:error, "mark_all_entries/1 takes an atom (:shown, :unshown)"}
 

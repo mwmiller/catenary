@@ -1,4 +1,4 @@
-defmodule Catenary.Live.IdentityManager do
+defmodule Catenary.Live.PrefsManager do
   use Phoenix.LiveComponent
   use Phoenix.HTML
 
@@ -34,6 +34,11 @@ defmodule Catenary.Live.IdentityManager do
       </tbody>
     </table>
     </form>
+    </div>
+    </div>
+    <div class="flex flex-row min-w-full">
+      <div class="flex-auto"><button class="border opacity-61 p-2 m-10 bg-slate-200 dark:bg-slate-800" value="all" phx-click="shown">Mark all logs shown</button></div>
+      <div class="flex-auto"><button class="border opacity-61 p-2 m-10 bg-slate-200 dark:bg-slate-800" value="none" phx-click="shown">Mark all logs unshown</button></div>
     </div>
     """
   end

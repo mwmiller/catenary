@@ -77,10 +77,10 @@ defmodule CatenaryWeb.Live do
     """
   end
 
-  def render(%{view: :idents} = assigns) do
+  def render(%{view: :prefs} = assigns) do
     ~L"""
      <div class="max-h-screen w-100 grid grid-cols-3 gap-2 justify-center">
-       <%= live_component(Catenary.Live.IdentityManager, id: :idents, identity: @identity, identities: @identities, store: @store) %>
+       <%= live_component(Catenary.Live.PrefsManager, id: :prefs, identity: @identity, identities: @identities, store: @store) %>
      </div>
     """
   end
@@ -122,8 +122,8 @@ defmodule CatenaryWeb.Live do
     """
   end
 
-  def handle_info(%{view: :idents}, socket) do
-    {:noreply, state_set(socket, %{view: :idents})}
+  def handle_info(%{view: :prefs}, socket) do
+    {:noreply, state_set(socket, %{view: :prefs})}
   end
 
   def handle_info(%{view: :dashboard}, socket) do
@@ -140,6 +140,16 @@ defmodule CatenaryWeb.Live do
 
   def handle_info(:check_store, socket) do
     {:noreply, state_set(socket, %{}, true)}
+  end
+
+  def handle_event("shown", %{"value" => mark}, socket) do
+    case mark do
+      "all" -> Catenary.Preferences.mark_all_entries(:shown)
+      "none" -> Catenary.Preferences.mark_all_entries(:unshown)
+      _ -> :ok
+    end
+
+    {:noreply, state_set(socket, %{})}
   end
 
   # I keep thinking I will write these with `phx-target` to the component
