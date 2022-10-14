@@ -7,7 +7,7 @@ defmodule Catenary.Preferences do
   # heads for is_valid? to maintain the sanity of the store
   # Provide resonable defaults. We'd prefer not to use these
   # defaults as "unset" signals.. just working values.
-  @keys [:identity, :clump_id, :shown, :view]
+  @keys [:identity, :clump_id, :shown, :view, :facet_id]
   def keys(), do: @keys
 
   defp default(:identity) do
@@ -30,6 +30,8 @@ defmodule Catenary.Preferences do
 
   defp default(:shown), do: MapSet.new()
 
+  defp default(:facet_id), do: 0
+
   # `:identity` should in the known list when it is set
   defp is_valid?(identity, :identity),
     do: is_binary(identity) && Enum.any?(Baobab.identities(), fn {_, k} -> k == identity end)
@@ -44,6 +46,12 @@ defmodule Catenary.Preferences do
 
   # Views are always atoms, for now
   defp is_valid?(view, :view), do: is_atom(view)
+
+  defp is_valid?(facet_id, :facet_id)
+       when is_integer(facet_id) and facet_id >= 0 and facet_id <= 255,
+       do: true
+
+  defp is_valid?(_, :facet_id), do: false
 
   def get(key) when key in @keys do
     Catenary.dets_open(:prefs)

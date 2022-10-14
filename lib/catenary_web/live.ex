@@ -26,10 +26,7 @@ defmodule CatenaryWeb.Live do
         _ -> {whoami, -1, 0}
       end
 
-    # This might make more sense as a Preference.
-    # It's also dangerous and hard to figure the right UI
-    # So it sits in the config for now while I try things out
-    facet_id = Application.get_env(:catenary, :facet_id, 0)
+    facet_id = Catenary.Preferences.get(:facet_id)
 
     # Enable context menu in webview
     # Its nice enough I guess, but mostly here as a reminder
