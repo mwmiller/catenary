@@ -25,7 +25,9 @@ defmodule Catenary.Preferences do
 
   defp default(:view), do: :prefs
 
-  defp default(:clump_id), do: "Quagga"
+  defp default(:clump_id),
+    do: Application.get_env(:catenary, :clumps) |> Map.keys() |> hd
+
   defp default(:shown), do: MapSet.new()
 
   # `:identity` should in the known list when it is set
@@ -36,8 +38,10 @@ defmodule Catenary.Preferences do
   # keep the values sane on their own
   defp is_valid?(%MapSet{}, :shown), do: true
   defp is_valid?(_, :shown), do: false
-  # Shorter are technically legal; I just don't care.
-  defp is_valid?(clump_id, :clump_id), do: is_binary(clump_id) and byte_size(clump_id) >= 3
+
+  defp is_valid?(clump_id, :clump_id),
+    do: Map.has_key?(Application.get_env(:catenary, :clumps), clump_id)
+
   # Views are always atoms, for now
   defp is_valid?(view, :view), do: is_atom(view)
 

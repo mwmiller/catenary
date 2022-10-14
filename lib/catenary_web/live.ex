@@ -11,6 +11,7 @@ defmodule CatenaryWeb.Live do
     Phoenix.PubSub.subscribe(Catenary.PubSub, "ui")
 
     whoami = Catenary.Preferences.get(:identity)
+    clumps = Application.get_env(:catenary, :clumps)
     clump_id = Catenary.Preferences.get(:clump_id)
 
     view =
@@ -56,6 +57,7 @@ defmodule CatenaryWeb.Live do
          tag: :all,
          connections: [],
          watering: [],
+         clumps: clumps,
          clump_id: clump_id,
          identity: whoami,
          facet_id: facet_id
@@ -80,7 +82,7 @@ defmodule CatenaryWeb.Live do
   def render(%{view: :prefs} = assigns) do
     ~L"""
      <div class="max-h-screen w-100 grid grid-cols-3 gap-2 justify-center">
-       <%= live_component(Catenary.Live.PrefsManager, id: :prefs, clump_id: @clump_id, identity: @identity, identities: @identities, store: @store) %>
+       <%= live_component(Catenary.Live.PrefsManager, id: :prefs, clumps: @clumps, clump_id: @clump_id, identity: @identity, identities: @identities, store: @store) %>
      </div>
     """
   end
@@ -153,9 +155,10 @@ defmodule CatenaryWeb.Live do
   end
 
   def handle_event("clump-change", %{"value" => clump_id}, socket) do
-    # Make it easier to get started
-    # Baobab needs an entry point
-    File.mkdir_p(Path.join([Catenary.Application.spool_dir(), clump_id]))
+    # This is a heavy operation
+    # It's essentially a whole new instance.
+    # We need to drop a whole lot of state
+    Catenary.Indices.clear_all()
     {:noreply, state_set(socket, %{clump_id: clump_id})}
   end
 

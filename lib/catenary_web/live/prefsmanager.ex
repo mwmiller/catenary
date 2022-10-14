@@ -11,7 +11,12 @@ defmodule Catenary.Live.PrefsManager do
      <div id="identview-wrap" class="col-span-full overflow-y-auto max-h-screen m-2 p-x-2">
       <div class="my-5 text-center min-w-full"><%= Catenary.entry_icon_link({@identity,-1,0}, 8) |> Phoenix.HTML.raw()  %></div>
       <form method="post" id="identity-form" phx-change="identity-change">
-      <label for"clump_id">🎋</label><input class="m-10 bg-white dark:bg-black" phx-blur="clump-change" type="text" name="clump_id" value="<%= @clump_id %>" />
+        <label for"clump_id">🎋</label>
+        <select name="clump_id" class="m-10 bg-white dark:bg-black" phx-change="clump-change">
+          <%= for {c,_} <- @clumps do %>
+            <option value="<%= c %>" <%= if c == @clump_id, do: "selected" %>><%= c %></option>
+          <% end %>
+        </select>
       <table class="min-w-full"><thead>
         <tr class="border border-slate-200 dark:border-slate-800"><th>Selection</th><th>Name</th><th>Identicon</th><th>AKA</th><th>Activity</th></tr>
       </thead>

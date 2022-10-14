@@ -15,6 +15,7 @@ defmodule Catenary.Application do
 
     whoami = Catenary.Preferences.get(:identity) |> Catenary.id_for_key()
     clump_id = Catenary.Preferences.get(:clump_id)
+    clumps = Application.get_env(:catenary, :clumps)
 
     # I need a better signal for when to do this
     # but the store is mutable by others
