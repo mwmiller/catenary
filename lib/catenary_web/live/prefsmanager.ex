@@ -39,6 +39,8 @@ defmodule Catenary.Live.PrefsManager do
         </tr>
       </tbody>
     </table>
+    <label for="facet_id">❖</label>
+    <input class="bg-white dark:bg-black m-5" phx-blur="facet-change" type="numeric" name="facet_id" size=3 value="<%= @facet_id %>">
     </form>
     </div>
     </div>

@@ -82,7 +82,7 @@ defmodule CatenaryWeb.Live do
   def render(%{view: :prefs} = assigns) do
     ~L"""
      <div class="max-h-screen w-100 grid grid-cols-3 gap-2 justify-center">
-       <%= live_component(Catenary.Live.PrefsManager, id: :prefs, clumps: @clumps, clump_id: @clump_id, identity: @identity, identities: @identities, store: @store) %>
+       <%= live_component(Catenary.Live.PrefsManager, id: :prefs, clumps: @clumps, clump_id: @clump_id, identity: @identity, identities: @identities, store: @store, facet_id: @facet_id) %>
      </div>
     """
   end
@@ -160,6 +160,24 @@ defmodule CatenaryWeb.Live do
     # We need to drop a whole lot of state
     Catenary.Indices.clear_all()
     {:noreply, state_set(socket, %{clump_id: clump_id})}
+  end
+
+  def handle_event("facet-change", %{"value" => facet_id}, socket) do
+    # Lots of ways to end up at `0`
+    fid =
+      case Integer.parse(facet_id) do
+        {n, _} ->
+          cond do
+            n < 0 -> 0
+            n > 255 -> 0
+            true -> n
+          end
+
+        _ ->
+          0
+      end
+
+    {:noreply, state_set(socket, %{facet_id: fid})}
   end
 
   # I keep thinking I will write these with `phx-target` to the component
