@@ -63,6 +63,14 @@ defmodule CatenaryWeb.Live do
      )}
   end
 
+  def render(%{view: :prefs} = assigns) do
+    ~L"""
+     <div class="max-h-screen w-100 grid grid-cols-3 gap-2 justify-center">
+       <%= live_component(Catenary.Live.PrefsManager, id: :prefs, clumps: @clumps, clump_id: @clump_id, identity: @identity, identities: @identities, store: @store, facet_id: @facet_id) %>
+     </div>
+    """
+  end
+
   def render(%{store: []} = assigns) do
     ~L"""
     <div>
@@ -73,14 +81,6 @@ defmodule CatenaryWeb.Live do
         ⥀ any time now ⥀
       <% end %>
     </div>
-    """
-  end
-
-  def render(%{view: :prefs} = assigns) do
-    ~L"""
-     <div class="max-h-screen w-100 grid grid-cols-3 gap-2 justify-center">
-       <%= live_component(Catenary.Live.PrefsManager, id: :prefs, clumps: @clumps, clump_id: @clump_id, identity: @identity, identities: @identities, store: @store, facet_id: @facet_id) %>
-     </div>
     """
   end
 
@@ -164,7 +164,7 @@ defmodule CatenaryWeb.Live do
     {:noreply, state_set(socket, %{})}
   end
 
-  def handle_event("clump-change", %{"value" => clump_id}, socket) do
+  def handle_event("clump-change", %{"clump_id" => clump_id}, socket) do
     # This is a heavy operation
     # It's essentially a whole new instance.
     # We need to drop a whole lot of state
@@ -402,9 +402,10 @@ defmodule CatenaryWeb.Live do
   end
 
   def handle_event("init-connect", _, socket) do
-    # This fallback to the fallback is a bad idea long-term
-    which =
-      Application.get_env(:catenary, :fallback_node, host: "sally.nftease.online", port: 8483)
+    clumps = Application.get_env(:catenary, :clumps)
+    this_clump = Map.get(clumps, socket.assigns.clump_id)
+
+    which = Keyword.get(this_clump, :fallback_node)
 
     case Baby.connect(Keyword.get(which, :host), Keyword.get(which, :port),
            identity: Catenary.id_for_key(socket.assigns.identity),
