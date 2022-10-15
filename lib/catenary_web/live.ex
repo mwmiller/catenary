@@ -102,6 +102,15 @@ defmodule CatenaryWeb.Live do
     """
   end
 
+  def render(%{view: :aliases} = assigns) do
+    ~L"""
+     <div class="max-h-screen w-100 grid grid-cols-3 gap-2 justify-center">
+       <%= live_component(Catenary.Live.AliasExplorer, id: :aliases, alias: :all) %>
+       <%= sidebar(assigns) %>
+     </div>
+    """
+  end
+
   def render(%{view: :entries} = assigns) do
     ~L"""
     <div class="max-h-screen w-100 grid grid-cols-3 gap-2 justify-center">
@@ -123,6 +132,10 @@ defmodule CatenaryWeb.Live do
 
   def handle_info(%{view: :prefs}, socket) do
     {:noreply, state_set(socket, %{view: :prefs})}
+  end
+
+  def handle_info(%{view: :aliases}, socket) do
+    {:noreply, state_set(socket, %{view: :aliases})}
   end
 
   def handle_info(%{view: :dashboard}, socket) do

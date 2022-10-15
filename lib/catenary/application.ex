@@ -97,7 +97,7 @@ defmodule Catenary.Application do
          %{label: "Tags", command: "tag", action: %{tag: :all}},
          %{label: "Journals", command: "journal", action: %{entry: :journal}},
          %{label: "Replies", command: "reply", action: %{entry: :reply}},
-         %{label: "Aliases", command: "alias", action: %{entry: :alias}},
+         %{label: "Aliases", command: "alias", action: %{view: :aliases}},
          %{label: "Oases", command: "oasis", action: %{entry: :oasis}},
          %{label: "Test posts", command: "test", action: %{entry: :test}}
        ]}
