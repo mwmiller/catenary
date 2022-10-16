@@ -81,7 +81,7 @@ defmodule Catenary.Live.EntryViewer do
   # This is to create an identity "profile", but it'll also
   # give "something" when things go sideways
   def extract({a, l, e} = entry, clump_id, si) when l < 0 or e < 1 do
-    Catenary.Preferences.update(:shown, fn ms -> MapSet.put(ms, {a, l, e}) end)
+    Catenary.Preferences.mark_entry(:shown, {a, l, e})
 
     timeline =
       case from_dets(a, :timelines) do
@@ -136,7 +136,7 @@ defmodule Catenary.Live.EntryViewer do
   def extract({a, l, e} = entry, clump_id, _si) do
     # We want failure to save here to fail loudly without any further work
     # But if it does fail later we don't mind having said it was shown
-    Catenary.Preferences.update(:shown, fn ms -> MapSet.put(ms, entry) end)
+    Catenary.Preferences.mark_entry(:shown, {a, l, e})
 
     try do
       payload =

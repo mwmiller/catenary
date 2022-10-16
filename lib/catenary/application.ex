@@ -15,7 +15,15 @@ defmodule Catenary.Application do
 
     whoami = Catenary.Preferences.get(:identity) |> Catenary.id_for_key()
     clump_id = Catenary.Preferences.get(:clump_id)
-    clumps = Application.get_env(:catenary, :clumps)
+
+    # Short-term pre-clump switching legacy conversion
+    # Added 2022-10-16, remove in 2023
+    shown = Catenary.Preferences.get(:shown)
+
+    case shown do
+      %MapSet{} -> Catenary.Preferences.set(:shown, %{clump_id => shown})
+      _ -> :ok
+    end
 
     # I need a better signal for when to do this
     # but the store is mutable by others
@@ -24,7 +32,7 @@ defmodule Catenary.Application do
 
     children = [
       {Baby.Application,
-       [spool_dir: spool_dir, controlling_identity: whoami, clump_id: clump_id]},
+       [spool_dir: spool_dir(), controlling_identity: whoami, clump_id: clump_id]},
       # Start the Telemetry supervisor
       CatenaryWeb.Telemetry,
       # Start the PubSub system

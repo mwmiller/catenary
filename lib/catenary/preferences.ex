@@ -36,9 +36,9 @@ defmodule Catenary.Preferences do
   defp is_valid?(identity, :identity),
     do: is_binary(identity) && Enum.any?(Baobab.identities(), fn {_, k} -> k == identity end)
 
-  # `:shown` should be a mapset.  We'll hope they
-  # keep the values sane on their own
-  defp is_valid?(%MapSet{}, :shown), do: true
+  # `:shown` should be a map of mapsets.
+  # We'll hope they keep the values sane on their own
+  defp is_valid?(val, :shown) when is_map(val), do: true
   defp is_valid?(_, :shown), do: false
 
   defp is_valid?(clump_id, :clump_id),
@@ -95,11 +95,29 @@ defmodule Catenary.Preferences do
 
   def update(_, _), do: {:error, "update/2 requires a defined key and function/1 to apply"}
 
-  def mark_all_entries(:unshown), do: set(:shown, MapSet.new())
+  def mark_all_entries(:unshown),
+    do: update(:shown, fn m -> Map.merge(m, %{get(:clump_id) => MapSet.new()}) end)
 
-  def mark_all_entries(:shown), do: set(:shown, MapSet.new(Baobab.all_entries(get(:clump_id))))
+  def mark_all_entries(:shown),
+    do:
+      update(:shown, fn m ->
+        Map.merge(m, %{get(:clump_id) => MapSet.new(Baobab.all_entries(get(:clump_id)))})
+      end)
 
   def mark_all_entries(_), do: {:error, "mark_all_entries/1 takes an atom (:shown, :unshown)"}
 
-  def shown?(entry), do: get(:shown) |> MapSet.member?(entry)
+  def mark_entry(:shown, entry) do
+    update(:shown, fn m ->
+      Map.update(m, get(:clump_id), MapSet.new([entry]), fn ms -> MapSet.put(ms, entry) end)
+    end)
+  end
+
+  def mark_entry(:unshown, entry) do
+    update(:shown, fn m ->
+      Map.update(m, get(:clump_id), MapSet.new(), fn ms -> MapSet.delete(ms, entry) end)
+    end)
+  end
+
+  def shown?(entry),
+    do: get(:shown) |> Map.get(get(:clump_id), MapSet.new()) |> MapSet.member?(entry)
 end
