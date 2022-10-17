@@ -66,12 +66,10 @@ defmodule Catenary.Live.Navigation do
     <div id="aliases">
       <%= if is_tuple(@entry) do %>
        <form method="post" id="alias-form" phx-submit="new-alias">
-         <input type="hidden" name="ref" value="<%= Catenary.index_to_string(@entry) %>">
-         <p>
+         <input type="hidden" name="ref" value="<%= Catenary.index_to_string(@entry) %>" />
          <input type="hidden" name="whom" value="<%= @whom %>" />
          <img class="mx-auto" src="<%= Catenary.identicon(@whom, 4) %>">
            <h3><%= Catenary.short_id(@whom) %></h3>
-         </div>
          <label for="alias">～</label>
          <input class="bg-white dark:bg-black" name="alias" value="<%= @ali %>" type="text" size="16" />
          <hr/>
