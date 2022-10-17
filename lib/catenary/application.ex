@@ -9,12 +9,16 @@ defmodule Catenary.Application do
 
   @impl true
   def start(_type, _args) do
-    # `Baby` does this at start up but we need it sooner
-    # Bad form all around
-    Baby.global_setup(spool_dir: spool_dir())
+    # Still bad form
+    Application.put_env(:baobab, :spool_dir, spool_dir())
 
     whoami = Catenary.Preferences.get(:identity) |> Catenary.id_for_key()
     clump_id = Catenary.Preferences.get(:clump_id)
+
+    clumps =
+      for {c, k} <- Application.get_env(:catenary, :clumps) do
+        [controlling_identity: whoami, id: c, port: Keyword.get(k, :port)]
+      end
 
     # Short-term pre-clump switching legacy conversion
     # Added 2022-10-16, remove in 2023
@@ -31,8 +35,7 @@ defmodule Catenary.Application do
     Catenary.Indices.clear_all()
 
     children = [
-      {Baby.Application,
-       [spool_dir: spool_dir(), controlling_identity: whoami, clump_id: clump_id]},
+      {Baby.Application, spool_dir: spool_dir(), clumps: clumps},
       # Start the Telemetry supervisor
       CatenaryWeb.Telemetry,
       # Start the PubSub system
@@ -52,8 +55,6 @@ defmodule Catenary.Application do
        ]}
     ]
 
-    # See https://hexdocs.pm/elixir/Supervisor.html
-    # for other strategies and supported options
     opts = [strategy: :one_for_one, name: Catenary.Supervisor]
     Supervisor.start_link(children, opts)
   end
