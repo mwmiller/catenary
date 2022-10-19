@@ -43,23 +43,36 @@ defmodule Catenary.Live.TagExplorer do
       :dets.match(:tags, :"$1")
       |> Enum.reduce([], fn [{f, i} | _], a ->
         case f do
-          {"", t} -> [{t, Enum.any?(i, fn {_t, e} -> not Catenary.Preferences.shown?(e) end)} | a]
-          _ -> a
+          {"", t} ->
+            [
+              {t, Enum.any?(i, fn {_t, e} -> not Catenary.Preferences.shown?(e) end), length(i)}
+              | a
+            ]
+
+          _ ->
+            a
         end
       end)
-      |> Enum.uniq()
-      |> Enum.shuffle()
+      |> size_group
       |> to_links()
 
     Catenary.dets_close(:tags)
     %{"tags" => tags}
   end
 
+  defp size_group(items) do
+    items
+    |> Enum.group_by(fn {_, _, c} -> trunc(:math.log(c)) end)
+    |> Map.to_list()
+    |> Enum.sort(:desc)
+    |> Enum.reduce([], fn {_s, i}, acc -> acc ++ Enum.shuffle(i) end)
+  end
+
   defp extract(_), do: :none
 
   defp to_links(tags) do
     tags
-    |> Enum.map(fn {t, n} ->
+    |> Enum.map(fn {t, n, _c} ->
       "<div><button value=\"" <>
         t <>
         "\" phx-click=\"view-tag\"><p class=\"tighter text-orange-600 dark:text-amber-200 " <>
