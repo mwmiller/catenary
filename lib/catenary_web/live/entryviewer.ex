@@ -78,10 +78,8 @@ defmodule Catenary.Live.EntryViewer do
     """
   end
 
-  # This is to create an identity "profile", but it'll also
-  # give "something" when things go sideways
-  def extract({a, l, e} = entry, clump_id, si) when l < 0 or e < 1 do
-    Catenary.Preferences.mark_entry(:shown, {a, l, e})
+  def extract({:profile, a} = entry, clump_id, si) do
+    Catenary.Preferences.mark_entry(:shown, entry)
 
     timeline =
       case from_dets(a, :timelines) do

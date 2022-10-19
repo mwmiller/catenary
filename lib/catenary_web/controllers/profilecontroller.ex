@@ -8,7 +8,7 @@ defmodule CatenaryWeb.ProfileController do
     live_render(conn, CatenaryWeb.Live,
       session: %{
         "view" => :entries,
-        "entry" => {b62key, -1, 0}
+        "entry" => {:profile, b62key}
       }
     )
   end

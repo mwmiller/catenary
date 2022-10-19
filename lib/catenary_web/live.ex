@@ -23,7 +23,7 @@ defmodule CatenaryWeb.Live do
     entry =
       case session do
         %{"entry" => e} -> e
-        _ -> {whoami, -1, 0}
+        _ -> {:profile, whoami}
       end
 
     facet_id = Catenary.Preferences.get(:facet_id)
@@ -444,7 +444,7 @@ defmodule CatenaryWeb.Live do
   def handle_event("nav", %{"value" => move}, socket) do
     {a, l, e} = socket.assigns.entry
 
-    {na, nl, ne} =
+    entry =
       case move do
         "prev-entry" ->
           timeline({a, l, e}, :prev)
@@ -459,25 +459,33 @@ defmodule CatenaryWeb.Live do
           prev_author({a, l, e}, socket)
 
         "origin" ->
-          {socket.assigns.identity, -1, 0}
+          {:profile, socket.assigns.identity}
 
         _ ->
           {a, l, e}
       end
 
-    max =
-      socket.assigns.store
-      |> Enum.reduce(1, fn
-        {^na, ^nl, s}, _acc -> s
-        _, acc -> acc
-      end)
-
+    # This is a bit ugly with only the one
+    # non-index entry, but maybe it will prove useful later.
     next =
-      cond do
-        # Wrap around
-        ne < 1 -> {na, nl, max}
-        ne > max -> {na, nl, 1}
-        true -> {na, nl, ne}
+      case entry do
+        {na, nl, ne} ->
+          max =
+            socket.assigns.store
+            |> Enum.reduce(1, fn
+              {^na, ^nl, s}, _acc -> s
+              _, acc -> acc
+            end)
+
+          cond do
+            # Wrap around
+            ne < 1 -> {na, nl, max}
+            ne > max -> {na, nl, 1}
+            true -> {na, nl, ne}
+          end
+
+        _ ->
+          entry
       end
 
     {:noreply, state_set(socket, %{view: :entries, entry: next})}
