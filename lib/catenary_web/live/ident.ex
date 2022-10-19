@@ -14,7 +14,7 @@ defmodule Catenary.Live.Ident do
         <div class="flex-auto"><button phx-click="to-im" phx-target="<%= @myself %>"><%= @clump_id %>:</button></div>
          <div class="flex-auto"><%= Catenary.linked_author(@identity) %></div>
          <div class="flex-1/2"><img src="<%= Catenary.identicon(@identity, 4) %>"></div>
-       <div>
+       </div>
       <br/>
     </div>
     """

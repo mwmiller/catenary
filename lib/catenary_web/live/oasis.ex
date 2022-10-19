@@ -16,8 +16,8 @@ defmodule Catenary.Live.OasisBox do
     <div class="font-mono text-xs">
       <%= for {recent, index}  <- Enum.with_index(@nodes) do %>
         <div class="my-1 p-1 <%= case rem(index, 2)  do
-        0 ->  "bg-emerald-200 dark:bg-cyan-700"
-        1 -> "bg-emerald-400 dark:bg-sky-700"
+        0 ->  "bg-zinc-200 dark:bg-stone-700"
+        1 -> "bg-slate-200 dark:bg-slate-700"
       end %>"><img class="m-1 float-right align-middle" src="<%= Catenary.identicon(elem(recent.id, 0), 2)%>">
         <p><%= recent["name"] %> (<%= Catenary.linked_author(elem(recent.id, 0)) %>)
         <%= if recent.id in @connected do %>

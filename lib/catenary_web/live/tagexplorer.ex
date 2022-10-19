@@ -75,7 +75,7 @@ defmodule Catenary.Live.TagExplorer do
     |> Enum.map(fn {t, n, _c} ->
       "<div><button value=\"" <>
         t <>
-        "\" phx-click=\"view-tag\"><p class=\"tighter text-orange-600 dark:text-amber-200 " <>
+        "\" phx-click=\"view-tag\"><p class=\"tighter text-amber-900 dark:text-amber-100 " <>
         new_or_not(n) <> "\">" <> t <> "</p></button></div>"
     end)
     |> Phoenix.HTML.raw()

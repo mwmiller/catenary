@@ -254,7 +254,7 @@ defmodule Catenary.Live.EntryViewer do
       tagdivs =
         data["tags"]
         |> Enum.map(fn t ->
-          "<div class=\"text-orange-600 dark:text-amber-200\"><button value=\"" <>
+          "<div class=\"text-amber-900 dark:text-amber-100\"><button value=\"" <>
             t <> "\" phx-click=\"view-tag\">" <> t <> "</button></div>"
         end)
 

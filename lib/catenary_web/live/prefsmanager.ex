@@ -24,7 +24,7 @@ defmodule Catenary.Live.PrefsManager do
       </thead>
       <tbody class="text-center">
         <%= for {n, k} <- @identities do %>
-          <tr class="my-10 border <%= if k == @identity, do: "bg-emerald-100 border-emerald-200 dark:bg-cyan-800 dark:border-cyan-900", else: "border-slate-200 dark:border-slate-800" %>">
+          <tr class="my-10 border <%= if k == @identity, do: "bg-slate-300 border-stone-400 dark:bg-stone-600 dark:border-slate-900", else: "border-slate-200 dark:border-slate-800" %>">
             <td class="py-5"><input type="radio" name="selection" value="<%= n %>" <%= if k == @identity, do: "checked" %>></td>
             <td><input class="bg-white dark:bg-black" type="text" size=16 id="<%= n %>" value="<%= n %>" phx-blur="rename-id-<%= n %>" /></td>
             <td><img class="mx-auto" src="<%= Catenary.identicon(k, 4) %>"></td>
@@ -45,11 +45,10 @@ defmodule Catenary.Live.PrefsManager do
     <input class="bg-white dark:bg-black m-5" phx-blur="facet-change" type="numeric" name="facet_id" size=3 value="<%= @facet_id %>">
     </form>
     </div>
-    </div>
     <div class="flex flex-row min-w-full">
-      <div class="flex-auto"><button class="border opacity-61 p-2 m-10 bg-slate-200 dark:bg-slate-800" value="all" phx-disable-with="⌘⌘⌘" phx-click="shown">catch up</button></div>
-      <div class="flex-auto"><button class="border opacity-61 p-2 m-10 bg-slate-200 dark:bg-slate-800" value="none" phx-disable-with="⎚⎚⎚"  phx-click="shown">start fresh</button></div>
-      <div class="flex-auto"><button class="border opacity-61 p-2 m-10 bg-slate-200 dark:bg-slate-800" value="all" phx-disable-with="〆〆〆"  phx-click="compact">compact logs</button></div>
+      <div class="flex-auto"><button class="border opacity-61 p-2 m-10 bg-stone-200 dark:bg-stone-800" value="all" phx-disable-with="⌘⌘⌘" phx-click="shown">catch up</button></div>
+      <div class="flex-auto"><button class="border opacity-61 p-2 m-10 bg-stone-200 dark:bg-stone-800" value="none" phx-disable-with="⎚⎚⎚"  phx-click="shown">start fresh</button></div>
+      <div class="flex-auto"><button class="border opacity-61 p-2 m-10 bg-stone-200 dark:bg-stone-800" value="all" phx-disable-with="〆〆〆"  phx-click="compact">compact logs</button></div>
     </div>
     """
   end
