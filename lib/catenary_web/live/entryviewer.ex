@@ -99,6 +99,7 @@ defmodule Catenary.Live.EntryViewer do
       si
       |> Enum.filter(fn {author, _, _} -> author == a end)
       |> Enum.group_by(fn {_, l, _} -> QuaggaDef.log_def(l) end)
+      |> Enum.reject(fn {ldef, _} -> ldef == %{} end)
       |> Enum.reject(fn {%{name: name}, _} -> name in Catenary.timeline_logs() end)
 
     items =
