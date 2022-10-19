@@ -123,7 +123,7 @@ defmodule CatenaryWeb.Live do
   defp sidebar(assigns) do
     ~L"""
     <div>
-      <%= live_component(Catenary.Live.Ident, id: :ident, identity: @identity) %>
+      <%= live_component(Catenary.Live.Ident, id: :ident, identity: @identity, clump_id: @clump_id) %>
       <%= live_component(Catenary.Live.OasisBox, id: :recents, indexing: @indexing, connections: @connections, watering: @watering) %>
       <%= live_component(Catenary.Live.Navigation, id: :nav, entry: @entry, extra_nav: @extra_nav, identity: @identity, view: @view) %>
     </div>
