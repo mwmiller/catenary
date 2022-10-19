@@ -462,46 +462,46 @@ defmodule CatenaryWeb.Live do
   end
 
   def handle_event("nav", %{"value" => move}, socket) do
-    {a, l, e} = socket.assigns.entry
+    curr = socket.assigns.entry
 
     entry =
       case move do
         "prev-entry" ->
-          timeline({a, l, e}, :prev)
+          timeline(curr, :prev)
 
         "next-entry" ->
-          timeline({a, l, e}, :next)
+          timeline(curr, :next)
 
         "next-author" ->
-          next_author({a, l, e}, socket)
+          next_author(curr, socket)
 
         "prev-author" ->
-          prev_author({a, l, e}, socket)
+          prev_author(curr, socket)
 
         "origin" ->
           {:profile, socket.assigns.identity}
 
         _ ->
-          {a, l, e}
+          curr
       end
 
     # This is a bit ugly with only the one
     # non-index entry, but maybe it will prove useful later.
     next =
       case entry do
-        {na, nl, ne} ->
+        {a, l, e} ->
           max =
             socket.assigns.store
             |> Enum.reduce(1, fn
-              {^na, ^nl, s}, _acc -> s
+              {^a, ^l, s}, _acc -> s
               _, acc -> acc
             end)
 
           cond do
             # Wrap around
-            ne < 1 -> {na, nl, max}
-            ne > max -> {na, nl, 1}
-            true -> {na, nl, ne}
+            e < 1 -> {a, l, max}
+            e > max -> {a, l, 1}
+            true -> {a, l, e}
           end
 
         _ ->
@@ -515,6 +515,8 @@ defmodule CatenaryWeb.Live do
   @timeline_ids Enum.reduce(Catenary.timeline_logs(), [], fn l, a ->
                   a ++ QuaggaDef.logs_for_name(l)
                 end)
+
+  defp timeline({:profile, a}, _), do: {:profile, a}
 
   defp timeline({a, l, e} = entry, dir) when l in @timeline_ids do
     Catenary.dets_open(:timelines)
@@ -544,6 +546,48 @@ defmodule CatenaryWeb.Live do
 
   defp timeline({a, l, e}, :prev), do: {a, l, e - 1}
   defp timeline({a, l, e}, :next), do: {a, l, e + 1}
+
+  defp next_author({:profile, author}, socket) do
+    possibles = socket.assigns.store |> Enum.sort(:asc)
+
+    case Enum.drop_while(possibles, fn {a, _, _} -> a <= author end) do
+      [] -> List.first(possibles)
+      [next | _] -> next
+    end
+    |> then(fn {a, _, _} -> {:profile, a} end)
+  end
+
+  defp next_author({author, log_id, seq}, socket) do
+    possibles =
+      socket.assigns.store |> Enum.filter(fn {_, l, _} -> log_id == l end) |> Enum.sort(:asc)
+
+    case Enum.drop_while(possibles, fn {a, _, _} -> a <= author end) do
+      [] -> List.first(possibles)
+      [next | _] -> next
+    end
+    |> then(fn {a, l, _} -> {a, l, seq} end)
+  end
+
+  defp prev_author({:profile, author}, socket) do
+    possibles = socket.assigns.store |> Enum.sort(:desc)
+
+    case Enum.drop_while(possibles, fn {a, _, _} -> a >= author end) do
+      [] -> List.first(possibles)
+      [next | _] -> next
+    end
+    |> then(fn {a, _, _} -> {:profile, a} end)
+  end
+
+  defp prev_author({author, log_id, seq}, socket) do
+    possibles =
+      socket.assigns.store |> Enum.filter(fn {_, l, _} -> log_id == l end) |> Enum.sort(:desc)
+
+    case Enum.drop_while(possibles, fn {a, _, _} -> a >= author end) do
+      [] -> List.first(possibles)
+      [next | _] -> next
+    end
+    |> then(fn {a, l, _} -> {a, l, seq} end)
+  end
 
   @prefs_keys Catenary.Preferences.keys()
   defp do_prefs([]), do: :ok
@@ -711,53 +755,6 @@ defmodule CatenaryWeb.Live do
     rescue
       _ -> extract_recents(rest, clump_id, now, acc)
     end
-  end
-
-  # Prev and next should be combined with log_id logic 
-  # This is "profile" switching
-  defp next_author({author, l, s}, socket) when l < 0 do
-    possibles = socket.assigns.store |> Enum.sort(:asc)
-
-    case Enum.drop_while(possibles, fn {a, _, _} -> a <= author end) do
-      [] -> List.first(possibles)
-      [next | _] -> next
-    end
-    |> then(fn {a, _, _} -> {a, l, s} end)
-  end
-
-  defp next_author({author, log_id, seq}, socket) do
-    possibles =
-      socket.assigns.store |> Enum.filter(fn {_, l, _} -> log_id == l end) |> Enum.sort(:asc)
-
-    case Enum.drop_while(possibles, fn {a, _, _} -> a <= author end) do
-      [] -> List.first(possibles)
-      [next | _] -> next
-    end
-    |> then(fn {a, l, _} -> {a, l, seq} end)
-
-    # I recognise there is no relationship with the other seqnum
-    # Exploration involves more kismet than determinism
-  end
-
-  defp prev_author({author, l, s}, socket) when l < 0 do
-    possibles = socket.assigns.store |> Enum.sort(:desc)
-
-    case Enum.drop_while(possibles, fn {a, _, _} -> a >= author end) do
-      [] -> List.first(possibles)
-      [next | _] -> next
-    end
-    |> then(fn {a, _, _} -> {a, l, s} end)
-  end
-
-  defp prev_author({author, log_id, seq}, socket) do
-    possibles =
-      socket.assigns.store |> Enum.filter(fn {_, l, _} -> log_id == l end) |> Enum.sort(:desc)
-
-    case Enum.drop_while(possibles, fn {a, _, _} -> a >= author end) do
-      [] -> List.first(possibles)
-      [next | _] -> next
-    end
-    |> then(fn {a, l, _} -> {a, l, seq} end)
   end
 
   defp append_log_for_socket(contents, log_id, socket) do
