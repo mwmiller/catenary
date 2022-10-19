@@ -47,8 +47,9 @@ defmodule Catenary.Live.PrefsManager do
     </div>
     </div>
     <div class="flex flex-row min-w-full">
-      <div class="flex-auto"><button class="border opacity-61 p-2 m-10 bg-slate-200 dark:bg-slate-800" value="all" phx-disable-with="⌘⌘⌘⌘⌘ ⌘⌘" phx-click="shown">catch up</button></div>
-      <div class="flex-auto"><button class="border opacity-61 p-2 m-10 bg-slate-200 dark:bg-slate-800" value="none" phx-disable-with="⎚⎚⎚⎚⎚ ⎚⎚⎚⎚⎚⎚"  phx-click="shown">start fresh</button></div>
+      <div class="flex-auto"><button class="border opacity-61 p-2 m-10 bg-slate-200 dark:bg-slate-800" value="all" phx-disable-with="⌘⌘⌘" phx-click="shown">catch up</button></div>
+      <div class="flex-auto"><button class="border opacity-61 p-2 m-10 bg-slate-200 dark:bg-slate-800" value="none" phx-disable-with="⎚⎚⎚"  phx-click="shown">start fresh</button></div>
+      <div class="flex-auto"><button class="border opacity-61 p-2 m-10 bg-slate-200 dark:bg-slate-800" value="all" phx-disable-with="〆〆〆"  phx-click="compact">compact logs</button></div>
     </div>
     """
   end

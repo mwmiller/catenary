@@ -164,6 +164,20 @@ defmodule CatenaryWeb.Live do
     {:noreply, state_set(socket, %{})}
   end
 
+  def handle_event("compact", %{"value" => "all"}, socket) do
+    # All doesn't include any identities we control.
+    # We are the source of truth for these logs.
+    our_pks = socket.assigns.identities |> Enum.map(fn {_n, k} -> k end)
+
+    socket.assigns.store
+    |> Enum.reject(fn {a, _, _} -> a in our_pks end)
+    |> Enum.each(fn {a, l, _} ->
+      Baobab.compact(a, log_id: l, clump_id: socket.assigns.clump_id)
+    end)
+
+    {:noreply, state_set(socket, %{})}
+  end
+
   def handle_event("clump-change", %{"clump_id" => clump_id}, socket) do
     # This is a heavy operation
     # It's essentially a whole new instance.
