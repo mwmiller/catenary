@@ -169,7 +169,13 @@ defmodule CatenaryWeb.Live do
     # It's essentially a whole new instance.
     # We need to drop a whole lot of state
     Catenary.Indices.clear_all()
-    {:noreply, state_set(socket, %{clump_id: clump_id})}
+
+    {:noreply,
+     state_set(socket, %{
+       clump_id: clump_id,
+       tag: :all,
+       entry: {:profile, socket.assigns.identity}
+     })}
   end
 
   def handle_event("facet-change", %{"value" => facet_id}, socket) do
