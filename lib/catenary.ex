@@ -112,7 +112,7 @@ defmodule Catenary do
       {base_log, _} ->
         base_log
         |> QuaggaDef.log_def()
-        |> Map.get(:name)
+        |> Map.get(:name, :unknown)
         |> Atom.to_string()
         |> String.capitalize()
 
