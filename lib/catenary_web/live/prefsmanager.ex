@@ -9,7 +9,7 @@ defmodule Catenary.Live.PrefsManager do
   def render(assigns) do
     ~L"""
      <div id="identview-wrap" class="col-span-full overflow-y-auto max-h-screen m-2 p-x-2">
-      <div class="my-5 text-center min-w-full"><%= Catenary.entry_icon_link({@identity,-1,0}, 8) |> Phoenix.HTML.raw()  %></div>
+       <div class="my-5 text-center min-w-full"><a href="/authors/<%= @identity %>"><img class="mx-auto" src="<%= Catenary.identicon(@identity, 8) %>"></a></div>
       <form method="post" id="clump-form" phx-change="clump-change">
         <label for"clump_id">🎋</label>
         <select name="clump_id" class="m-10 bg-white dark:bg-black">
