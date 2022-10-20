@@ -1,6 +1,6 @@
 defmodule CatenaryWeb.Live do
   use CatenaryWeb, :live_view
-  alias Catenary.Navigation
+  alias Catenary.{Navigation, Oases}
 
   @ui_fast 1062
   @ui_slow 11131
@@ -54,7 +54,7 @@ defmodule CatenaryWeb.Live do
          entry: entry,
          tag: :all,
          connections: [],
-         watering: [],
+         oases: [],
          clumps: clumps,
          clump_id: clump_id,
          identity: whoami,
@@ -125,7 +125,7 @@ defmodule CatenaryWeb.Live do
     ~L"""
     <div>
       <%= live_component(Catenary.Live.Ident, id: :ident, identity: @identity, clump_id: @clump_id) %>
-      <%= live_component(Catenary.Live.OasisBox, id: :recents, indexing: @indexing, connections: @connections, watering: @watering) %>
+      <%= live_component(Catenary.Live.OasisBox, id: :recents, indexing: @indexing, connections: @connections, oases: @oases) %>
       <%= live_component(Catenary.Live.Navigation, id: :nav, entry: @entry, extra_nav: @extra_nav, identity: @identity, view: @view) %>
     </div>
     """
@@ -520,7 +520,7 @@ defmodule CatenaryWeb.Live do
           {@ui_fast,
            [
              store: si,
-             watering: watering(si, clump_id)
+             oases: Oases.recents(si, clump_id, 4)
            ]}
 
         false ->
@@ -592,51 +592,6 @@ defmodule CatenaryWeb.Live do
 
       false ->
         check_connections(rest, acc)
-    end
-  end
-
-  @oasis_log_ids QuaggaDef.logs_for_name(:oasis)
-
-  defp watering(store, clump_id) do
-    store
-    |> Enum.filter(fn {_, l, _} -> l in @oasis_log_ids end)
-    |> extract_recents(clump_id, DateTime.now!("Etc/UTC"), [])
-  end
-
-  defp extract_recents([], _, _, acc) do
-    # Put them in age order
-    # Pick the most recent for any host/port dupes
-    # Display a max of 3
-    acc
-    |> Enum.sort_by(fn m -> Map.get(m, "running") end, :desc)
-    |> Enum.uniq_by(fn %{"host" => h, "port" => p} -> {h, p} end)
-    |> Enum.take(4)
-  end
-
-  defp extract_recents([{a, l, e} | rest], clump_id, now, acc) do
-    try do
-      %Baobab.Entry{payload: payload} = Baobab.log_entry(a, e, log_id: l, clump_id: clump_id)
-      {:ok, map, ""} = CBOR.decode(payload)
-
-      case map do
-        %{"running" => ts} ->
-          then = ts |> Timex.parse!("{ISO:Extended}")
-
-          cond do
-            Timex.diff(then, now, :hour) > -49 ->
-              extract_recents(rest, clump_id, now, [
-                Map.merge(map, %{:id => {a, l, e}, "running" => then}) | acc
-              ])
-
-            true ->
-              extract_recents(rest, clump_id, now, acc)
-          end
-
-        _ ->
-          extract_recents(rest, clump_id, now, acc)
-      end
-    rescue
-      _ -> extract_recents(rest, clump_id, now, acc)
     end
   end
 

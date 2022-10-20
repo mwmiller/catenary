@@ -5,7 +5,7 @@ defmodule Catenary.Live.OasisBox do
     {:ok,
      assign(socket,
        indexing: index_status(assigns.indexing),
-       nodes: assigns.watering,
+       nodes: assigns.oases,
        connected: Enum.map(assigns.connections, &id_mapper/1)
      )}
   end
