@@ -1,6 +1,6 @@
 defmodule CatenaryWeb.Live do
   use CatenaryWeb, :live_view
-  alias Catenary.{Navigation, Oases}
+  alias Catenary.{Navigation, Oases, LogWriter}
 
   @ui_fast 1062
   @ui_slow 11131
@@ -296,130 +296,16 @@ defmodule CatenaryWeb.Live do
     {:noreply, state_set(socket, %{view: :tags, tag: tag})}
   end
 
-  def handle_event(
-        "new-tag",
-        %{"ref" => ref, "tag0" => tag0, "tag1" => tag1, "tag2" => tag2, "tag3" => tag3},
-        socket
-      ) do
-    tags = Enum.reject([tag0, tag1, tag2, tag3], fn s -> s == "" end)
-    references = Catenary.string_to_index(ref)
-
-    %Baobab.Entry{author: a, log_id: l, seqnum: e} =
-      %{
-        "references" => [references],
-        "tags" => tags,
-        "published" => Timex.now() |> DateTime.to_string()
-      }
-      |> CBOR.encode()
-      |> append_log_for_socket(749, socket)
-
-    b62author = Baobab.b62identity(a)
-    entry = {b62author, l, e}
-    Catenary.Indices.index_tags([entry], socket.assigns.clump_id)
-    Catenary.Indices.index_references([entry], socket.assigns.clump_id)
-    {:noreply, state_set(socket, %{entry: entry})}
+  def handle_event("new-tag", values, socket) do
+    {:noreply, state_set(socket, %{entry: LogWriter.new_tag(values, socket)})}
   end
 
-  def handle_event(
-        "new-alias",
-        %{
-          "alias" => ali,
-          "ref" => ref,
-          "whom" => whom
-        },
-        socket
-      ) do
-    %Baobab.Entry{author: a, log_id: l, seqnum: e} =
-      %{
-        "whom" => whom,
-        "references" => [Catenary.string_to_index(ref)],
-        "alias" => ali,
-        "published" => Timex.now() |> DateTime.to_string()
-      }
-      |> CBOR.encode()
-      |> append_log_for_socket(53, socket)
-
-    b62author = Baobab.b62identity(a)
-    entry = {b62author, l, e}
-    Catenary.Indices.index_aliases(b62author, socket.assigns.clump_id)
-    Catenary.Indices.index_references([entry], socket.assigns.clump_id)
-    {:noreply, state_set(socket, %{entry: entry})}
+  def handle_event("new-alias", values, socket) do
+    {:noreply, state_set(socket, %{entry: LogWriter.new_alias(values, socket)})}
   end
 
-  def handle_event(
-        "new-entry",
-        %{
-          "body" => body,
-          "log_id" => "533",
-          "ref" => ref,
-          "title" => title
-        },
-        socket
-      ) do
-    # Only single parent references, but maybe multiple children
-    # We get a tuple here, we'll get an array back from CBOR
-    {oa, ol, oe} = Catenary.string_to_index(ref)
-    clump_id = socket.assigns.clump_id
-
-    t =
-      case title do
-        "" ->
-          try do
-            %Baobab.Entry{payload: payload} =
-              Baobab.log_entry(oa, oe, log_id: ol, clump_id: clump_id)
-
-            {:ok, %{"title" => t}, ""} = CBOR.decode(payload)
-
-            case t do
-              <<"Re: ", _::binary>> -> t
-              _ -> "Re: " <> t
-            end
-          rescue
-            _ -> "Re: other post"
-          end
-
-        _ ->
-          title
-      end
-
-    %Baobab.Entry{author: a, log_id: l, seqnum: e} =
-      %{
-        "body" => body,
-        "references" => [[oa, ol, oe]],
-        "title" => t,
-        "published" => Timex.now() |> DateTime.to_string()
-      }
-      |> CBOR.encode()
-      |> append_log_for_socket(533, socket)
-
-    entry = {Baobab.b62identity(a), l, e}
-    Catenary.Indices.index_references([entry], socket.assigns.clump_id)
-
-    {:noreply, state_set(socket, %{entry: entry})}
-  end
-
-  def handle_event("new-entry", %{"body" => body, "log_id" => "0"}, socket) do
-    %Baobab.Entry{author: a, log_id: l, seqnum: e} = append_log_for_socket(body, 0, socket)
-    entry = {Baobab.b62identity(a), l, e}
-    {:noreply, state_set(socket, %{entry: entry})}
-  end
-
-  def handle_event(
-        "new-entry",
-        %{"body" => body, "log_id" => "360360", "title" => title},
-        socket
-      ) do
-    # There will be more things to handle in short order, so this looks verbose
-    # but it's probably necessary
-    %Baobab.Entry{author: a, log_id: l, seqnum: e} =
-      %{"body" => body, "title" => title, "published" => Timex.now() |> DateTime.to_string()}
-      |> CBOR.encode()
-      |> append_log_for_socket(360_360, socket)
-
-    entry = {Baobab.b62identity(a), l, e}
-    Catenary.Indices.index_references([entry], socket.assigns.clump_id)
-
-    {:noreply, state_set(socket, %{entry: entry})}
+  def handle_event("new-entry", values, socket) do
+    {:noreply, state_set(socket, %{entry: LogWriter.new_entry(values, socket)})}
   end
 
   def handle_event("init-connect", _, socket) do
@@ -593,12 +479,5 @@ defmodule CatenaryWeb.Live do
       false ->
         check_connections(rest, acc)
     end
-  end
-
-  defp append_log_for_socket(contents, log_id, socket) do
-    Baobab.append_log(contents, Catenary.id_for_key(socket.assigns.identity),
-      log_id: QuaggaDef.facet_log(log_id, socket.assigns.facet_id),
-      clump_id: socket.assigns.clump_id
-    )
   end
 end
