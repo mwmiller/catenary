@@ -1,5 +1,6 @@
 defmodule CatenaryWeb.Live do
   use CatenaryWeb, :live_view
+  alias Catenary.Navigation
 
   @ui_fast 1062
   @ui_slow 11131
@@ -461,132 +462,14 @@ defmodule CatenaryWeb.Live do
     end
   end
 
-  def handle_event("nav", %{"value" => move}, socket) do
-    curr = socket.assigns.entry
+  def handle_event("nav", %{"value" => motion}, socket) do
+    assigns = socket.assigns
 
-    entry =
-      case move do
-        "prev-entry" ->
-          timeline(curr, :prev)
-
-        "next-entry" ->
-          timeline(curr, :next)
-
-        "next-author" ->
-          next_author(curr, socket)
-
-        "prev-author" ->
-          prev_author(curr, socket)
-
-        "origin" ->
-          {:profile, socket.assigns.identity}
-
-        _ ->
-          curr
-      end
-
-    # This is a bit ugly with only the one
-    # non-index entry, but maybe it will prove useful later.
-    next =
-      case entry do
-        {a, l, e} ->
-          max =
-            socket.assigns.store
-            |> Enum.reduce(1, fn
-              {^a, ^l, s}, _acc -> s
-              _, acc -> acc
-            end)
-
-          cond do
-            # Wrap around
-            e < 1 -> {a, l, max}
-            e > max -> {a, l, 1}
-            true -> {a, l, e}
-          end
-
-        _ ->
-          entry
-      end
-
-    {:noreply, state_set(socket, %{view: :entries, entry: next})}
-  end
-
-  # Compile-time computed so it can be used in the guard clause
-  @timeline_ids Enum.reduce(Catenary.timeline_logs(), [], fn l, a ->
-                  a ++ QuaggaDef.logs_for_name(l)
-                end)
-
-  defp timeline({:profile, a}, _), do: {:profile, a}
-
-  defp timeline({a, l, e} = entry, dir) when l in @timeline_ids do
-    Catenary.dets_open(:timelines)
-
-    timeline =
-      case :dets.lookup(:timelines, a) do
-        [] -> [{<<>>, {a, l, e}}]
-        [{^a, tl}] -> tl
-      end
-
-    Catenary.dets_close(:timelines)
-
-    wherearewe =
-      case Enum.find_index(timeline, fn {_, listed} -> listed == entry end) do
-        nil -> 0
-        n -> n
-      end
-
-    {_t, to_entry} =
-      case dir do
-        :prev -> Enum.at(timeline, wherearewe - 1)
-        :next -> Enum.at(timeline, wherearewe + 1, Enum.at(timeline, 0))
-      end
-
-    to_entry
-  end
-
-  defp timeline({a, l, e}, :prev), do: {a, l, e - 1}
-  defp timeline({a, l, e}, :next), do: {a, l, e + 1}
-
-  defp next_author({:profile, author}, socket) do
-    possibles = socket.assigns.store |> Enum.sort(:asc)
-
-    case Enum.drop_while(possibles, fn {a, _, _} -> a <= author end) do
-      [] -> List.first(possibles)
-      [next | _] -> next
-    end
-    |> then(fn {a, _, _} -> {:profile, a} end)
-  end
-
-  defp next_author({author, log_id, seq}, socket) do
-    possibles =
-      socket.assigns.store |> Enum.filter(fn {_, l, _} -> log_id == l end) |> Enum.sort(:asc)
-
-    case Enum.drop_while(possibles, fn {a, _, _} -> a <= author end) do
-      [] -> List.first(possibles)
-      [next | _] -> next
-    end
-    |> then(fn {a, l, _} -> {a, l, seq} end)
-  end
-
-  defp prev_author({:profile, author}, socket) do
-    possibles = socket.assigns.store |> Enum.sort(:desc)
-
-    case Enum.drop_while(possibles, fn {a, _, _} -> a >= author end) do
-      [] -> List.first(possibles)
-      [next | _] -> next
-    end
-    |> then(fn {a, _, _} -> {:profile, a} end)
-  end
-
-  defp prev_author({author, log_id, seq}, socket) do
-    possibles =
-      socket.assigns.store |> Enum.filter(fn {_, l, _} -> log_id == l end) |> Enum.sort(:desc)
-
-    case Enum.drop_while(possibles, fn {a, _, _} -> a >= author end) do
-      [] -> List.first(possibles)
-      [next | _] -> next
-    end
-    |> then(fn {a, l, _} -> {a, l, seq} end)
+    {:noreply,
+     state_set(socket, %{
+       view: :entries,
+       entry: Navigation.move_to(motion, assigns.entry, assigns.store, assigns.identity)
+     })}
   end
 
   @prefs_keys Catenary.Preferences.keys()
