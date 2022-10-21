@@ -93,16 +93,15 @@ defmodule Catenary.LogWriter do
     entry
   end
 
-  # Punt
-  def new_entry(_, socket), do: {:profile, socket.assigns.identity}
-
-  @doc """
-  Append a supplied tag.  This should (and will be) combined with `new-entry`
-  """
-  def new_tag(values, socket)
-
-  def new_tag(
-        %{"ref" => ref, "tag0" => tag0, "tag1" => tag1, "tag2" => tag2, "tag3" => tag3},
+  def new_entry(
+        %{
+          "log_id" => "749",
+          "ref" => ref,
+          "tag0" => tag0,
+          "tag1" => tag1,
+          "tag2" => tag2,
+          "tag3" => tag3
+        },
         socket
       ) do
     tags = Enum.reject([tag0, tag1, tag2, tag3], fn s -> s == "" end)
@@ -125,7 +124,7 @@ defmodule Catenary.LogWriter do
   end
 
   # Punt
-  def new_tag(_, socket), do: {:profile, socket.assigns.identity}
+  def new_entry(_, socket), do: {:profile, socket.assigns.identity}
 
   defp append_log_for_socket(contents, log_id, socket) do
     Baobab.append_log(contents, Catenary.id_for_key(socket.assigns.identity),

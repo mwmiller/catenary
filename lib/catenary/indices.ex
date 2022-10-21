@@ -133,7 +133,7 @@ defmodule Catenary.Indices do
     try do
       %Baobab.Entry{payload: payload} = entry
       {:ok, data, ""} = CBOR.decode(payload)
-      :dets.insert(:aliases, {data["whom"], data["alias"]}) |> IO.inspect()
+      :dets.insert(:aliases, {data["whom"], data["alias"]})
     rescue
       _ ->
         :ok

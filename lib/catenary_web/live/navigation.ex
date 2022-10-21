@@ -87,7 +87,8 @@ defmodule Catenary.Live.Navigation do
     ~L"""
     <div id="tags">
       <%= if is_tuple(@entry) do %>
-       <form method="post" id="tag-form" phx-submit="new-tag">
+       <form method="post" id="tag-form" phx-submit="new-entry">
+         <input type="hidden" name="log_id" value="749">
          <input type="hidden" name="ref" value="<%= Catenary.index_to_string(@entry) %>">
          <p>
            <%= for n <- 0..3 do %>

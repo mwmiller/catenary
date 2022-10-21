@@ -296,10 +296,6 @@ defmodule CatenaryWeb.Live do
     {:noreply, state_set(socket, %{view: :tags, tag: tag})}
   end
 
-  def handle_event("new-tag", values, socket) do
-    {:noreply, state_set(socket, %{entry: LogWriter.new_tag(values, socket)})}
-  end
-
   def handle_event("new-entry", values, socket) do
     {:noreply, state_set(socket, %{entry: LogWriter.new_entry(values, socket)})}
   end
