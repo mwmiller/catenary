@@ -15,31 +15,65 @@ defmodule Catenary.Navigation do
         supplied -> supplied
       end
 
-    entry =
-      case motion do
-        "specified" ->
-          sent
+    case motion do
+      "back" ->
+        case assigns.entry_back do
+          [] ->
+            non_stack_nav(sent, assigns)
 
-        "prev-entry" ->
-          Timeline.prev(sent)
+          [prev | rest] ->
+            %{
+              view: :entries,
+              entry: prev,
+              entry_back: rest,
+              entry_fore: [sent | assigns.entry_fore]
+            }
+        end
 
-        "next-entry" ->
-          Timeline.next(sent)
+      "forward" ->
+        case assigns.entry_fore do
+          [] ->
+            non_stack_nav(sent, assigns)
 
-        "next-author" ->
-          Authorline.next(sent, store)
+          [next | rest] ->
+            %{
+              view: :entries,
+              entry: next,
+              entry_fore: rest,
+              entry_back: [sent | assigns.entry_back]
+            }
+        end
 
-        "prev-author" ->
-          Authorline.prev(sent, store)
+      "specified" ->
+        non_stack_nav(sent, assigns)
 
-        "origin" ->
-          {:profile, id}
+      "prev-entry" ->
+        sent |> Timeline.prev() |> non_stack_nav(assigns)
 
-        _ ->
-          sent
-      end
+      "next-entry" ->
+        sent |> Timeline.next() |> non_stack_nav(assigns)
 
-    %{view: :entries, entry: maybe_wrap(entry, store)}
+      "next-author" ->
+        sent |> Authorline.next(store) |> non_stack_nav(assigns)
+
+      "prev-author" ->
+        sent |> Authorline.prev(store) |> non_stack_nav(assigns)
+
+      "origin" ->
+        non_stack_nav({:profile, id}, assigns)
+
+      _ ->
+        non_stack_nav(sent, assigns)
+    end
+  end
+
+  def non_stack_nav(next, %{entry: at, store: store, entry_back: back}) do
+    to = maybe_wrap(next, store)
+
+    case to == at do
+      true -> %{view: :entries, entry: to}
+      false -> %{view: :entries, entry: to, entry_back: [at | back]}
+    end
   end
 
   def maybe_wrap({a, l, e}, store) do

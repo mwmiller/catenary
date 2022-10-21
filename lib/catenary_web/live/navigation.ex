@@ -109,6 +109,20 @@ defmodule Catenary.Live.Navigation do
     """
   end
 
+  # To be sure, an interesting definition of :none
+  defp extra_nav(%{:extra_nav => :none} = assigns) do
+    ~L"""
+    <div id="stack-nav">
+      <%= if is_tuple(@entry) do %>
+        <button phx-click="nav-backward">⏪</button>
+        <button phx-click="nav-forward">⏩</button>
+      <% else %>
+          ‽
+      <% end %>
+    </div>
+    """
+  end
+
   defp extra_nav(_), do: ""
 
   @alias_logs QuaggaDef.logs_for_name(:alias)

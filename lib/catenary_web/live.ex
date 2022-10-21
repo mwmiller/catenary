@@ -52,6 +52,8 @@ defmodule CatenaryWeb.Live do
          extra_nav: :none,
          indexing: Enum.reduce(@indices, %{}, fn i, a -> Map.merge(a, %{i => :not_running}) end),
          entry: entry,
+         entry_fore: [],
+         entry_back: [],
          connections: [],
          oases: [],
          clumps: clumps,
@@ -291,6 +293,14 @@ defmodule CatenaryWeb.Live do
 
   def handle_event("view-tag", %{"value" => tag}, socket) do
     {:noreply, state_set(socket, Navigation.move_to("specified", {:tag, tag}, socket.assigns))}
+  end
+
+  def handle_event("nav-forward", _, socket) do
+    {:noreply, state_set(socket, Navigation.move_to("forward", :current, socket.assigns))}
+  end
+
+  def handle_event("nav-backward", _, socket) do
+    {:noreply, state_set(socket, Navigation.move_to("back", :current, socket.assigns))}
   end
 
   def handle_event("new-entry", values, socket) do
