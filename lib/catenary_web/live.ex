@@ -338,10 +338,7 @@ defmodule CatenaryWeb.Live do
     assigns = socket.assigns
 
     {:noreply,
-     state_set(socket, %{
-       view: :entries,
-       entry: Navigation.move_to(motion, assigns.entry, assigns.store, assigns.identity)
-     })}
+     state_set(socket, Navigation.move_to(motion, assigns.entry, assigns.store, assigns.identity))}
   end
 
   @prefs_keys Catenary.Preferences.keys()

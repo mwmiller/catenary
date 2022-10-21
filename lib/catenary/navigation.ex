@@ -34,24 +34,27 @@ defmodule Catenary.Navigation do
 
     # This is a bit ugly with only the one
     # non-index entry, but maybe it will prove useful later.
-    case entry do
-      {a, l, e} ->
-        max =
-          store
-          |> Enum.reduce(1, fn
-            {^a, ^l, s}, _acc -> s
-            _, acc -> acc
-          end)
+    where =
+      case entry do
+        {a, l, e} ->
+          max =
+            store
+            |> Enum.reduce(1, fn
+              {^a, ^l, s}, _acc -> s
+              _, acc -> acc
+            end)
 
-        cond do
-          # Wrap around
-          e < 1 -> {a, l, max}
-          e > max -> {a, l, 1}
-          true -> {a, l, e}
-        end
+          cond do
+            # Wrap around
+            e < 1 -> {a, l, max}
+            e > max -> {a, l, 1}
+            true -> {a, l, e}
+          end
 
-      _ ->
-        entry
-    end
+        _ ->
+          entry
+      end
+
+    %{view: :entries, entry: where}
   end
 end
