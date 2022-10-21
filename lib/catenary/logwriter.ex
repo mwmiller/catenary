@@ -75,15 +75,7 @@ defmodule Catenary.LogWriter do
     entry
   end
 
-  # Punt
-  def new_entry(_, socket), do: {:profile, socket.assigns.identity}
-
-  @doc """
-  Append a supplied alias.  This should (and will be) combined with `new-entry`
-  """
-  def new_alias(values, socket)
-
-  def new_alias(%{"alias" => ali, "ref" => ref, "whom" => whom}, socket) do
+  def new_entry(%{"log_id" => "53", "alias" => ali, "ref" => ref, "whom" => whom}, socket) do
     %Baobab.Entry{author: a, log_id: l, seqnum: e} =
       %{
         "whom" => whom,
@@ -102,7 +94,7 @@ defmodule Catenary.LogWriter do
   end
 
   # Punt
-  def new_alias(_, socket), do: {:profile, socket.assigns.identity}
+  def new_entry(_, socket), do: {:profile, socket.assigns.identity}
 
   @doc """
   Append a supplied tag.  This should (and will be) combined with `new-entry`

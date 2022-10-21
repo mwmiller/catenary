@@ -300,10 +300,6 @@ defmodule CatenaryWeb.Live do
     {:noreply, state_set(socket, %{entry: LogWriter.new_tag(values, socket)})}
   end
 
-  def handle_event("new-alias", values, socket) do
-    {:noreply, state_set(socket, %{entry: LogWriter.new_alias(values, socket)})}
-  end
-
   def handle_event("new-entry", values, socket) do
     {:noreply, state_set(socket, %{entry: LogWriter.new_entry(values, socket)})}
   end

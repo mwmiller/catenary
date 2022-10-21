@@ -25,9 +25,14 @@ defmodule Catenary.Indices do
   end
 
   def index_aliases(id, clump_id) do
+    alias_logs = QuaggaDef.logs_for_name(:alias)
     Catenary.dets_open(:aliases)
     :dets.delete_all_objects(:aliases)
-    index([{id, 53, 1}], clump_id, QuaggaDef.logs_for_name(:alias), :aliases)
+
+    alias_logs
+    |> Enum.map(fn l -> {id, l, 1} end)
+    |> index(clump_id, alias_logs, :aliases)
+
     Catenary.dets_close(:aliases)
   end
 
@@ -128,7 +133,7 @@ defmodule Catenary.Indices do
     try do
       %Baobab.Entry{payload: payload} = entry
       {:ok, data, ""} = CBOR.decode(payload)
-      :dets.insert(:aliases, {data["whom"], data["alias"]})
+      :dets.insert(:aliases, {data["whom"], data["alias"]}) |> IO.inspect()
     rescue
       _ ->
         :ok

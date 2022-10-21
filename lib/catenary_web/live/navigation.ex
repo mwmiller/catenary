@@ -65,7 +65,8 @@ defmodule Catenary.Live.Navigation do
     ~L"""
     <div id="aliases">
       <%= if is_tuple(@entry) do %>
-       <form method="post" id="alias-form" phx-submit="new-alias">
+       <form method="post" id="alias-form" phx-submit="new-entry">
+         <input type="hidden" name="log_id" value="53">
          <input type="hidden" name="ref" value="<%= Catenary.index_to_string(@entry) %>" />
          <input type="hidden" name="whom" value="<%= @whom %>" />
          <img class="mx-auto" src="<%= Catenary.identicon(@whom, 4) %>">
@@ -105,8 +106,10 @@ defmodule Catenary.Live.Navigation do
 
   defp extra_nav(_), do: ""
 
+  @alias_logs QuaggaDef.logs_for_name(:alias)
+
   # We're looking at someone else's alias info, let's offer to use it
-  defp alias_info({a, 53, e}) do
+  defp alias_info({a, l, e}) when l in @alias_logs do
     try do
       %Baobab.Entry{payload: payload} = Baobab.log_entry(a, e, log_id: 53)
       {:ok, data, ""} = CBOR.decode(payload)
@@ -116,6 +119,7 @@ defmodule Catenary.Live.Navigation do
     end
   end
 
+  defp alias_info({:profile, a}), do: {a, ""}
   defp alias_info({a, _, _}), do: {a, ""}
   defp alias_info(_), do: {"", ""}
 
