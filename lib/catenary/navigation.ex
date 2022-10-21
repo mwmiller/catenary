@@ -13,6 +13,9 @@ defmodule Catenary.Navigation do
   def move_to(motion, current, store, id) do
     entry =
       case motion do
+        "specified" ->
+          current
+
         "prev-entry" ->
           Timeline.prev(current)
 

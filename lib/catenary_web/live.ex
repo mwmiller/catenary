@@ -143,7 +143,11 @@ defmodule CatenaryWeb.Live do
   end
 
   def handle_info(%{entry: which}, socket) do
-    {:noreply, state_set(socket, %{view: :entries, entry: which})}
+    {:noreply,
+     state_set(
+       socket,
+       Navigation.move_to("specified", which, socket.assigns.store, socket.assigns.identity)
+     )}
   end
 
   def handle_info(:check_store, socket) do
@@ -283,11 +287,23 @@ defmodule CatenaryWeb.Live do
 
   def handle_event("view-entry", %{"value" => index_string}, socket) do
     {:noreply,
-     state_set(socket, %{view: :entries, entry: Catenary.string_to_index(index_string)})}
+     state_set(
+       socket,
+       Navigation.move_to(
+         "specified",
+         Catenary.string_to_index(index_string),
+         socket.assigns.store,
+         socket.assigns.identity
+       )
+     )}
   end
 
   def handle_event("view-tag", %{"value" => tag}, socket) do
-    {:noreply, state_set(socket, %{view: :entries, entry: {:tag, tag}})}
+    {:noreply,
+     state_set(
+       socket,
+       Navigation.move_to("specified", {:tag, tag}, socket.assigns.store, socket.assigns.identity)
+     )}
   end
 
   def handle_event("new-entry", values, socket) do
