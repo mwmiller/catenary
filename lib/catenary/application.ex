@@ -103,7 +103,7 @@ defmodule Catenary.Application do
        ]},
       {"Explore",
        [
-         %{label: "Tags", command: "tag", action: %{tag: :all}},
+         %{label: "Tags", command: "tag", action: %{view: :tags}},
          %{label: "Journals", command: "journal", action: %{entry: :journal}},
          %{label: "Replies", command: "reply", action: %{entry: :reply}},
          %{label: "Aliases", command: "alias", action: %{view: :aliases}},

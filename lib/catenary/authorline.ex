@@ -17,6 +17,8 @@ defmodule Catenary.Authorline do
   """
   def prev(entry, store), do: move(entry, store, :prev)
 
+  defp move({:tag, t}, _, _), do: {:tag, t}
+
   defp move(entry, store, dir) do
     store
     |> possibles(entry, dir)

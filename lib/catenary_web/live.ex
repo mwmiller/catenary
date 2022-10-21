@@ -52,7 +52,6 @@ defmodule CatenaryWeb.Live do
          extra_nav: :none,
          indexing: Enum.reduce(@indices, %{}, fn i, a -> Map.merge(a, %{i => :not_running}) end),
          entry: entry,
-         tag: :all,
          connections: [],
          oases: [],
          clumps: clumps,
@@ -85,10 +84,10 @@ defmodule CatenaryWeb.Live do
     """
   end
 
-  def render(%{view: :tags, tag: tag} = assigns) when is_binary(tag) and tag != "" do
+  def render(%{view: :entries, entry: {:tag, tag}} = assigns) do
     ~L"""
      <div class="max-h-screen w-100 grid grid-cols-3 gap-2 justify-center">
-       <%= live_component(Catenary.Live.TagViewer, id: :tags, tag: @tag) %>
+       <%= live_component(Catenary.Live.TagViewer, id: :tags, tag: tag ) %>
        <%= sidebar(assigns) %>
      </div>
     """
@@ -97,7 +96,7 @@ defmodule CatenaryWeb.Live do
   def render(%{view: :tags} = assigns) do
     ~L"""
      <div class="max-h-screen w-100 grid grid-cols-3 gap-2 justify-center">
-       <%= live_component(Catenary.Live.TagExplorer, id: :tags, tag: @tag) %>
+       <%= live_component(Catenary.Live.TagExplorer, id: :tags, tag: :all) %>
        <%= sidebar(assigns) %>
      </div>
     """
@@ -147,10 +146,6 @@ defmodule CatenaryWeb.Live do
     {:noreply, state_set(socket, %{view: :entries, entry: which})}
   end
 
-  def handle_info(%{tag: which}, socket) do
-    {:noreply, state_set(socket, %{view: :tags, tag: which})}
-  end
-
   def handle_info(:check_store, socket) do
     {:noreply, state_set(socket, %{}, true)}
   end
@@ -188,7 +183,6 @@ defmodule CatenaryWeb.Live do
     {:noreply,
      state_set(socket, %{
        clump_id: clump_id,
-       tag: :all,
        entry: {:profile, socket.assigns.identity}
      })}
   end
@@ -254,7 +248,7 @@ defmodule CatenaryWeb.Live do
   def handle_event(<<"rename-id-", _::binary>>, _, socket), do: {:noreply, socket}
 
   def handle_event("tag-explorer", _, socket) do
-    {:noreply, state_set(socket, %{view: :tags, tag: :all})}
+    {:noreply, state_set(socket, %{view: :tags})}
   end
 
   def handle_event("toggle-posting", _, socket) do
@@ -293,7 +287,7 @@ defmodule CatenaryWeb.Live do
   end
 
   def handle_event("view-tag", %{"value" => tag}, socket) do
-    {:noreply, state_set(socket, %{view: :tags, tag: tag})}
+    {:noreply, state_set(socket, %{view: :entries, entry: {:tag, tag}})}
   end
 
   def handle_event("new-entry", values, socket) do

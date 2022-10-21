@@ -61,6 +61,8 @@ defmodule Catenary.Live.Navigation do
     """
   end
 
+  defp extra_nav(%{:extra_nav => :aliases, :entry => {:tag, _}}), do: ""
+
   defp extra_nav(%{:extra_nav => :aliases} = assigns) do
     ~L"""
     <div id="aliases">
@@ -82,6 +84,8 @@ defmodule Catenary.Live.Navigation do
     </div>
     """
   end
+
+  defp extra_nav(%{:extra_nav => :tags, :entry => {:tag, _}}), do: ""
 
   defp extra_nav(%{:extra_nav => :tags} = assigns) do
     ~L"""

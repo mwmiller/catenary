@@ -21,6 +21,7 @@ defmodule Catenary.Timeline do
   """
   def prev(entry), do: move(entry, :prev)
 
+  defp move({:tag, t}, _), do: {:tag, t}
   defp move({:profile, a}, _), do: {:profile, a}
 
   defp move({a, l, e} = entry, dir) when l in @timeline_ids do
