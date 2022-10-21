@@ -143,11 +143,7 @@ defmodule CatenaryWeb.Live do
   end
 
   def handle_info(%{entry: which}, socket) do
-    {:noreply,
-     state_set(
-       socket,
-       Navigation.move_to("specified", which, socket.assigns.store, socket.assigns.identity)
-     )}
+    {:noreply, state_set(socket, Navigation.move_to("specified", which, socket.assigns))}
   end
 
   def handle_info(:check_store, socket) do
@@ -289,21 +285,12 @@ defmodule CatenaryWeb.Live do
     {:noreply,
      state_set(
        socket,
-       Navigation.move_to(
-         "specified",
-         Catenary.string_to_index(index_string),
-         socket.assigns.store,
-         socket.assigns.identity
-       )
+       Navigation.move_to("specified", Catenary.string_to_index(index_string), socket.assigns)
      )}
   end
 
   def handle_event("view-tag", %{"value" => tag}, socket) do
-    {:noreply,
-     state_set(
-       socket,
-       Navigation.move_to("specified", {:tag, tag}, socket.assigns.store, socket.assigns.identity)
-     )}
+    {:noreply, state_set(socket, Navigation.move_to("specified", {:tag, tag}, socket.assigns))}
   end
 
   def handle_event("new-entry", values, socket) do
@@ -351,10 +338,7 @@ defmodule CatenaryWeb.Live do
   end
 
   def handle_event("nav", %{"value" => motion}, socket) do
-    assigns = socket.assigns
-
-    {:noreply,
-     state_set(socket, Navigation.move_to(motion, assigns.entry, assigns.store, assigns.identity))}
+    {:noreply, state_set(socket, Navigation.move_to(motion, :current, socket.assigns))}
   end
 
   @prefs_keys Catenary.Preferences.keys()
