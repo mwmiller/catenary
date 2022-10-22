@@ -50,29 +50,35 @@ defmodule Catenary do
   end
 
   def string_to_index(string) do
-    [a, l, e] = string |> String.split("⋀")
-    {a, String.to_integer(l), String.to_integer(e)}
+    # We assume all psuedo-entries are two-element tagged
+    # All three elements are "real" indices.
+    case String.split(string, "⋀") do
+      [a, l, e] -> {a, String.to_integer(l), String.to_integer(e)}
+      [t, w] -> {String.to_existing_atom(t), w}
+    end
   end
 
   def linked_author({a, _, _}, aliases), do: linked_author(a, aliases)
 
   def linked_author(a, aliases) do
-    Phoenix.HTML.raw(
-      "<abbr title=\"" <>
-        a <>
-        "\"><a class=\"author\" href=\"/authors/" <>
-        a <> "\">" <> short_id(a, aliases) <> "</a></abbr>"
-    )
+    view_entry_button({:profile, a}, short_id(a, aliases)) |> Phoenix.HTML.raw()
+  end
+
+  defp view_entry_button(entry, contents) do
+    "<button value=\"" <>
+      Catenary.index_to_string(entry) <>
+      "\" phx-click=\"view-entry\">" <> contents <> "</button>"
   end
 
   def entry_icon_link({a, _, _} = entry, size) do
-    "<button value=\"" <>
-      Catenary.index_to_string(entry) <>
-      "\" phx-click=\"view-entry\"><img " <>
-      maybe_border(entry) <>
-      " src=\"" <>
-      Catenary.identicon(a, size) <>
-      "\" title=\"" <> entry_title(entry) <> "\"\></button>"
+    view_entry_button(
+      entry,
+      "<img " <>
+        maybe_border(entry) <>
+        " src=\"" <>
+        Catenary.identicon(a, size) <>
+        "\" title=\"" <> entry_title(entry) <> "\"\>"
+    )
   end
 
   defp entry_title({_a, l, e}) do
