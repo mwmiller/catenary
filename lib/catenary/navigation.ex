@@ -46,6 +46,11 @@ defmodule Catenary.Navigation do
             )
         end
 
+      # This does not yet appear in the store
+      # We assume we got it right
+      "new" ->
+        new_path(sent, assigns, false)
+
       "specified" ->
         new_path(sent, assigns)
 
@@ -71,8 +76,8 @@ defmodule Catenary.Navigation do
 
   defp base_val(to), do: %{view: :entries, entry: to}
 
-  defp new_path(next, %{entry: at, store: store, entry_back: back}) do
-    to = maybe_wrap(next, store)
+  defp new_path(next, %{entry: at, store: store, entry_back: back}, check_existence? \\ true) do
+    to = if check_existence?, do: maybe_wrap(next, store), else: next
 
     case to == at do
       true -> base_val(to)

@@ -309,7 +309,11 @@ defmodule CatenaryWeb.Live do
   end
 
   def handle_event("new-entry", values, socket) do
-    {:noreply, state_set(socket, %{entry: LogWriter.new_entry(values, socket)})}
+    {:noreply,
+     state_set(
+       socket,
+       Navigation.move_to("new", LogWriter.new_entry(values, socket), socket.assigns)
+     )}
   end
 
   def handle_event("init-connect", _, socket) do
