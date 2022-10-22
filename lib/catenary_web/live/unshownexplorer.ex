@@ -11,7 +11,7 @@ defmodule Catenary.Live.UnshownExplorer do
   def render(%{card: :none} = assigns) do
     ~L"""
       <div class="min-w-full font-sans row-span-full">
-        <h1></h1>
+        <h1>No data</h1>
       </div>
     """
   end
@@ -29,33 +29,46 @@ defmodule Catenary.Live.UnshownExplorer do
      <div id="unshownexplore-wrap" class="col-span-2 overflow-y-auto max-h-screen m-2 p-x-2">
       <h1 class="text=center">Unshown Explorer</h1>
       <hr/>
-      <div class="grid grid-cols-5 mt-5">
-        <%= @card["unshown"] %>
-      </div>
-    </div>
+      <%= for {type, entries} <- @card do %>
+        <h3  class="pt-5 text-slate-600 dark:text-slate-300"><%= type %></h3>
+        <div class="grid grid-cols-5 my-2">
+        <%= entries %>
+        </div>
+      <% end %>
+     </div>
     """
   end
 
   defp extract(:all, clump_id) do
     shown = Catenary.Preferences.get(:shown) |> Map.get(clump_id, MapSet.new())
 
-    unshown =
-      Baobab.all_entries(clump_id)
-      |> MapSet.new()
-      |> MapSet.difference(shown)
-      |> MapSet.to_list()
-      |> to_links
-      |> Phoenix.HTML.raw()
-
-    %{"unshown" => unshown}
+    Baobab.all_entries(clump_id)
+    |> MapSet.new()
+    |> MapSet.difference(shown)
+    |> MapSet.to_list()
+    |> group_entries
   end
 
   defp extract(_, _), do: :none
 
-  defp to_links([]), do: "<div>All caught up</div>"
+  defp group_entries(entries) do
+    entries
+    |> Enum.group_by(fn {_, l, _} -> QuaggaDef.base_log(l) end)
+    |> Map.to_list()
+    |> prettify([])
+    |> Enum.sort(:asc)
+  end
 
-  defp to_links(unshown) do
-    unshown
-    |> Enum.map(fn e -> "<div>" <> Catenary.entry_icon_link(e, 4) <> "</div>" end)
+  defp prettify([], acc), do: acc
+
+  defp prettify([{k, v} | rest], acc),
+    do: prettify(rest, [{Catenary.pretty_log_name(k), icon_entries(v)} | acc])
+
+  defp icon_entries(entries) do
+    entries
+    |> Enum.reduce("", fn e, a ->
+      a <> "<div>" <> Catenary.entry_icon_link(e, 4) <> "</div>"
+    end)
+    |> Phoenix.HTML.raw()
   end
 end

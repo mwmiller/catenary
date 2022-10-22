@@ -108,7 +108,7 @@ defmodule CatenaryWeb.Live do
   def render(%{view: :unshown} = assigns) do
     ~L"""
      <div class="max-h-screen w-100 grid grid-cols-3 gap-2 justify-center">
-       <%= live_component(Catenary.Live.UnshownExplorer, id: :unshown, which: :all, clump_id: @clump_id) %>
+       <%= live_component(Catenary.Live.UnshownExplorer, id: :unshown, which: :all, clump_id: @clump_id, store_hash: @store_hash) %>
        <%= sidebar(assigns) %>
      </div>
     """
