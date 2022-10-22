@@ -19,64 +19,68 @@ defmodule Catenary.Navigation do
       "back" ->
         case assigns.entry_back do
           [] ->
-            non_stack_nav(sent, assigns)
+            base_val(sent)
 
           [prev | rest] ->
-            %{
-              view: :entries,
-              entry: prev,
-              entry_back: rest,
-              entry_fore: [sent | assigns.entry_fore]
-            }
+            Map.merge(
+              base_val(prev),
+              %{
+                entry_back: rest,
+                entry_fore: [sent | assigns.entry_fore]
+              }
+            )
         end
 
       "forward" ->
         case assigns.entry_fore do
           [] ->
-            non_stack_nav(sent, assigns)
+            base_val(sent)
 
           [next | rest] ->
-            %{
-              view: :entries,
-              entry: next,
-              entry_fore: rest,
-              entry_back: [sent | assigns.entry_back]
-            }
+            Map.merge(
+              base_val(next),
+              %{
+                entry_fore: rest,
+                entry_back: [sent | assigns.entry_back]
+              }
+            )
         end
 
       "specified" ->
-        non_stack_nav(sent, assigns)
+        new_path(sent, assigns)
 
       "prev-entry" ->
-        sent |> Timeline.prev() |> non_stack_nav(assigns)
+        sent |> Timeline.prev() |> new_path(assigns)
 
       "next-entry" ->
-        sent |> Timeline.next() |> non_stack_nav(assigns)
+        sent |> Timeline.next() |> new_path(assigns)
 
       "next-author" ->
-        sent |> Authorline.next(store) |> non_stack_nav(assigns)
+        sent |> Authorline.next(store) |> new_path(assigns)
 
       "prev-author" ->
-        sent |> Authorline.prev(store) |> non_stack_nav(assigns)
+        sent |> Authorline.prev(store) |> new_path(assigns)
 
       "origin" ->
-        non_stack_nav({:profile, id}, assigns)
+        new_path({:profile, id}, assigns)
 
       _ ->
-        non_stack_nav(sent, assigns)
+        new_path(sent, assigns)
     end
   end
 
-  def non_stack_nav(next, %{entry: at, store: store, entry_back: back}) do
+  defp base_val(to), do: %{view: :entries, entry: to}
+
+  defp new_path(next, %{entry: at, store: store, entry_back: back}) do
     to = maybe_wrap(next, store)
 
     case to == at do
-      true -> %{view: :entries, entry: to}
-      false -> %{view: :entries, entry: to, entry_back: [at | back]}
+      true -> base_val(to)
+      false -> Map.merge(base_val(to), %{entry_back: [at | back], entry_fore: []})
     end
   end
 
-  def maybe_wrap({a, l, e}, store) do
+  defp maybe_wrap({a, l, e}, store) do
     max =
       store
       |> Enum.reduce(1, fn
@@ -92,5 +96,5 @@ defmodule Catenary.Navigation do
     end
   end
 
-  def maybe_wrap(entry, _), do: entry
+  defp maybe_wrap(entry, _), do: entry
 end
