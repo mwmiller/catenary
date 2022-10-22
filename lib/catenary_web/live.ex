@@ -105,6 +105,15 @@ defmodule CatenaryWeb.Live do
     """
   end
 
+  def render(%{view: :unshown} = assigns) do
+    ~L"""
+     <div class="max-h-screen w-100 grid grid-cols-3 gap-2 justify-center">
+       <%= live_component(Catenary.Live.UnshownExplorer, id: :unshown, which: :all, clump_id: @clump_id) %>
+       <%= sidebar(assigns) %>
+     </div>
+    """
+  end
+
   def render(%{view: :aliases} = assigns) do
     ~L"""
      <div class="max-h-screen w-100 grid grid-cols-3 gap-2 justify-center">
@@ -143,6 +152,10 @@ defmodule CatenaryWeb.Live do
 
   def handle_info(%{view: :tags}, socket) do
     {:noreply, state_set(socket, %{view: :tags})}
+  end
+
+  def handle_info(%{view: :unshown}, socket) do
+    {:noreply, state_set(socket, %{view: :unshown})}
   end
 
   def handle_info(%{view: :dashboard}, socket) do
