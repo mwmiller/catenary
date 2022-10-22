@@ -135,7 +135,7 @@ defmodule Catenary.Live.Navigation do
   # We're looking at someone else's alias info, let's offer to use it
   defp alias_info({a, l, e}) when l in @alias_logs do
     try do
-      %Baobab.Entry{payload: payload} = Baobab.log_entry(a, e, log_id: 53)
+      %Baobab.Entry{payload: payload} = Baobab.log_entry(a, e, log_id: l)
       {:ok, data, ""} = CBOR.decode(payload)
       {data["whom"], data["alias"]}
     rescue
