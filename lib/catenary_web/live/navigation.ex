@@ -114,8 +114,10 @@ defmodule Catenary.Live.Navigation do
     ~L"""
     <div id="stack-nav">
       <%= if is_tuple(@entry) do %>
-        <button phx-click="nav-backward">⏪</button>
-        <button phx-click="nav-forward">⏩</button>
+       <div class="flex flex-row">
+         <div class="flex-auto p-4 m-1 text-xl text-center <%= stack_color(@entry_back) %>" phx-click="nav-backward">⤶</div>
+         <div class="flex-auto p-4 m-1 text-xl text-center <%= stack_color(@entry_fore) %>" phx-click="nav-forward">⤷</div>
+       </div>
       <% else %>
           ‽
       <% end %>
@@ -124,6 +126,9 @@ defmodule Catenary.Live.Navigation do
   end
 
   defp extra_nav(_), do: ""
+
+  defp stack_color([]), do: "bg-zinc-50 dark:bg-gray-800"
+  defp stack_color(_), do: "bg-zinc-100 dark:bg-gray-900"
 
   @alias_logs QuaggaDef.logs_for_name(:alias)
 
