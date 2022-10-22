@@ -140,6 +140,10 @@ defmodule CatenaryWeb.Live do
     {:noreply, state_set(socket, %{view: :aliases})}
   end
 
+  def handle_info(%{view: :tags}, socket) do
+    {:noreply, state_set(socket, %{view: :tags})}
+  end
+
   def handle_info(%{view: :dashboard}, socket) do
     {:noreply, push_redirect(socket, to: Routes.live_dashboard_path(socket, :home))}
   end
