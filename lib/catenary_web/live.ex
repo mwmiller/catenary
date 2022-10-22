@@ -48,6 +48,7 @@ defmodule CatenaryWeb.Live do
          id_hash: <<>>,
          identities: [],
          ui_speed: @ui_slow,
+         aliases: {:out_of_date, %{}},
          view: view,
          extra_nav: :none,
          indexing: Enum.reduce(@indices, %{}, fn i, a -> Map.merge(a, %{i => :not_running}) end),
@@ -68,7 +69,7 @@ defmodule CatenaryWeb.Live do
   def render(%{view: :prefs} = assigns) do
     ~L"""
      <div class="max-h-screen w-100 grid grid-cols-3 gap-2 justify-center">
-       <%= live_component(Catenary.Live.PrefsManager, id: :prefs, clumps: @clumps, clump_id: @clump_id, identity: @identity, identities: @identities, store: @store, facet_id: @facet_id) %>
+       <%= live_component(Catenary.Live.PrefsManager, id: :prefs, clumps: @clumps, clump_id: @clump_id, identity: @identity, identities: @identities, store: @store, facet_id: @facet_id, aliases: @aliases) %>
      </div>
     """
   end
@@ -107,7 +108,7 @@ defmodule CatenaryWeb.Live do
   def render(%{view: :aliases} = assigns) do
     ~L"""
      <div class="max-h-screen w-100 grid grid-cols-3 gap-2 justify-center">
-       <%= live_component(Catenary.Live.AliasExplorer, id: :aliases, alias: :all) %>
+       <%= live_component(Catenary.Live.AliasExplorer, id: :aliases, alias: :all, aliases: @aliases) %>
        <%= sidebar(assigns) %>
      </div>
     """
@@ -116,7 +117,7 @@ defmodule CatenaryWeb.Live do
   def render(%{view: :entries} = assigns) do
     ~L"""
     <div class="max-h-screen w-100 grid grid-cols-3 gap-2 justify-center">
-      <%= live_component(Catenary.Live.EntryViewer, id: :entry, store: @store, entry: @entry, clump_id: @clump_id) %>
+      <%= live_component(Catenary.Live.EntryViewer, id: :entry, store: @store, entry: @entry, clump_id: @clump_id, aliases: @aliases) %>
       <%= sidebar(assigns) %>
     </div>
     """
@@ -125,9 +126,9 @@ defmodule CatenaryWeb.Live do
   defp sidebar(assigns) do
     ~L"""
     <div>
-      <%= live_component(Catenary.Live.Ident, id: :ident, identity: @identity, clump_id: @clump_id) %>
-      <%= live_component(Catenary.Live.OasisBox, id: :recents, indexing: @indexing, connections: @connections, oases: @oases) %>
-      <%= live_component(Catenary.Live.Navigation, id: :nav, entry: @entry, extra_nav: @extra_nav, identity: @identity, view: @view) %>
+      <%= live_component(Catenary.Live.Ident, id: :ident, identity: @identity, clump_id: @clump_id, aliases: @aliases) %>
+      <%= live_component(Catenary.Live.OasisBox, id: :recents, indexing: @indexing, connections: @connections, oases: @oases, aliases: @aliases) %>
+      <%= live_component(Catenary.Live.Navigation, id: :nav, entry: @entry, extra_nav: @extra_nav, identity: @identity, view: @view, aliases: @aliases) %>
     </div>
     """
   end
@@ -389,12 +390,20 @@ defmodule CatenaryWeb.Live do
     indexing = check_indices(state, updated?, si)
     con = check_connections(state.connections, [])
 
+    aliases =
+      case {state.aliases, indexing.aliases} do
+        {{:out_of_date, _}, :not_running} -> Catenary.alias_state()
+        {ok, :not_running} -> ok
+        {{_, am}, _} -> {:out_of_date, am}
+      end
+
     common = [
       identities: ids,
       id_hash: ihash,
       indexing: indexing,
       connections: con,
-      store_hash: sihash
+      store_hash: sihash,
+      aliases: aliases
     ]
 
     {ui_speed, extra} =

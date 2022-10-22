@@ -28,7 +28,7 @@ defmodule Catenary.Live.PrefsManager do
             <td class="py-5"><input type="radio" name="selection" value="<%= n %>" <%= if k == @identity, do: "checked" %>></td>
             <td><input class="bg-white dark:bg-black" type="text" size=16 id="<%= n %>" value="<%= n %>" phx-blur="rename-id-<%= n %>" /></td>
             <td><img class="mx-auto" src="<%= Catenary.identicon(k, 4) %>"></td>
-            <td><%= Catenary.linked_author(k) %></td>
+            <td><%= Catenary.linked_author(k, @aliases) %></td>
             <td><%= log_info_string(@store, k) %></td>
           </tr>
         <% end %>

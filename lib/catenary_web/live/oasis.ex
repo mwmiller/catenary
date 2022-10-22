@@ -4,6 +4,7 @@ defmodule Catenary.Live.OasisBox do
   def update(assigns, socket) do
     {:ok,
      assign(socket,
+       aliases: assigns.aliases,
        indexing: index_status(assigns.indexing),
        nodes: assigns.oases,
        connected: Enum.map(assigns.connections, &id_mapper/1)
@@ -19,7 +20,7 @@ defmodule Catenary.Live.OasisBox do
         0 ->  "bg-zinc-200 dark:bg-stone-700"
         1 -> "bg-slate-200 dark:bg-slate-700"
       end %>"><img class="m-1 float-right align-middle" src="<%= Catenary.identicon(elem(recent.id, 0), 2)%>">
-        <p><%= recent["name"] %> (<%= Catenary.linked_author(elem(recent.id, 0)) %>)
+        <p><%= recent["name"] %> (<%= Catenary.linked_author(elem(recent.id, 0), @aliases) %>)
         <%= if recent.id in @connected do %>
           ⥀
         <% else %>

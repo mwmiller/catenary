@@ -60,7 +60,7 @@ defmodule Catenary.Live.EntryViewer do
         <div class="min-w-full font-sans row-span-full">
         <img class = "float-left m-3" src="<%= Catenary.identicon(@card["author"], 8) %>">
           <h1><%= @card["title"] %></h1>
-          <p class="text-sm font-light"><%= Catenary.linked_author(@card["author"]) %> &mdash; <%= @card["published"] %></p>
+          <p class="text-sm font-light"><%= Catenary.linked_author(@card["author"], @aliases) %> &mdash; <%= @card["published"] %></p>
           <p><%= icon_entries(@card["back-refs"]) %>&nbsp;↹&nbsp;<%= icon_entries(@card["fore-refs"]) %></p>
         <hr/>
         <br/>
@@ -195,7 +195,7 @@ defmodule Catenary.Live.EntryViewer do
 
       %{
         "title" => "Alias: ~" <> data["alias"],
-        "body" => Phoenix.HTML.raw("AKA: " <> Catenary.short_id(data["whom"])),
+        "body" => Phoenix.HTML.raw("Key: " <> data["whom"]),
         "back-refs" => maybe_refs(data["references"]),
         "published" => data["published"] |> nice_time
       }

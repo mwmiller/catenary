@@ -13,18 +13,27 @@ defmodule Catenary do
     timelines: "timelines.dets"
   }
 
-  def short_id(id) do
-    dets_open(:aliases)
-
+  def short_id(id, {_, aliases}) do
     string =
-      case :dets.lookup(:aliases, id) do
-        [{^id, ali}] -> ali
-        _ -> String.slice(id, 0..15)
+      case Map.get(aliases, id) do
+        nil -> String.slice(id, 0..10)
+        ali -> ali
       end
 
-    dets_close(:aliases)
-
     "~" <> string
+  end
+
+  def alias_state() do
+    dets_open(:aliases)
+
+    Catenary.dets_open(:aliases)
+
+    aliases =
+      :dets.match(:aliases, :"$1")
+      |> Enum.reduce(%{}, fn [{a, n}], acc -> Map.put(acc, a, n) end)
+
+    Catenary.dets_close(:aliases)
+    {:ok, aliases}
   end
 
   def id_for_key(key), do: id_for_key(Baobab.identities(), key)
@@ -45,13 +54,14 @@ defmodule Catenary do
     {a, String.to_integer(l), String.to_integer(e)}
   end
 
-  def linked_author({a, _, _}), do: linked_author(a)
+  def linked_author({a, _, _}, aliases), do: linked_author(a, aliases)
 
-  def linked_author(a) do
+  def linked_author(a, aliases) do
     Phoenix.HTML.raw(
       "<abbr title=\"" <>
         a <>
-        "\"><a class=\"author\" href=\"/authors/" <> a <> "\">" <> short_id(a) <> "</a></abbr>"
+        "\"><a class=\"author\" href=\"/authors/" <>
+        a <> "\">" <> short_id(a, aliases) <> "</a></abbr>"
     )
   end
 
@@ -65,14 +75,12 @@ defmodule Catenary do
       "\" title=\"" <> entry_title(entry) <> "\"\></button>"
   end
 
-  defp entry_title({a, l, e}) do
+  defp entry_title({_a, l, e}) do
     Enum.join(
       [
         pretty_log_name(l),
         "entry",
-        Integer.to_string(e),
-        "from",
-        Catenary.short_id(a)
+        Integer.to_string(e)
       ],
       " "
     )

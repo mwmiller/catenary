@@ -3,8 +3,9 @@ defmodule Catenary.Live.AliasExplorer do
   use Phoenix.LiveComponent
 
   @impl true
-  def update(%{alias: which} = assigns, socket) do
-    {:ok, assign(socket, Map.merge(assigns, %{card: extract(which)}))}
+  def update(%{alias: which, aliases: aliases} = assigns, socket) do
+    IO.inspect({which, aliases})
+    {:ok, assign(socket, Map.merge(assigns, %{card: extract(which, aliases)}))}
   end
 
   @impl true
@@ -36,25 +37,22 @@ defmodule Catenary.Live.AliasExplorer do
     """
   end
 
-  defp extract(:all) do
-    Catenary.dets_open(:aliases)
-    G
-
+  defp extract(:all, {_, am} = as) do
     aliases =
-      :dets.match(:aliases, :"$1")
-      |> Enum.sort_by(fn [{_a, n}] -> String.downcase(n) end)
-      |> to_links()
+      am
+      |> Map.to_list()
+      |> Enum.sort_by(fn {_a, n} -> String.downcase(n) end)
+      |> to_links(as)
 
-    Catenary.dets_close(:aliases)
     %{"aliases" => aliases}
   end
 
-  defp extract(_), do: :none
+  defp extract(_, _), do: :none
 
-  defp to_links(aliases) do
+  defp to_links(aliases, as) do
     aliases
-    |> Enum.map(fn [{a, _}] ->
-      {:safe, html} = Catenary.linked_author(a)
+    |> Enum.map(fn {a, _} ->
+      {:safe, html} = Catenary.linked_author(a, as)
       "<div>" <> html <> "</div>"
     end)
     |> Phoenix.HTML.raw()
