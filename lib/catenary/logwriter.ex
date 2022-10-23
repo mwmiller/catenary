@@ -46,14 +46,10 @@ defmodule Catenary.LogWriter do
             %Baobab.Entry{payload: payload} =
               Baobab.log_entry(oa, oe, log_id: ol, clump_id: clump_id)
 
-            {:ok, %{"title" => t}, ""} = CBOR.decode(payload)
-
-            case t do
-              <<"Re: ", _::binary>> -> t
-              _ -> "Re: " <> t
-            end
+            {:ok, %{"title" => ot}, ""} = CBOR.decode(payload)
+            ot
           rescue
-            _ -> "Re: other post"
+            _ -> ""
           end
 
         _ ->
