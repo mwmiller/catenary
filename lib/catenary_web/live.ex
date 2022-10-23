@@ -136,7 +136,8 @@ defmodule CatenaryWeb.Live do
     ~L"""
     <div>
       <%= live_component(Catenary.Live.Ident, id: :ident, identity: @identity, clump_id: @clump_id, aliases: @aliases) %>
-      <%= live_component(Catenary.Live.OasisBox, id: :recents, indexing: @indexing, connections: @connections, oases: @oases, aliases: @aliases) %>
+      <%= live_component(Catenary.Live.IndexStatus, id: :indices, indexing: @indexing) %>
+      <%= live_component(Catenary.Live.OasisBox, id: :recents, connections: @connections, oases: @oases, aliases: @aliases) %>
       <%= live_component(Catenary.Live.Navigation, id: :nav, entry: @entry, extra_nav: @extra_nav, identity: @identity, view: @view, aliases: @aliases, entry_fore: @entry_fore, entry_back: @entry_back) %>
     </div>
     """
@@ -168,6 +169,10 @@ defmodule CatenaryWeb.Live do
 
   def handle_info(:check_store, socket) do
     {:noreply, state_set(socket, %{}, true)}
+  end
+
+  def handle_event("toview", %{"value" => sview}, socket) do
+    {:noreply, state_set(socket, %{view: String.to_existing_atom(sview)})}
   end
 
   def handle_event("shown", %{"value" => mark}, socket) do

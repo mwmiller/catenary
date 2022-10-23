@@ -15,17 +15,24 @@ defmodule Catenary.Live.Navigation do
   def render(%{view: :entries} = assigns) do
     ~L"""
     <div class="align-top min-w-full font-sans">
-      <div class="text-xl">
-        <button value="origin" phx-click="nav"><img src="<%= Catenary.identicon(@identity, 2) %>"></button>
-        <button value="prev-author" phx-click="nav">↥</button>
-        <button value="prev-entry" phx-click="nav">⇜</button>
-        <button value="next-entry" phx-click="nav">⇝</button>
-        <button value="next-author" phx-click="nav">↧</button>
+      <div class="flex flex-row-3 text-xl">
+        <div class="flex-auto p-1 text-center">
+         <button value="origin" phx-click="nav"><img src="<%= Catenary.identicon(@identity, 2) %>"></button>
+         <button value="unshown" phx-click="toview">☇</button>
+        </div>
+        <div class="flex-auto p-1 text-center">
+         <button value="prev-author" phx-click="nav">↥</button>
+         <button value="prev-entry" phx-click="nav">⇜</button>
+         <button value="next-entry" phx-click="nav">⇝</button>
+         <button value="next-author" phx-click="nav">↧</button>
+       </div>
+       <div class="flex-auto p-1 text-center">
         <button phx-click="toggle-posting">🄰</button>
         <button phx-click="toggle-aliases">∼</button>
         <button phx-click="toggle-tags">#</button>
-      </div>
-      <br/>
+       </div>
+     </div>
+     <br/>
       <%= @lower_nav %>
     </div>
     """

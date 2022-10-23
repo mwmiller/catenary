@@ -60,6 +60,8 @@ defmodule Catenary.Live.TagExplorer do
     %{"tags" => tags}
   end
 
+  defp extract(_), do: :none
+
   defp size_group(items) do
     items
     |> Enum.group_by(fn {_, _, c} -> trunc(:math.log(c)) end)
@@ -67,8 +69,6 @@ defmodule Catenary.Live.TagExplorer do
     |> Enum.sort(:desc)
     |> Enum.reduce([], fn {_s, i}, acc -> acc ++ Enum.shuffle(i) end)
   end
-
-  defp extract(_), do: :none
 
   defp to_links(tags) do
     tags
