@@ -2,17 +2,32 @@ defmodule Catenary.Live.Navigation do
   use Phoenix.LiveComponent
 
   @impl true
-  def update(assigns, socket) do
-    {whom, ali} = alias_info(assigns.entry)
-    posts_avail = posts_avail(assigns.entry)
-    na = Map.merge(assigns, %{whom: whom, ali: ali, posts_avail: posts_avail})
+
+  def update(%{view: view, entry: entry, identity: identity} = assigns, socket) do
+    {whom, ali} = alias_info(entry)
+    posts_avail = posts_avail(entry)
+    on_log_entry = view == :entries && is_tuple(entry) && tuple_size(entry) == 3
+
+    na =
+      Map.merge(assigns, %{
+        on_log_entry: on_log_entry,
+        whom: whom,
+        ali: ali,
+        posts_avail: posts_avail
+      })
 
     {:ok,
-     assign(socket, view: assigns.view, identity: assigns.identity, lower_nav: extra_nav(na))}
+     assign(socket,
+       view: view,
+       entry: entry,
+       on_log_entry: on_log_entry,
+       identity: identity,
+       lower_nav: extra_nav(na)
+     )}
   end
 
   @impl true
-  def render(%{view: :entries} = assigns) do
+  def render(assigns) do
     ~L"""
     <div class="align-top min-w-full font-sans">
       <div class="flex flex-row-3 text-xl">
@@ -27,9 +42,11 @@ defmodule Catenary.Live.Navigation do
          <button value="next-author" phx-click="nav">↧</button>
        </div>
        <div class="flex-auto p-1 text-center">
+       <%= if @on_log_entry do %>
         <button phx-click="toggle-posting">🄰</button>
         <button phx-click="toggle-aliases">∼</button>
         <button phx-click="toggle-tags">#</button>
+       <% end %>
        </div>
      </div>
      <br/>
@@ -38,23 +55,17 @@ defmodule Catenary.Live.Navigation do
     """
   end
 
-  def render(assigns) do
-    ~L"""
-    <div class="align-top min-w-full font-sans">
-    </div>
-    """
-  end
-
   defp extra_nav(%{:extra_nav => :posting} = assigns) do
     ~L"""
     <div id="posting" class="font-sans">
+      <%= if @on_log_entry do %>
       <form method="post" id="posting-form" phx-submit="new-entry">
         <select name=log_id  class="bg-white dark:bg-black">
           <%= for a <- @posts_avail do %>
           <option value="<%= QuaggaDef.base_log(a) %>"><%= String.capitalize(Atom.to_string(a)) %></option>
           <% end %>
         </select>
-        <%= if is_tuple(@entry) do %>
+        <%= if @on_log_entry do %>
           <input type="hidden" name="ref" value="<%= Catenary.index_to_string(@entry) %>">
         <% end %>
         <br/>
@@ -64,6 +75,7 @@ defmodule Catenary.Live.Navigation do
         <hr/>
         <button phx-disable-with="𝄇" type="submit">➲</button>
       </form>
+      <% end %>
     </div>
     """
   end
@@ -73,7 +85,7 @@ defmodule Catenary.Live.Navigation do
   defp extra_nav(%{:extra_nav => :aliases} = assigns) do
     ~L"""
     <div id="aliases">
-      <%= if is_tuple(@entry) do %>
+      <%= if @on_log_entry do %>
        <form method="post" id="alias-form" phx-submit="new-entry">
          <input type="hidden" name="log_id" value="53">
          <input type="hidden" name="ref" value="<%= Catenary.index_to_string(@entry) %>" />
@@ -85,8 +97,6 @@ defmodule Catenary.Live.Navigation do
          <hr/>
          <button phx-disable-with="𝄇" type="submit">➲</button>
        </form>
-      <% else %>
-          ‽
       <% end %>
     </div>
     """
@@ -97,7 +107,7 @@ defmodule Catenary.Live.Navigation do
   defp extra_nav(%{:extra_nav => :tags} = assigns) do
     ~L"""
     <div id="tags">
-      <%= if is_tuple(@entry) do %>
+      <%= if @on_log_entry do %>
        <form method="post" id="tag-form" phx-submit="new-entry">
          <input type="hidden" name="log_id" value="749">
          <input type="hidden" name="ref" value="<%= Catenary.index_to_string(@entry) %>">
@@ -109,8 +119,6 @@ defmodule Catenary.Live.Navigation do
          <hr/>
          <button phx-disable-with="𝄇" type="submit">➲</button>
        </form>
-      <% else %>
-          ‽
       <% end %>
     </div>
     """
@@ -120,14 +128,10 @@ defmodule Catenary.Live.Navigation do
   defp extra_nav(%{:extra_nav => :none} = assigns) do
     ~L"""
     <div id="stack-nav">
-      <%= if is_tuple(@entry) do %>
        <div class="flex flex-row">
          <div class="flex-auto p-4 m-1 text-xl text-center <%= stack_color(@entry_back) %>" phx-click="nav-backward">⤶</div>
          <div class="flex-auto p-4 m-1 text-xl text-center <%= stack_color(@entry_fore) %>" phx-click="nav-forward">⤷</div>
        </div>
-      <% else %>
-          ‽
-      <% end %>
     </div>
     """
   end
