@@ -34,7 +34,7 @@
     @apply ml-4;
   }
   pre {
-    @apply p-3 text-sm my-6;
+    @apply p-3 text-sm my-6 overflow-auto;
     @apply border rounded-sm border-slate-500 dark:border-slate-600;
     @apply bg-slate-300 dark:bg-slate-700;
   }
