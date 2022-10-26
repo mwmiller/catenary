@@ -87,12 +87,21 @@ defmodule Catenary.Live.EntryViewer do
           ""
 
         activity ->
-          latest = activity |> Enum.reverse() |> hd
+          list =
+            activity
+            |> Enum.reverse()
+            |> Enum.take(4)
+            |> Enum.map(fn e -> {e, extract(e, clump_id, si)} end)
+            |> Enum.reduce("<h4>Recent Activity:<h4><ul class=\"text-s\">", fn {e, vals}, acc ->
+              acc <>
+                "<li><button " <>
+                Catenary.maybe_border(e) <>
+                " phx-click=\"view-entry\" value=\"" <>
+                Catenary.index_to_string(e) <>
+                "\">" <> vals["title"] <> " — " <> vals["published"] <> "</button></li>"
+            end)
 
-          "<p><button  class=\"text-xl\" " <>
-            Catenary.maybe_border(latest) <>
-            " phx-click=\"view-entry\" value=\"" <>
-            Catenary.index_to_string(latest) <> "\">Explore Contribution Timeline</button></p>"
+          list <> "</ul>"
       end
 
     log_map =
