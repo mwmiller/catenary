@@ -87,21 +87,15 @@ defmodule Catenary.Live.EntryViewer do
           ""
 
         activity ->
-          list =
+          groups =
             activity
             |> Enum.reverse()
-            |> Enum.take(4)
-            |> Enum.map(fn e -> {e, extract(e, clump_id, si)} end)
-            |> Enum.reduce("<h4>Recent Activity:<h4><ul class=\"text-s\">", fn {e, vals}, acc ->
-              acc <>
-                "<li><button " <>
-                Catenary.maybe_border(e) <>
-                " phx-click=\"view-entry\" value=\"" <>
-                Catenary.index_to_string(e) <>
-                "\">" <> vals["title"] <> " — " <> vals["published"] <> "</button></li>"
-            end)
+            |> Enum.take(11)
+            |> Enum.group_by(fn {_, l, _} -> Catenary.pretty_log_name(l) end)
+            |> Enum.map(fn t -> group_list(t, clump_id, si) end)
+            |> Enum.join("")
 
-          list <> "</ul>"
+          "<div class=\"flex flex-rows-3\">" <> groups <> "</div>"
       end
 
     log_map =
@@ -139,6 +133,23 @@ defmodule Catenary.Live.EntryViewer do
       },
       from_refs(entry)
     )
+  end
+
+  defp group_list({ln, items}, clump_id, si) do
+    recents =
+      items
+      |> Enum.take(2)
+      |> Enum.map(fn e -> {e, extract(e, clump_id, si)} end)
+      |> Enum.reduce("", fn {e, vals}, acc ->
+        acc <>
+          "<li><button " <>
+          Catenary.maybe_border(e) <>
+          " phx-click=\"view-entry\" value=\"" <>
+          Catenary.index_to_string(e) <>
+          "\">" <> vals["title"] <> "</button></li>"
+      end)
+
+    "<div class=\"flex-auto\"><h4>" <> ln <> "</h4><ul>" <> recents <> "</ul></div>"
   end
 
   def extract({a, l, e} = entry, clump_id, _si) do
