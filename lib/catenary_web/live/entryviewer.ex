@@ -139,23 +139,6 @@ defmodule Catenary.Live.EntryViewer do
     )
   end
 
-  defp group_list({ln, items}, clump_id, si) do
-    recents =
-      items
-      |> Enum.take(2)
-      |> Enum.map(fn e -> {e, extract(e, clump_id, si)} end)
-      |> Enum.reduce("", fn {e, vals}, acc ->
-        acc <>
-          "<li><button " <>
-          Catenary.maybe_border(e) <>
-          " phx-click=\"view-entry\" value=\"" <>
-          Catenary.index_to_string(e) <>
-          "\">" <> vals["title"] <> "</button></li>"
-      end)
-
-    "<div class=\"flex-auto\"><h4>" <> ln <> "</h4><ul>" <> recents <> "</ul></div>"
-  end
-
   def extract({a, l, e} = entry, clump_id, _si) do
     # We want failure to save here to fail loudly without any further work
     # But if it does fail later we don't mind having said it was shown
@@ -217,11 +200,11 @@ defmodule Catenary.Live.EntryViewer do
     try do
       {:ok, data, ""} = CBOR.decode(cbor)
 
-      %{
+      Map.merge(data, %{
         "title" => "Alias: ~" <> data["alias"],
         "body" => Phoenix.HTML.raw("Key: " <> data["whom"]),
         "back-refs" => maybe_refs(data["references"])
-      }
+      })
     rescue
       e -> malformed(e, cbor)
     end
@@ -358,5 +341,22 @@ defmodule Catenary.Live.EntryViewer do
 
   defp icon_entries([entry | rest], acc) do
     icon_entries(rest, acc <> Catenary.entry_icon_link(entry, 2) <> "&nbsp;")
+  end
+
+  defp group_list({ln, items}, clump_id, si) do
+    recents =
+      items
+      |> Enum.take(2)
+      |> Enum.map(fn e -> {e, extract(e, clump_id, si)} end)
+      |> Enum.reduce("", fn {e, vals}, acc ->
+        acc <>
+          "<li><button " <>
+          Catenary.maybe_border(e) <>
+          " phx-click=\"view-entry\" value=\"" <>
+          Catenary.index_to_string(e) <>
+          "\">" <> vals["title"] <> "</button></li>"
+      end)
+
+    "<div class=\"flex-auto\"><h4>" <> ln <> "</h4><ul>" <> recents <> "</ul></div>"
   end
 end
