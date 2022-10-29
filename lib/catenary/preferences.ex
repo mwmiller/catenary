@@ -16,7 +16,7 @@ defmodule Catenary.Preferences do
     # Nevertheless, I don't wan to leave a "how many times
     # was this comment wrong?" counter here.
     rando = "catenary-user-" <> BaseX.Base62.encode(:crypto.strong_rand_bytes(2))
-    id = Baobab.create_identity(rando)
+    id = Baobab.Identity.create(rando)
     # We do end up having to come through here a couple times before they might 
     # set the preference themselves so we set it ourselves
     set(:identity, id)
@@ -34,7 +34,7 @@ defmodule Catenary.Preferences do
 
   # `:identity` should in the known list when it is set
   defp is_valid?(identity, :identity),
-    do: is_binary(identity) && Enum.any?(Baobab.identities(), fn {_, k} -> k == identity end)
+    do: is_binary(identity) && Enum.any?(Baobab.Identity.list(), fn {_, k} -> k == identity end)
 
   # `:shown` should be a map of mapsets.
   # We'll hope they keep the values sane on their own

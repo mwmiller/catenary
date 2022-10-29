@@ -74,7 +74,7 @@ defmodule Catenary.Indices do
   defp entries_index([entry | rest], :timelines) do
     try do
       %Baobab.Entry{author: a, log_id: l, seqnum: s, payload: payload} = entry
-      ident = Baobab.b62identity(a)
+      ident = Baobab.Identity.as_base62(a)
       {:ok, data, ""} = CBOR.decode(payload)
 
       old =
@@ -145,7 +145,7 @@ defmodule Catenary.Indices do
   defp entries_index([entry | rest], :refs) do
     try do
       %Baobab.Entry{author: a, log_id: l, seqnum: s, payload: payload} = entry
-      index = {Baobab.b62identity(a), l, s}
+      index = {Baobab.Identity.as_base62(a), l, s}
       {:ok, data, ""} = CBOR.decode(payload)
 
       for lref <- Map.get(data, "references") do

@@ -233,7 +233,7 @@ defmodule CatenaryWeb.Live do
   # I keep thinking I will write these with `phx-target` to the component
   # but then I realise I need the global state updates
   def handle_event("identity-change", %{"selection" => whom}, socket) do
-    {:noreply, state_set(socket, %{identity: whom |> Baobab.b62identity()})}
+    {:noreply, state_set(socket, %{identity: whom |> Baobab.Identity.as_base62()})}
   end
 
   # A lot of overhead for a no-op.  Discover how to do this properly
@@ -248,7 +248,7 @@ defmodule CatenaryWeb.Live do
     pk =
       case Enum.find(socket.assigns.identities, fn {n, _} -> n == whom end) do
         {^whom, key} -> key
-        nil -> Baobab.create_identity(whom)
+        nil -> Baobab.Identity.create(whom)
       end
 
     {:noreply, state_set(socket, %{identity: pk})}
@@ -260,14 +260,14 @@ defmodule CatenaryWeb.Live do
       when is_binary(tobe) and byte_size(tobe) > 0 do
     case Enum.find(socket.assigns.identities, fn {n, _} -> n == tobe end) do
       # We'll let this crash and not pay attention
-      nil -> Baobab.rename_identity(old, tobe)
+      nil -> Baobab.Identity.rename(old, tobe)
       # Refuse to rename over an extant name
       _ -> %{}
     end
 
     # We set this to make it obvious what happened
     # if anything
-    {:noreply, state_set(socket, %{identity: tobe |> Baobab.b62identity()})}
+    {:noreply, state_set(socket, %{identity: tobe |> Baobab.Identity.as_base62()})}
   end
 
   def handle_event(<<"rename-id-", _::binary>>, _, socket), do: {:noreply, socket}
@@ -406,7 +406,7 @@ defmodule CatenaryWeb.Live do
     ids =
       case state.id_hash do
         ^ihash -> state.identities
-        _ -> Baobab.identities()
+        _ -> Baobab.Identity.list()
       end
 
     indexing = check_indices(state, updated?, si)

@@ -8,8 +8,8 @@ defmodule CatenaryWeb.ExportController do
         identity: whom,
         key_encoding: "base62",
         key_type: "ed25519",
-        public_key: Baobab.identity_key(whom, :public) |> BaseX.Base62.encode(),
-        secret_key: Baobab.identity_key(whom, :secret) |> BaseX.Base62.encode()
+        public_key: Baobab.Identity.key(whom, :public) |> BaseX.Base62.encode(),
+        secret_key: Baobab.Identity.key(whom, :secret) |> BaseX.Base62.encode()
       }
       |> Jason.encode!()
 

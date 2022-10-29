@@ -15,14 +15,14 @@ defmodule Catenary.LogWriter do
       |> CBOR.encode()
       |> append_log_for_socket(360_360, socket)
 
-    entry = {Baobab.b62identity(a), l, e}
+    entry = {Baobab.Identity.as_base62(a), l, e}
     Catenary.Indices.index_references([entry], socket.assigns.clump_id)
     entry
   end
 
   def new_entry(%{"body" => body, "log_id" => "0"}, socket) do
     %Baobab.Entry{author: a, log_id: l, seqnum: e} = append_log_for_socket(body, 0, socket)
-    {Baobab.b62identity(a), l, e}
+    {Baobab.Identity.as_base62(a), l, e}
   end
 
   def new_entry(
@@ -66,7 +66,7 @@ defmodule Catenary.LogWriter do
       |> CBOR.encode()
       |> append_log_for_socket(533, socket)
 
-    entry = {Baobab.b62identity(a), l, e}
+    entry = {Baobab.Identity.as_base62(a), l, e}
     Catenary.Indices.index_references([entry], socket.assigns.clump_id)
     entry
   end
@@ -82,7 +82,7 @@ defmodule Catenary.LogWriter do
       |> CBOR.encode()
       |> append_log_for_socket(53, socket)
 
-    b62author = Baobab.b62identity(a)
+    b62author = Baobab.Identity.as_base62(a)
     entry = {b62author, l, e}
     Catenary.Indices.index_aliases(b62author, socket.assigns.clump_id)
     Catenary.Indices.index_references([entry], socket.assigns.clump_id)
@@ -112,7 +112,7 @@ defmodule Catenary.LogWriter do
       |> CBOR.encode()
       |> append_log_for_socket(749, socket)
 
-    b62author = Baobab.b62identity(a)
+    b62author = Baobab.Identity.as_base62(a)
     entry = {b62author, l, e}
     Catenary.Indices.index_tags([entry], socket.assigns.clump_id)
     Catenary.Indices.index_references([entry], socket.assigns.clump_id)
