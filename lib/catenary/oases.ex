@@ -34,7 +34,7 @@ defmodule Catenary.Oases do
           then = ts |> Timex.parse!("{ISO:Extended}")
 
           cond do
-            Timex.diff(then, now, :hour) > -49 ->
+            Timex.diff(then, now, :hour) > -337 ->
               extract_recents(rest, clump_id, now, [
                 Map.merge(map, %{:id => {a, l, e}, "running" => then}) | acc
               ])
