@@ -60,7 +60,7 @@ defmodule Catenary.Live.EntryViewer do
         <div class="min-w-full font-sans row-span-full">
         <img class = "float-left m-3" src="<%= Catenary.identicon(@card["author"], 8) %>">
           <h1><%= @card["title"] %></h1>
-          <p class="text-sm font-light"><%= Catenary.linked_author(@card["author"], @aliases) %> &mdash; <%= @card["published"] %></p>
+          <p class="text-sm font-light"><%= Catenary.linked_author(@card["author"], @aliases) %> &mdash; <%= nice_time(@card["published"]) %></p>
           <p><%= icon_entries(@card["back-refs"]) %>&nbsp;↹&nbsp;<%= icon_entries(@card["fore-refs"]) %></p>
         <hr/>
         <br/>
@@ -81,12 +81,16 @@ defmodule Catenary.Live.EntryViewer do
   def extract({:profile, a} = entry, clump_id, si) do
     Catenary.Preferences.mark_entry(:shown, entry)
 
-    timeline =
+    {timeline, as_of} =
       case from_dets(a, :timelines) do
         [] ->
-          ""
+          {"", :latest}
 
         activity ->
+          rev_order = activity |> Enum.reverse()
+          # We extract this one twice.  But maybe there is a filter later
+          %{"published" => as_of} = rev_order |> hd |> then(fn e -> extract(e, clump_id, si) end)
+
           groups =
             activity
             |> Enum.reverse()
@@ -95,7 +99,7 @@ defmodule Catenary.Live.EntryViewer do
             |> Enum.map(fn t -> group_list(t, clump_id, si) end)
             |> Enum.join("")
 
-          "<div class=\"flex flex-rows-3\">" <> groups <> "</div>"
+          {"<div class=\"flex flex-rows-3\">" <> groups <> "</div>", as_of}
       end
 
     log_map =
@@ -129,7 +133,7 @@ defmodule Catenary.Live.EntryViewer do
         "back-refs" => [],
         "tags" => [],
         "body" => Phoenix.HTML.raw(timeline <> others),
-        "published" => "latest known"
+        "published" => as_of
       },
       from_refs(entry)
     )
@@ -187,7 +191,7 @@ defmodule Catenary.Live.EntryViewer do
       "title" => "Missing Post",
       "back-refs" => [],
       "body" => "This may become available as you sync with more peers.",
-      "published" => "unknown publication"
+      "published" => :unknown
     }
   end
 
@@ -196,7 +200,7 @@ defmodule Catenary.Live.EntryViewer do
       "title" => "Loading Error",
       "back-refs" => [],
       "body" => "This should never happen to you.",
-      "published" => "corrupted?"
+      "published" => :unknown
     }
   end
 
@@ -205,7 +209,7 @@ defmodule Catenary.Live.EntryViewer do
       "title" => "Test Post, Please Ignore",
       "back-refs" => [],
       "body" => maybe_text(text),
-      "published" => "in a testing period"
+      "published" => :unknown
     }
   end
 
@@ -216,8 +220,7 @@ defmodule Catenary.Live.EntryViewer do
       %{
         "title" => "Alias: ~" <> data["alias"],
         "body" => Phoenix.HTML.raw("Key: " <> data["whom"]),
-        "back-refs" => maybe_refs(data["references"]),
-        "published" => data["published"] |> nice_time
+        "back-refs" => maybe_refs(data["references"])
       }
     rescue
       e -> malformed(e, cbor)
@@ -232,7 +235,7 @@ defmodule Catenary.Live.EntryViewer do
         "title" => "Oasis: " <> data["name"],
         "body" => data["host"] <> ":" <> Integer.to_string(data["port"]),
         "back-refs" => maybe_refs(data["references"]),
-        "published" => data["running"] |> nice_time
+        "published" => data["running"]
       }
     rescue
       e -> malformed(e, cbor)
@@ -245,8 +248,7 @@ defmodule Catenary.Live.EntryViewer do
 
       Map.merge(data, %{
         "body" => data["body"] |> Earmark.as_html!() |> Phoenix.HTML.raw(),
-        "back-refs" => maybe_refs(data["references"]),
-        "published" => nice_time(data["published"])
+        "back-refs" => maybe_refs(data["references"])
       })
     rescue
       e -> malformed(e, cbor)
@@ -259,8 +261,7 @@ defmodule Catenary.Live.EntryViewer do
 
       Map.merge(data, %{
         "back-refs" => maybe_refs(data["references"]),
-        "body" => data["body"] |> Earmark.as_html!() |> Phoenix.HTML.raw(),
-        "published" => data["published"] |> nice_time
+        "body" => data["body"] |> Earmark.as_html!() |> Phoenix.HTML.raw()
       })
     rescue
       e -> malformed(e, cbor)
@@ -283,13 +284,15 @@ defmodule Catenary.Live.EntryViewer do
       Map.merge(data, %{
         "title" => "Tags Added",
         "back-refs" => maybe_refs(data["references"]),
-        "body" => Phoenix.HTML.raw(body),
-        "published" => data["published"] |> nice_time
+        "body" => Phoenix.HTML.raw(body)
       })
     rescue
       e -> malformed(e, cbor)
     end
   end
+
+  defp nice_time(:unknown), do: "unknown"
+  defp nice_time(:latest), do: "latest known"
 
   defp nice_time(t) do
     t
