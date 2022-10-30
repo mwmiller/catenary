@@ -393,7 +393,7 @@ defmodule CatenaryWeb.Live do
     do_prefs(from_caller |> Map.to_list())
     state = full_socket.assigns
     clump_id = state.clump_id
-    sihash = Baobab.current_hash(:content, clump_id)
+    sihash = Baobab.Persistence.current_hash(:content, clump_id)
 
     {updated?, si} =
       case state.store_hash do
@@ -401,7 +401,7 @@ defmodule CatenaryWeb.Live do
         _ -> {true, Baobab.stored_info(clump_id)}
       end
 
-    ihash = Baobab.current_hash(:identity, clump_id)
+    ihash = Baobab.Persistence.current_hash(:identity, clump_id)
 
     ids =
       case state.id_hash do
