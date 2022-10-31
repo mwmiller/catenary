@@ -36,10 +36,10 @@ defmodule Catenary do
     {:ok, aliases}
   end
 
-  def id_for_key(key), do: id_for_key(Baobab.Identity.list(), key)
-  def id_for_key([], key), do: {:error, "No such identity for key " <> key}
-  def id_for_key([{ali, key} | _], key), do: ali
-  def id_for_key([_ | rest], key), do: id_for_key(rest, key)
+  def id_for_key(key), do: find_id_for_key(Baobab.Identity.list(), key)
+  defp find_id_for_key([], key), do: {:error, "No identity found for key " <> key}
+  defp find_id_for_key([{ali, key} | _], key), do: ali
+  defp find_id_for_key([_ | rest], key), do: find_id_for_key(rest, key)
 
   def identicon(id, mag \\ 4) do
     "data:image/svg+xml;base64," <> Excon.ident(id, base64: true, type: :svg, magnification: mag)
