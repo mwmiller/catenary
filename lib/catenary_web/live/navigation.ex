@@ -27,12 +27,12 @@ defmodule Catenary.Live.Navigation do
   @impl true
   def render(assigns) do
     ~L"""
-    <div class="align-top min-w-full font-sans">
+    <div class="align-top min-w-full">
       <div class="flex flex-row-3 text-xl">
         <div class="flex-auto p-1 text-center">
          <button value="origin" phx-click="nav"><img src="<%= Catenary.identicon(@identity, 2) %>"></button>
          <button value="unshown" phx-click="toview">☇</button>
-         <button phx-click="toggle-aliases">∼</button>
+         <button phx-click="toggle-aliases">∼̟</button>
          <button phx-click="toggle-stack">⭤</button>
         </div>
         <div class="flex-auto p-1 text-center">
@@ -45,11 +45,10 @@ defmodule Catenary.Live.Navigation do
         <button phx-click="toggle-journal">🄰</button>
        <%= if @on_log_entry do %>
         <button phx-click="toggle-reply">↺</button>
-        <button phx-click="toggle-tags">#</button>
+        <button phx-click="toggle-tags">#̟</button>
        <% end %>
        </div>
      </div>
-     <br/>
       <%= @lower_nav %>
     </div>
     """
@@ -119,11 +118,9 @@ defmodule Catenary.Live.Navigation do
 
   defp extra_nav(%{:extra_nav => :stack} = assigns) do
     ~L"""
-    <div id="stack-nav">
-       <div class="flex flex-row mt-17">
-         <div class="flex-auto p-4 m-1 text-xl text-center <%= stack_color(@entry_back) %>" phx-click="nav-backward">⤶</div>
-         <div class="flex-auto p-4 m-1 text-xl text-center <%= stack_color(@entry_fore) %>" phx-click="nav-forward">⤷</div>
-       </div>
+    <div id="stack-nav" class="flex flex-row 5 mt-20">
+       <div class="flex-auto p-4 m-1 text-xl text-center <%= stack_color(@entry_back) %>" phx-click="nav-backward">⤶</div>
+       <div class="flex-auto p-4 m-1 text-xl text-center <%= stack_color(@entry_fore) %>" phx-click="nav-forward">⤷</div>
     </div>
     """
   end
