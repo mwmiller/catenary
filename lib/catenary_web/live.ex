@@ -50,7 +50,7 @@ defmodule CatenaryWeb.Live do
          ui_speed: @ui_slow,
          aliases: {:out_of_date, %{}},
          view: view,
-         extra_nav: :none,
+         extra_nav: :stack,
          indexing: Enum.reduce(@indices, %{}, fn i, a -> Map.merge(a, %{i => :not_running}) end),
          entry: entry,
          entry_fore: [],
@@ -276,31 +276,13 @@ defmodule CatenaryWeb.Live do
     {:noreply, state_set(socket, %{view: :tags})}
   end
 
-  def handle_event("toggle-posting", _, socket) do
+  def handle_event(<<"toggle-", which::binary>>, _, socket) do
+    tog = String.to_atom(which)
+
     show_now =
       case socket.assigns.extra_nav do
-        :posting -> :none
-        _ -> :posting
-      end
-
-    {:noreply, state_set(socket, %{extra_nav: show_now})}
-  end
-
-  def handle_event("toggle-aliases", _, socket) do
-    show_now =
-      case socket.assigns.extra_nav do
-        :aliases -> :none
-        _ -> :aliases
-      end
-
-    {:noreply, state_set(socket, %{extra_nav: show_now})}
-  end
-
-  def handle_event("toggle-tags", _, socket) do
-    show_now =
-      case socket.assigns.extra_nav do
-        :tags -> :none
-        _ -> :tags
+        ^tog -> :stack
+        _ -> tog
       end
 
     {:noreply, state_set(socket, %{extra_nav: show_now})}

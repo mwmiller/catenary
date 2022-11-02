@@ -5,15 +5,13 @@ defmodule Catenary.Live.Navigation do
 
   def update(%{view: view, entry: entry, identity: identity} = assigns, socket) do
     {whom, ali} = alias_info(entry)
-    posts_avail = posts_avail(entry)
     on_log_entry = view == :entries && is_tuple(entry) && tuple_size(entry) == 3
 
     na =
       Map.merge(assigns, %{
         on_log_entry: on_log_entry,
         whom: whom,
-        ali: ali,
-        posts_avail: posts_avail
+        ali: ali
       })
 
     {:ok,
@@ -34,6 +32,8 @@ defmodule Catenary.Live.Navigation do
         <div class="flex-auto p-1 text-center">
          <button value="origin" phx-click="nav"><img src="<%= Catenary.identicon(@identity, 2) %>"></button>
          <button value="unshown" phx-click="toview">☇</button>
+         <button phx-click="toggle-aliases">∼</button>
+         <button phx-click="toggle-stack">⭤</button>
         </div>
         <div class="flex-auto p-1 text-center">
          <button value="prev-author" phx-click="nav">↥</button>
@@ -42,9 +42,9 @@ defmodule Catenary.Live.Navigation do
          <button value="next-author" phx-click="nav">↧</button>
        </div>
        <div class="flex-auto p-1 text-center">
+        <button phx-click="toggle-journal">🄰</button>
        <%= if @on_log_entry do %>
-        <button phx-click="toggle-posting">🄰</button>
-        <button phx-click="toggle-aliases">∼</button>
+        <button phx-click="toggle-reply">↺</button>
         <button phx-click="toggle-tags">#</button>
        <% end %>
        </div>
@@ -55,27 +55,22 @@ defmodule Catenary.Live.Navigation do
     """
   end
 
-  defp extra_nav(%{:extra_nav => :posting} = assigns) do
+  defp extra_nav(%{:extra_nav => :reply} = assigns) do
     ~L"""
     <div id="posting" class="font-sans">
       <%= if @on_log_entry do %>
-      <form method="post" id="posting-form" phx-submit="new-entry">
-        <select name=log_id  class="bg-white dark:bg-black">
-          <%= for a <- @posts_avail do %>
-          <option value="<%= QuaggaDef.base_log(a) %>"><%= String.capitalize(Atom.to_string(a)) %></option>
-          <% end %>
-        </select>
-        <%= if @on_log_entry do %>
-          <input type="hidden" name="ref" value="<%= Catenary.index_to_string(@entry) %>">
-        <% end %>
-        <br/>
-        <input class="bg-white dark:bg-black" type="text" name="title"/>
-        <br/>
-        <textarea class="bg-white dark:bg-black" name="body" rows="8" cols="35"></textarea>
-        <hr/>
-        <button phx-disable-with="𝄇" type="submit">➲</button>
-      </form>
+        <h4>Post a Reply</h4>
+        <%= log_posting_form(assigns, :reply) %>
       <% end %>
+    </div>
+    """
+  end
+
+  defp extra_nav(%{:extra_nav => :journal} = assigns) do
+    ~L"""
+    <div id="posting" class="font-sans">
+      <h4>Create Journal Entry</h4>
+      <%= log_posting_form(assigns, :journal) %>
     </div>
     """
   end
@@ -85,7 +80,6 @@ defmodule Catenary.Live.Navigation do
   defp extra_nav(%{:extra_nav => :aliases} = assigns) do
     ~L"""
     <div id="aliases">
-      <%= if @on_log_entry do %>
        <form method="post" id="alias-form" phx-submit="new-entry">
          <input type="hidden" name="log_id" value="53">
          <input type="hidden" name="ref" value="<%= Catenary.index_to_string(@entry) %>" />
@@ -97,7 +91,6 @@ defmodule Catenary.Live.Navigation do
          <hr/>
          <button phx-disable-with="𝄇" type="submit">➲</button>
        </form>
-      <% end %>
     </div>
     """
   end
@@ -124,11 +117,10 @@ defmodule Catenary.Live.Navigation do
     """
   end
 
-  # To be sure, an interesting definition of :none
-  defp extra_nav(%{:extra_nav => :none} = assigns) do
+  defp extra_nav(%{:extra_nav => :stack} = assigns) do
     ~L"""
     <div id="stack-nav">
-       <div class="flex flex-row">
+       <div class="flex flex-row mt-17">
          <div class="flex-auto p-4 m-1 text-xl text-center <%= stack_color(@entry_back) %>" phx-click="nav-backward">⤶</div>
          <div class="flex-auto p-4 m-1 text-xl text-center <%= stack_color(@entry_fore) %>" phx-click="nav-forward">⤷</div>
        </div>
@@ -158,7 +150,18 @@ defmodule Catenary.Live.Navigation do
   defp alias_info({a, _, _}), do: {a, ""}
   defp alias_info(_), do: {"", ""}
 
-  defp posts_avail(atom) when is_atom(atom), do: [:journal, :test]
-  # This will have more logic later
-  defp posts_avail(_), do: [:reply | posts_avail(:none)]
+  defp log_posting_form(assigns, which) do
+    ~L"""
+    <form method="post" id="posting-form" phx-submit="new-entry">
+      <input type="hidden" value="<%= QuaggaDef.base_log(which) %>">
+      <input type="hidden" name="ref" value="<%= Catenary.index_to_string(@entry) %>">
+      <br/>
+      <input class="bg-white dark:bg-black" type="text" name="title"/>
+      <br/>
+      <textarea class="bg-white dark:bg-black" name="body" rows="8" cols="35"></textarea>
+      <hr/>
+      <button phx-disable-with="𝄇" type="submit">➲</button>
+    </form>
+    """
+  end
 end
