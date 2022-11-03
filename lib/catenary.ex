@@ -117,7 +117,7 @@ defmodule Catenary do
   # For symmetry, but maybe we'll have something we want to do here.
   def dets_close(table), do: :dets.close(table)
 
-  @timeline_logs [:journal, :reply, :tag, :alias]
+  @timeline_logs [:journal, :reply]
   def timeline_logs, do: @timeline_logs
   def random_timeline_log(), do: @timeline_logs |> Enum.random()
 
