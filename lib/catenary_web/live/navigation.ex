@@ -32,7 +32,6 @@ defmodule Catenary.Live.Navigation do
         <div class="flex-auto p-1 text-center">
          <button value="origin" phx-click="nav"><img src="<%= Catenary.identicon(@identity, 2) %>"></button>
          <button value="unshown" phx-click="toview">☇</button>
-         <button phx-click="toggle-aliases">∼̟</button>
          <button phx-click="toggle-stack">⭤</button>
         </div>
         <div class="flex-auto p-1 text-center">
@@ -42,10 +41,11 @@ defmodule Catenary.Live.Navigation do
          <button value="next-author" phx-click="nav">↧</button>
        </div>
        <div class="flex-auto p-1 text-center">
-        <button phx-click="toggle-journal">🄰</button>
+         <button phx-click="toggle-journal">✎̟</button>
        <%= if @on_log_entry do %>
-        <button phx-click="toggle-reply">↺</button>
+        <button phx-click="toggle-reply">↺̟</button>
         <button phx-click="toggle-tags">#̟</button>
+        <button phx-click="toggle-aliases">~̟</button>
        <% end %>
        </div>
      </div>
