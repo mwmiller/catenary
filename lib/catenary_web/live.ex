@@ -339,7 +339,7 @@ defmodule CatenaryWeb.Live do
          %Baobab.Entry{payload: payload} <-
            Baobab.log_entry(a, e, log_id: l, clump_id: socket.assigns.clump_id),
          {:ok, map, ""} <- CBOR.decode(payload),
-         {:ok, pid} =
+         {:ok, pid} <-
            Baby.connect(map["host"], map["port"],
              identity: Catenary.id_for_key(socket.assigns.identity),
              clump_id: socket.assigns.clump_id
