@@ -150,7 +150,7 @@ defmodule Catenary.Live.Navigation do
   defp log_posting_form(assigns, which) do
     ~L"""
     <form method="post" id="posting-form" phx-submit="new-entry">
-      <input type="hidden" value="<%= QuaggaDef.base_log(which) %>">
+      <input type="hidden" name="log_id" value="<%= QuaggaDef.base_log(which) %>">
       <input type="hidden" name="ref" value="<%= Catenary.index_to_string(@entry) %>">
       <br/>
       <input class="bg-white dark:bg-black" type="text" name="title"/>
