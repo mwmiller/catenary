@@ -138,7 +138,7 @@ defmodule CatenaryWeb.Live do
       <%= live_component(Catenary.Live.Ident, id: :ident, identity: @identity, clump_id: @clump_id, aliases: @aliases) %>
       <%= live_component(Catenary.Live.IndexStatus, id: :indices, indexing: @indexing) %>
       <%= live_component(Catenary.Live.OasisBox, id: :recents, connections: @connections, oases: @oases, aliases: @aliases) %>
-      <%= live_component(Catenary.Live.Navigation, id: :nav, entry: @entry, extra_nav: @extra_nav, identity: @identity, view: @view, aliases: @aliases, entry_fore: @entry_fore, entry_back: @entry_back) %>
+      <%= live_component(Catenary.Live.Navigation, id: :nav, entry: @entry, extra_nav: @extra_nav, identity: @identity, view: @view, aliases: @aliases, entry_fore: @entry_fore, entry_back: @entry_back, clump_id: @clump_id) %>
     </div>
     """
   end

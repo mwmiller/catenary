@@ -3,8 +3,11 @@ defmodule Catenary.Live.Navigation do
 
   @impl true
 
-  def update(%{view: view, entry: entry, identity: identity} = assigns, socket) do
-    {whom, ali} = alias_info(entry)
+  def update(
+        %{view: view, entry: entry, identity: identity, clump_id: clump_id} = assigns,
+        socket
+      ) do
+    {whom, ali} = alias_info(entry, clump_id)
     on_log_entry = view == :entries && is_tuple(entry) && tuple_size(entry) == 3
 
     na =
@@ -18,6 +21,7 @@ defmodule Catenary.Live.Navigation do
      assign(socket,
        view: view,
        entry: entry,
+       clump_id: clump_id,
        on_log_entry: on_log_entry,
        identity: identity,
        lower_nav: extra_nav(na)
@@ -59,7 +63,7 @@ defmodule Catenary.Live.Navigation do
     <div id="posting" class="font-sans">
       <%= if @on_log_entry do %>
         <h4>Post a Reply</h4>
-        <%= log_posting_form(assigns, :reply) %>
+        <%= log_posting_form(assigns, :reply, source_title(@entry, @clump_id)) %>
       <% end %>
     </div>
     """
@@ -69,7 +73,7 @@ defmodule Catenary.Live.Navigation do
     ~L"""
     <div id="posting" class="font-sans">
       <h4>Create Journal Entry</h4>
-      <%= log_posting_form(assigns, :journal) %>
+      <%= log_posting_form(assigns, :journal, "") %>
     </div>
     """
   end
@@ -133,9 +137,9 @@ defmodule Catenary.Live.Navigation do
   @alias_logs QuaggaDef.logs_for_name(:alias)
 
   # We're looking at someone else's alias info, let's offer to use it
-  defp alias_info({a, l, e}) when l in @alias_logs do
+  defp alias_info({a, l, e}, clump_id) when l in @alias_logs do
     try do
-      %Baobab.Entry{payload: payload} = Baobab.log_entry(a, e, log_id: l)
+      %Baobab.Entry{payload: payload} = Baobab.log_entry(a, e, log_id: l, clump_id: clump_id)
       {:ok, data, ""} = CBOR.decode(payload)
       {data["whom"], data["alias"]}
     rescue
@@ -143,17 +147,31 @@ defmodule Catenary.Live.Navigation do
     end
   end
 
-  defp alias_info({:profile, a}), do: {a, ""}
-  defp alias_info({a, _, _}), do: {a, ""}
-  defp alias_info(_), do: {"", ""}
+  defp alias_info({:profile, a}, _), do: {a, ""}
+  defp alias_info({a, _, _}, _), do: {a, ""}
+  defp alias_info(_, _), do: {"", ""}
 
-  defp log_posting_form(assigns, which) do
+  # show 
+  defp source_title({a, l, e}, clump_id) do
+    try do
+      %Baobab.Entry{payload: payload} = Baobab.log_entry(a, e, log_id: l, clump_id: clump_id)
+
+      {:ok, data, ""} = CBOR.decode(payload)
+      data["title"]
+    rescue
+      _ -> ""
+    end
+  end
+
+  defp source_title(_, _), do: ""
+
+  defp log_posting_form(assigns, which, suggested_title) do
     ~L"""
     <form method="post" id="posting-form" phx-submit="new-entry">
       <input type="hidden" name="log_id" value="<%= QuaggaDef.base_log(which) %>">
       <input type="hidden" name="ref" value="<%= Catenary.index_to_string(@entry) %>">
       <br/>
-      <input class="bg-white dark:bg-black" type="text" name="title"/>
+      <input class="bg-white dark:bg-black" type="text" value="<%= suggested_title %>" name="title"/>
       <br/>
       <textarea class="bg-white dark:bg-black" name="body" rows="8" cols="35"></textarea>
       <hr/>
