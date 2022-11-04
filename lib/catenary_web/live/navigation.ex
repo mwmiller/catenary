@@ -62,7 +62,6 @@ defmodule Catenary.Live.Navigation do
     ~L"""
     <div id="posting" class="font-sans">
       <%= if @on_log_entry do %>
-        <h4>Post a Reply</h4>
         <%= log_posting_form(assigns, :reply, source_title(@entry, @clump_id)) %>
       <% end %>
     </div>
@@ -72,7 +71,6 @@ defmodule Catenary.Live.Navigation do
   defp extra_nav(%{:extra_nav => :journal} = assigns) do
     ~L"""
     <div id="posting" class="font-sans">
-      <h4>Create Journal Entry</h4>
       <%= log_posting_form(assigns, :journal, "") %>
     </div>
     """
