@@ -7,7 +7,7 @@ defmodule Catenary.LogWriter do
   """
   def new_entry(values, socket)
 
-  def new_entry(%{"body" => body, "log_id" => "360360", "title" => title}, socket) do
+  def new_entry(%{"body" => body, "log_id" => "360360", "title" => title} = vals, socket) do
     # There will be more things to handle in short order, so this looks verbose
     # but it's probably necessary
     %Baobab.Entry{author: a, log_id: l, seqnum: e} =
@@ -17,7 +17,7 @@ defmodule Catenary.LogWriter do
 
     entry = {Baobab.Identity.as_base62(a), l, e}
     Catenary.Indices.index_references([entry], socket.assigns.clump_id)
-    entry
+    maybe_tag(entry, vals, socket)
   end
 
   def new_entry(%{"body" => body, "log_id" => "0"}, socket) do
@@ -31,7 +31,7 @@ defmodule Catenary.LogWriter do
           "log_id" => "533",
           "ref" => ref,
           "title" => title
-        },
+        } = vals,
         socket
       ) do
     # Only single parent references, but maybe multiple children
@@ -68,7 +68,7 @@ defmodule Catenary.LogWriter do
 
     entry = {Baobab.Identity.as_base62(a), l, e}
     Catenary.Indices.index_references([entry], socket.assigns.clump_id)
-    entry
+    maybe_tag(entry, vals, socket)
   end
 
   def new_entry(%{"log_id" => "53", "alias" => ali, "ref" => ref, "whom" => whom}, socket) do
@@ -100,27 +100,53 @@ defmodule Catenary.LogWriter do
         },
         socket
       ) do
-    tags = Enum.reject([tag0, tag1, tag2, tag3], fn s -> s == "" end)
     references = Catenary.string_to_index(ref)
 
-    %Baobab.Entry{author: a, log_id: l, seqnum: e} =
-      %{
-        "references" => [references],
-        "tags" => tags,
-        "published" => Timex.now() |> DateTime.to_string()
-      }
-      |> CBOR.encode()
-      |> append_log_for_socket(749, socket)
+    case Enum.reject([tag0, tag1, tag2, tag3], fn s -> s == "" end) do
+      [] ->
+        references
 
-    b62author = Baobab.Identity.as_base62(a)
-    entry = {b62author, l, e}
-    Catenary.Indices.index_tags([entry], socket.assigns.clump_id)
-    Catenary.Indices.index_references([entry], socket.assigns.clump_id)
-    entry
+      tags ->
+        %Baobab.Entry{author: a, log_id: l, seqnum: e} =
+          %{
+            "references" => [references],
+            "tags" => tags,
+            "published" => Timex.now() |> DateTime.to_string()
+          }
+          |> CBOR.encode()
+          |> append_log_for_socket(749, socket)
+
+        b62author = Baobab.Identity.as_base62(a)
+        entry = {b62author, l, e}
+        Catenary.Preferences.mark_entry(:shown, entry)
+        Catenary.Indices.index_tags([entry], socket.assigns.clump_id)
+        Catenary.Indices.index_references([entry], socket.assigns.clump_id)
+        # Here we send them back to the referenced post which should now have tags applied
+        # They can see the actual tagging post from the footer (or profile)
+        references
+    end
   end
 
   # Punt
   def new_entry(_, socket), do: {:profile, socket.assigns.identity}
+
+  defp maybe_tag(entry, %{"tag0" => "", "tag1" => ""}, _), do: entry
+
+  defp maybe_tag(entry, %{"tag0" => tag0, "tag1" => tag1}, socket) do
+    new_entry(
+      %{
+        "log_id" => "749",
+        "ref" => Catenary.index_to_string(entry),
+        "tag0" => tag0,
+        "tag1" => tag1,
+        "tag2" => "",
+        "tag3" => ""
+      },
+      socket
+    )
+  end
+
+  defp maybe_tag(entry, _, _), do: entry
 
   defp append_log_for_socket(contents, log_id, socket) do
     Baobab.append_log(contents, Catenary.id_for_key(socket.assigns.identity),

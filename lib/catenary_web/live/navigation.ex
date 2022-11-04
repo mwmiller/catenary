@@ -108,10 +108,7 @@ defmodule Catenary.Live.Navigation do
          <input type="hidden" name="log_id" value="749">
          <input type="hidden" name="ref" value="<%= Catenary.index_to_string(@entry) %>">
          <p>
-           <%= for n <- 0..3 do %>
-             <label for="tag<%= n %>">#</label>
-        <input class="bg-white dark:bg-black" name="tag<%= n %>" type="text" size="16" /><br/>
-        <% end %>
+         <%= tag_inputs(4) %>
          <hr/>
          <button phx-disable-with="𝄇" type="submit">➲</button>
        </form>
@@ -174,9 +171,29 @@ defmodule Catenary.Live.Navigation do
       <input class="bg-white dark:bg-black" type="text" value="<%= suggested_title %>" name="title"/>
       <br/>
       <textarea class="bg-white dark:bg-black" name="body" rows="8" cols="35"></textarea>
+      <p>
+      <%= tag_inputs(2) %>
       <hr/>
       <button phx-disable-with="𝄇" type="submit">➲</button>
     </form>
     """
+  end
+
+  defp tag_inputs(count), do: make_tag_inputs(count, [])
+
+  defp make_tag_inputs(0, acc), do: acc |> Enum.reverse() |> Enum.join("") |> Phoenix.HTML.raw()
+
+  defp make_tag_inputs(n, acc) do
+    less = n - 1
+    qname = "\"tag" <> Integer.to_string(less) <> "\""
+
+    make_tag_inputs(less, [
+      "<label for=" <>
+        qname <>
+        ">#</label>" <>
+        "<input class=\"bg-white dark:bg-black\" name=" <>
+        qname <> " type=\"text\" size=\"16\" /><br/>"
+      | acc
+    ])
   end
 end
