@@ -34,7 +34,7 @@ defmodule Catenary.MixProject do
   defp deps do
     [
       {:baby, git: "https://github.com/mwmiller/baby_ex"},
-      {:baobab, "~> 0.14.0"},
+      {:baobab, "~> 0.15.0"},
       {:quagga_def, ">= 0.0.0"},
       {:cbor, "~> 1.0"},
       {:earmark, "~> 1.4"},
