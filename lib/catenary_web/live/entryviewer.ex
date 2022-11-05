@@ -209,6 +209,20 @@ defmodule Catenary.Live.EntryViewer do
     end
   end
 
+  defp extract_type(cbor, %{name: :graph}) do
+    try do
+      {:ok, data, ""} = CBOR.decode(cbor)
+
+      Map.merge(data, %{
+        "title" => String.capitalize(data["action"]) <> ": " <> data["whom"],
+        "body" => data["reason"],
+        "back-refs" => maybe_refs(data["references"])
+      })
+    rescue
+      e -> malformed(e, cbor)
+    end
+  end
+
   defp extract_type(cbor, %{name: :oasis}) do
     try do
       {:ok, data, ""} = CBOR.decode(cbor)

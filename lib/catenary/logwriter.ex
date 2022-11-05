@@ -127,6 +127,33 @@ defmodule Catenary.LogWriter do
     end
   end
 
+  def new_entry(
+        %{
+          "ref" => ref,
+          "whom" => whom,
+          "log_id" => "1337",
+          "reason" => reason,
+          "action" => action
+        } = vals,
+        socket
+      ) do
+    %Baobab.Entry{author: a, log_id: l, seqnum: e} =
+      %{
+        "whom" => whom,
+        "references" => [Catenary.string_to_index(ref)],
+        "action" => action,
+        "reason" => reason,
+        "published" => Timex.now() |> DateTime.to_string()
+      }
+      |> CBOR.encode()
+      |> append_log_for_socket(1337, socket)
+
+    b62author = Baobab.Identity.as_base62(a)
+    entry = {b62author, l, e}
+    Catenary.Indices.index_references([entry], socket.assigns.clump_id)
+    entry
+  end
+
   # Punt
   def new_entry(_, socket), do: {:profile, socket.assigns.identity}
 

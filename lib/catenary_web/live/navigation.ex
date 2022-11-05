@@ -36,6 +36,9 @@ defmodule Catenary.Live.Navigation do
         <div class="flex-auto p-1 text-center">
          <button value="origin" phx-click="nav"><img src="<%= Catenary.identicon(@identity, 2) %>"></button>
          <button value="unshown" phx-click="toview">☇</button>
+         <%= if @on_log_entry do %>
+           <button phx-click="toggle-block">⛒̟</button>
+         <% end %>
          <button phx-click="toggle-stack">⭤</button>
         </div>
         <div class="flex-auto p-1 text-center">
@@ -89,6 +92,31 @@ defmodule Catenary.Live.Navigation do
            <h3><%= Catenary.short_id(@whom, @aliases) %></h3>
          <label for="alias">～</label>
          <input class="bg-white dark:bg-black" name="alias" value="<%= @ali %>" type="text" size="16" />
+         <hr/>
+         <button phx-disable-with="𝄇" type="submit">➲</button>
+       </form>
+    </div>
+    """
+  end
+
+  defp extra_nav(%{:extra_nav => :block, :entry => {:tag, _}}), do: ""
+
+  defp extra_nav(%{:extra_nav => :block} = assigns) do
+    ~L"""
+    <div id="aliases">
+      <p class="my-5">Blocking will be published on a public log.
+      While this is worthwhile to help others on the network, it can have negative social implications.
+      As with all log entries, a block cannot disappear from your history.</p>
+      <br>
+       <form method="post" id="block-form" phx-submit="new-entry">
+         <input type="hidden" name="log_id" value="1337">
+         <input type="hidden" name="action" value="block">
+         <input type="hidden" name="ref" value="<%= Catenary.index_to_string(@entry) %>" />
+         <input type="hidden" name="whom" value="<%= @whom %>" />
+         <div class="w-100 grid grid-cols-3">
+           <div>Blocking:</div><div><img src="<%= Catenary.identicon(@whom, 2) %>"></div><div><%= Catenary.short_id(@whom, @aliases) %></div>
+           <div>Reason:</div><div class="grid-cols=2"><textarea class="bg-white dark:bg-black" name="reason" rows="4" cols="20"></textarea></div>
+         </div>
          <hr/>
          <button phx-disable-with="𝄇" type="submit">➲</button>
        </form>
