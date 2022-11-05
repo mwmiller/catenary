@@ -9,6 +9,7 @@ defmodule Catenary do
     aliases: "aliases.dets",
     refs: "references.dets",
     prefs: "preferences.dets",
+    graph: "social_graph.dets",
     tags: "tags.dets",
     timelines: "timelines.dets"
   }

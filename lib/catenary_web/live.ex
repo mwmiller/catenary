@@ -4,7 +4,7 @@ defmodule CatenaryWeb.Live do
 
   @ui_fast 1062
   @ui_slow 11131
-  @indices [:tags, :references, :timelines, :aliases]
+  @indices [:tags, :references, :timelines, :aliases, :graph]
 
   def mount(_params, session, socket) do
     # Making sure these exist, but also faux docs
@@ -474,6 +474,9 @@ defmodule CatenaryWeb.Live do
 
         :references ->
           Task.start(Catenary.Indices, :index_references, [si, state.clump_id])
+
+        :graph ->
+          Task.start(Catenary.Indices, :index_graph, [state.identity, state.clump_id])
       end
 
     %{which => pid}

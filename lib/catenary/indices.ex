@@ -11,7 +11,7 @@ defmodule Catenary.Indices do
   def clear_all() do
     # This information is all over the place. :(
     # One source of truth
-    for table <- [:refs, :tags, :aliases, :timelines] do
+    for table <- [:refs, :tags, :aliases, :timelines, :graph] do
       Catenary.dets_open(table)
       :dets.delete_all_objects(table)
       Catenary.dets_close(table)
@@ -34,6 +34,18 @@ defmodule Catenary.Indices do
     |> index(clump_id, alias_logs, :aliases)
 
     Catenary.dets_close(:aliases)
+  end
+
+  def index_graph(id, clump_id) do
+    graph_logs = QuaggaDef.logs_for_name(:graph)
+    Catenary.dets_open(:graph)
+    :dets.delete_all_objects(:graph)
+
+    graph_logs
+    |> Enum.map(fn l -> {id, l, 1} end)
+    |> index(clump_id, graph_logs, :graph)
+
+    Catenary.dets_close(:graph)
   end
 
   def index_tags(stored_info, clump_id) do
@@ -60,7 +72,7 @@ defmodule Catenary.Indices do
   defp index([{a, l, _} | rest], clump_id, log_ids, which) do
     # Side-effects everywhere!
     case l in log_ids do
-      true -> entries_index(Baobab.full_log(a, log_id: l, clump_id: clump_id), which)
+      true -> entries_index(Baobab.full_log(a, log_id: l, clump_id: clump_id), clump_id, which)
       false -> :ok
     end
 
@@ -69,9 +81,9 @@ defmodule Catenary.Indices do
 
   # This could maybe give up on a CBOR failure, eventurally
   # Right now we have a lot of mixed types
-  defp entries_index([], _), do: :ok
+  defp entries_index([], _, _), do: :ok
 
-  defp entries_index([entry | rest], :timelines) do
+  defp entries_index([entry | rest], clump_id, :timelines) do
     try do
       %Baobab.Entry{author: a, log_id: l, seqnum: s, payload: payload} = entry
       ident = Baobab.Identity.as_base62(a)
@@ -90,10 +102,10 @@ defmodule Catenary.Indices do
       _ -> :ok
     end
 
-    entries_index(rest, :timelines)
+    entries_index(rest, clump_id, :timelines)
   end
 
-  defp entries_index([entry | rest], :tags) do
+  defp entries_index([entry | rest], clump_id, :tags) do
     # This is a two-way index
     try do
       %Baobab.Entry{payload: payload} = entry
@@ -126,10 +138,10 @@ defmodule Catenary.Indices do
       _ -> :ok
     end
 
-    entries_index(rest, :tags)
+    entries_index(rest, clump_id, :tags)
   end
 
-  defp entries_index([entry | rest], :aliases) do
+  defp entries_index([entry | rest], clump_id, :aliases) do
     try do
       %Baobab.Entry{payload: payload} = entry
       {:ok, data, ""} = CBOR.decode(payload)
@@ -139,10 +151,31 @@ defmodule Catenary.Indices do
         :ok
     end
 
-    entries_index(rest, :aliases)
+    entries_index(rest, clump_id, :aliases)
   end
 
-  defp entries_index([entry | rest], :refs) do
+  defp entries_index([entry | rest], clump_id, :graph) do
+    try do
+      %Baobab.Entry{payload: payload} = entry
+      {:ok, data, ""} = CBOR.decode(payload)
+      action = data["action"]
+      whom = data["whom"]
+
+      case action do
+        "block" -> Baobab.ClumpMeta.block_author(whom, clump_id)
+        _ -> :ok
+      end
+
+      :dets.insert(:graph, {whom, action})
+    rescue
+      _ ->
+        :ok
+    end
+
+    entries_index(rest, clump_id, :graph)
+  end
+
+  defp entries_index([entry | rest], clump_id, :refs) do
     try do
       %Baobab.Entry{author: a, log_id: l, seqnum: s, payload: payload} = entry
       index = {Baobab.Identity.as_base62(a), l, s}
@@ -166,7 +199,7 @@ defmodule Catenary.Indices do
         :ok
     end
 
-    entries_index(rest, :refs)
+    entries_index(rest, clump_id, :refs)
   end
 
   defp published(data) when is_map(data) do

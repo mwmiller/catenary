@@ -27,4 +27,6 @@ defmodule Catenary.Live.IndexStatus do
   defp istatus([{:tags, _pid} | rest], chars), do: istatus(rest, ["⸘" | chars])
   defp istatus([{:timelines, :not_running} | rest], chars), do: istatus(rest, ["∥" | chars])
   defp istatus([{:timelines, _pid} | rest], chars), do: istatus(rest, ["∦" | chars])
+  defp istatus([{:graph, :not_running} | rest], chars), do: istatus(rest, ["∋" | chars])
+  defp istatus([{:graph, _pid} | rest], chars), do: istatus(rest, ["∌" | chars])
 end
