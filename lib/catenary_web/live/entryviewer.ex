@@ -146,9 +146,11 @@ defmodule Catenary.Live.EntryViewer do
     try do
       payload =
         case Baobab.log_entry(a, e, log_id: l, clump_id: clump_id) do
-          {:error, :missing} -> :missing
-          %Baobab.Entry{payload: pl} -> pl
-          _ -> :unknown
+          %Baobab.Entry{payload: pl} ->
+            pl
+
+          _ ->
+            :missing
         end
 
       base =
