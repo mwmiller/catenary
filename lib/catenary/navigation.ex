@@ -1,5 +1,5 @@
 defmodule Catenary.Navigation do
-  alias Catenary.{Timeline, Authorline}
+  alias Catenary.{Timeline, Authorline, Tagline}
 
   @moduledoc """
   Functions to move between entries along different lines
@@ -65,6 +65,12 @@ defmodule Catenary.Navigation do
 
       "prev-author" ->
         sent |> Authorline.prev(store) |> new_path(assigns)
+
+      <<"prev-tag-", tag::binary>> ->
+        sent |> Tagline.prev(tag) |> new_path(assigns)
+
+      <<"next-tag-", tag::binary>> ->
+        sent |> Tagline.next(tag) |> new_path(assigns)
 
       "origin" ->
         new_path({:profile, id}, assigns)

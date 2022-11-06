@@ -69,7 +69,7 @@ defmodule Catenary.Live.EntryViewer do
         </div>
         <div class="grid grid-cols-4 mt-10 space-x-4" text-xs>
           <%= for tname <- @card["tags"] do %>
-            <div class="auto text-xs text-orange-600 dark:text-amber-200"><button value="<%= tname %>" phx-click="view-tag"><%= tname %></button></div>
+            <div class="auto text-xs text-orange-600 dark:text-amber-200"><button value="prev-tag-<%= tname %>" phx-click="nav">«</button> <button value="<%= tname %>" phx-click="view-tag"><%= tname %></button> <button value="next-tag-<%= tname %>" phx-click="nav">»</button></div>
           <% end %>
             <div class="flex flex-rows"><%= icon_entries(@card["tagged-in"]) %></div>
         </div>
