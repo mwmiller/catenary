@@ -475,8 +475,10 @@ defmodule CatenaryWeb.Live do
         :references ->
           Task.start(Catenary.Indices, :index_references, [si, state.clump_id])
 
+        # This "index" is maintained in Baobab and is a heavy operation
+        # it should perhaps be less often run
         :graph ->
-          Task.start(Catenary.Indices, :index_graph, [state.identity, state.clump_id])
+          Task.start(Catenary.SocialGraph, :update_from_logs, [state.identity, state.clump_id])
       end
 
     %{which => pid}

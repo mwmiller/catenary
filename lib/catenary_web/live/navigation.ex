@@ -9,12 +9,14 @@ defmodule Catenary.Live.Navigation do
       ) do
     {whom, ali} = alias_info(entry, clump_id)
     on_log_entry = view == :entries && is_tuple(entry) && tuple_size(entry) == 3
+    blocked = Catenary.blocked?(entry, clump_id)
 
     na =
       Map.merge(assigns, %{
         on_log_entry: on_log_entry,
         whom: whom,
-        ali: ali
+        ali: ali,
+        blocked: blocked
       })
 
     {:ok,
@@ -101,9 +103,31 @@ defmodule Catenary.Live.Navigation do
 
   defp extra_nav(%{:extra_nav => :block, :entry => {:tag, _}}), do: ""
 
+  defp extra_nav(%{:extra_nav => :block, :blocked => true} = assigns) do
+    ~L"""
+    <div id="block">
+    <p class="my-5">You may unblock by submitting this form.  It will publish a 
+    public log entry to that effect.  Including a reason is optional.</p>
+    <br>
+    <form method="post" id="block-form" phx-submit="new-entry">
+     <input type="hidden" name="log_id" value="1337">
+     <input type="hidden" name="action" value="unblock">
+     <input type="hidden" name="ref" value="<%= Catenary.index_to_string(@entry) %>" />
+     <input type="hidden" name="whom" value="<%= @whom %>" />
+     <div class="w-100 grid grid-cols-3">
+       <div>Unblock:</div><div><img src="<%= Catenary.identicon(@whom, 2) %>"></div><div><%= Catenary.short_id(@whom, @aliases) %></div>
+       <div>Reason:</div><div class="grid-cols=2"><textarea class="bg-white dark:bg-black" name="reason" rows="4" cols="20"></textarea></div>
+     </div>
+     <hr/>
+     <button phx-disable-with="𝄇" type="submit">➲</button>
+    </form>
+    </div>
+    """
+  end
+
   defp extra_nav(%{:extra_nav => :block} = assigns) do
     ~L"""
-    <div id="aliases">
+    <div id="block">
       <p class="my-5">Blocking will be published on a public log.
       While this is worthwhile to help others on the network, it can have negative social implications.
       As with all log entries, a block cannot disappear from your history.</p>
@@ -114,7 +138,7 @@ defmodule Catenary.Live.Navigation do
          <input type="hidden" name="ref" value="<%= Catenary.index_to_string(@entry) %>" />
          <input type="hidden" name="whom" value="<%= @whom %>" />
          <div class="w-100 grid grid-cols-3">
-           <div>Blocking:</div><div><img src="<%= Catenary.identicon(@whom, 2) %>"></div><div><%= Catenary.short_id(@whom, @aliases) %></div>
+           <div>Block:</div><div><img src="<%= Catenary.identicon(@whom, 2) %>"></div><div><%= Catenary.short_id(@whom, @aliases) %></div>
            <div>Reason:</div><div class="grid-cols=2"><textarea class="bg-white dark:bg-black" name="reason" rows="4" cols="20"></textarea></div>
          </div>
          <hr/>

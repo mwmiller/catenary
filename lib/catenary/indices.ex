@@ -11,7 +11,7 @@ defmodule Catenary.Indices do
   def clear_all() do
     # This information is all over the place. :(
     # One source of truth
-    for table <- [:refs, :tags, :aliases, :timelines, :graph] do
+    for table <- [:refs, :tags, :aliases, :timelines] do
       Catenary.dets_open(table)
       :dets.delete_all_objects(table)
       Catenary.dets_close(table)
@@ -34,18 +34,6 @@ defmodule Catenary.Indices do
     |> index(clump_id, alias_logs, :aliases)
 
     Catenary.dets_close(:aliases)
-  end
-
-  def index_graph(id, clump_id) do
-    graph_logs = QuaggaDef.logs_for_name(:graph)
-    Catenary.dets_open(:graph)
-    :dets.delete_all_objects(:graph)
-
-    graph_logs
-    |> Enum.map(fn l -> {id, l, 1} end)
-    |> index(clump_id, graph_logs, :graph)
-
-    Catenary.dets_close(:graph)
   end
 
   def index_tags(stored_info, clump_id) do
@@ -152,27 +140,6 @@ defmodule Catenary.Indices do
     end
 
     entries_index(rest, clump_id, :aliases)
-  end
-
-  defp entries_index([entry | rest], clump_id, :graph) do
-    try do
-      %Baobab.Entry{payload: payload} = entry
-      {:ok, data, ""} = CBOR.decode(payload)
-      action = data["action"]
-      whom = data["whom"]
-
-      case action do
-        "block" -> Baobab.ClumpMeta.block_author(whom, clump_id)
-        _ -> :ok
-      end
-
-      :dets.insert(:graph, {whom, action})
-    rescue
-      _ ->
-        :ok
-    end
-
-    entries_index(rest, clump_id, :graph)
   end
 
   defp entries_index([entry | rest], clump_id, :refs) do

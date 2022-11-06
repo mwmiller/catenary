@@ -150,7 +150,7 @@ defmodule Catenary.LogWriter do
 
     b62author = Baobab.Identity.as_base62(a)
     entry = {b62author, l, e}
-    Catenary.Indices.index_graph(b62author, socket.assigns.clump_id)
+    Catenary.SocialGraph.update_from_logs(b62author, socket.assigns.clump_id)
     Catenary.Indices.index_references([entry], socket.assigns.clump_id)
     entry
   end

@@ -34,7 +34,16 @@ defmodule Catenary.Live.EntryViewer do
   end
 
   def update(%{store: store, entry: which, clump_id: clump_id} = assigns, socket) do
-    {:ok, assign(socket, Map.merge(assigns, %{card: extract(which, clump_id, store)}))}
+    way =
+      case Catenary.blocked?(which, clump_id) do
+        true ->
+          %{card: :blocked}
+
+        false ->
+          %{card: extract(which, clump_id, store)}
+      end
+
+    {:ok, assign(socket, Map.merge(assigns, way))}
   end
 
   @impl true
@@ -51,6 +60,17 @@ defmodule Catenary.Live.EntryViewer do
       <div class="min-w-full font-sans row-span-full">
         <h1>Unrenderable card</h1>
       </div>
+    """
+  end
+
+  def render(%{card: :blocked} = assigns) do
+    ~L"""
+      <div id="block-wrap" class="col-span-2 overflow-y-auto max-h-screen m-2 p-x-2">
+      <div class="min-w-full font-sans row-span-full">
+        <h1>Blocked author</h1>
+        <p>You have blocked this author. Their activity will not be available to you unless you unblock.</p>
+      </div>
+    </div>
     """
   end
 
