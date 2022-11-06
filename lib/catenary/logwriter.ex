@@ -134,7 +134,7 @@ defmodule Catenary.LogWriter do
           "log_id" => "1337",
           "reason" => reason,
           "action" => action
-        } = vals,
+        },
         socket
       ) do
     %Baobab.Entry{author: a, log_id: l, seqnum: e} =
