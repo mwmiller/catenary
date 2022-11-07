@@ -3,7 +3,7 @@ defmodule CatenaryWeb.Live do
   alias Catenary.{Navigation, Oases, LogWriter}
 
   @ui_fast 1062
-  @ui_slow 11131
+  @ui_slow 2909
   @indices [:tags, :references, :timelines, :aliases, :graph]
 
   def mount(_params, session, socket) do
