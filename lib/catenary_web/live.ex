@@ -2,8 +2,7 @@ defmodule CatenaryWeb.Live do
   use CatenaryWeb, :live_view
   alias Catenary.{Navigation, Oases, LogWriter}
 
-  @ui_fast 1062
-  @ui_slow 2909
+  @ui_speed 2909
   @indices [:tags, :references, :timelines, :aliases, :graph]
 
   def mount(_params, session, socket) do
@@ -39,6 +38,8 @@ defmodule CatenaryWeb.Live do
     |> Desktop.Window.webview()
     |> :wxWebView.enableContextMenu()
 
+    Process.send_after(self(), :ui_loop, @ui_speed, [])
+
     {:ok,
      state_set(
        socket,
@@ -47,7 +48,6 @@ defmodule CatenaryWeb.Live do
          store: [],
          id_hash: <<>>,
          identities: [],
-         ui_speed: @ui_slow,
          aliases: {:out_of_date, %{}},
          view: view,
          extra_nav: :stack,
@@ -61,8 +61,7 @@ defmodule CatenaryWeb.Live do
          clump_id: clump_id,
          identity: whoami,
          facet_id: facet_id
-       },
-       true
+       }
      )}
   end
 
@@ -167,8 +166,8 @@ defmodule CatenaryWeb.Live do
     {:noreply, state_set(socket, Navigation.move_to("specified", which, socket.assigns))}
   end
 
-  def handle_info(:check_store, socket) do
-    {:noreply, state_set(socket, %{}, true)}
+  def handle_info(:ui_loop, socket) do
+    {:noreply, ui_loop(socket)}
   end
 
   def handle_event("toview", %{"value" => sview}, socket) do
@@ -370,17 +369,33 @@ defmodule CatenaryWeb.Live do
 
   defp do_prefs([_ | rest]), do: do_prefs(rest)
 
-  defp state_set(socket, from_caller, reup? \\ false) do
+  defp ui_loop(socket) do
+    state = socket.assigns
+
+    # We spin on this without regard to whether anything interesting happens
+    Process.send_after(self(), :ui_loop, @ui_speed)
+
+    # These are the conditions that might make us need to actually do work.
+    # Work is done in setting the state
+    case Baobab.Persistence.current_hash(:content, state.clump_id) != state.store_hash or
+           Enum.any?(state.indexing, fn {_, v} -> is_pid(v) end) or
+           state.connections != [] do
+      true -> state_set(socket, %{})
+      false -> socket
+    end
+  end
+
+  defp state_set(socket, from_caller) do
     full_socket = assign(socket, from_caller)
     do_prefs(from_caller |> Map.to_list())
     state = full_socket.assigns
     clump_id = state.clump_id
-    sihash = Baobab.Persistence.current_hash(:content, clump_id)
+    shash = Baobab.Persistence.current_hash(:content, clump_id)
 
-    {updated?, si} =
+    si =
       case state.store_hash do
-        ^sihash -> {false, state.store}
-        _ -> {true, Baobab.stored_info(clump_id)}
+        ^shash -> state.store
+        _ -> Baobab.stored_info(clump_id)
       end
 
     ihash = Baobab.Persistence.current_hash(:identity, clump_id)
@@ -391,47 +406,25 @@ defmodule CatenaryWeb.Live do
         _ -> Baobab.Identity.list()
       end
 
-    indexing = check_indices(state, updated?, si)
-    con = check_connections(state.connections, [])
+    indexing = check_indices(state, shash, si)
 
     aliases =
       case {state.aliases, indexing.aliases} do
-        {{:out_of_date, _}, :not_running} -> Catenary.alias_state()
-        {ok, :not_running} -> ok
+        {{:out_of_date, _}, b} when is_binary(b) -> Catenary.alias_state()
+        {ok, b} when is_binary(b) -> ok
         {{_, am}, _} -> {:out_of_date, am}
       end
 
-    common = [
+    assign(full_socket,
       identities: ids,
       id_hash: ihash,
-      indexing: indexing,
-      connections: con,
-      store_hash: sihash,
-      aliases: aliases
-    ]
-
-    {ui_speed, extra} =
-      case updated? do
-        true ->
-          {@ui_fast,
-           [
-             store: si,
-             oases: Oases.recents(si, clump_id, 4)
-           ]}
-
-        false ->
-          speed =
-            case con do
-              [] -> @ui_slow
-              _ -> @ui_fast
-            end
-
-          {speed, []}
-      end
-
-    if reup?, do: Process.send_after(self(), :check_store, ui_speed, [])
-
-    assign(full_socket, common ++ extra)
+      indexing: check_indices(state, shash, si),
+      connections: check_connections(state.connections, []),
+      store_hash: shash,
+      aliases: aliases,
+      store: si,
+      oases: Oases.recents(si, clump_id, 4)
+    )
   end
 
   defp check_indices(state, updated?, si) do
@@ -441,47 +434,56 @@ defmodule CatenaryWeb.Live do
   # We have to match on literals, so we macro this.
   # I expected something different
   for index <- @indices do
-    defp check_index(unquote(index), %{indexing: %{unquote(index) => pid}} = state, updated?, si)
+    defp check_index(unquote(index), %{indexing: %{unquote(index) => pid}} = state, shash, si)
          when is_pid(pid) do
       case Process.alive?(pid) do
         true ->
           %{unquote(index) => pid}
 
         false ->
-          idx = Map.merge(state.indexing, %{unquote(index) => :not_running})
-          check_index(unquote(index), Map.merge(state, %{indexing: idx}), updated?, si)
+          idx = Map.merge(state.indexing, %{unquote(index) => shash})
+          check_index(unquote(index), Map.merge(state, %{indexing: idx}), shash, si)
       end
     end
-
-    defp check_index(unquote(index), %{indexing: %{unquote(index) => :not_running}}, false, _si),
-      do: %{unquote(index) => :not_running}
   end
 
   # FYI these Task.start items do not work as might be expected
   # We get the task pid, not the underlying task process pid
   # This might seem like the same thing, but it's not sometimes
-  defp check_index(which, state, true, si) do
-    {:ok, pid} =
-      case which do
-        :timelines ->
-          Task.start(Catenary.Indices, :index_timelines, [si, state.clump_id])
+  defp check_index(which, state, shash, si) do
+    new_state =
+      case state.store_hash == shash do
+        true ->
+          shash
 
-        :aliases ->
-          Task.start(Catenary.Indices, :index_aliases, [state.identity, state.clump_id])
+        false ->
+          {:ok, pid} =
+            case which do
+              :timelines ->
+                Task.start(Catenary.Indices, :index_timelines, [si, state.clump_id])
 
-        :tags ->
-          Task.start(Catenary.Indices, :index_tags, [si, state.clump_id])
+              :aliases ->
+                Task.start(Catenary.Indices, :index_aliases, [state.identity, state.clump_id])
 
-        :references ->
-          Task.start(Catenary.Indices, :index_references, [si, state.clump_id])
+              :tags ->
+                Task.start(Catenary.Indices, :index_tags, [si, state.clump_id])
 
-        # This "index" is maintained in Baobab and is a heavy operation
-        # it should perhaps be less often run
-        :graph ->
-          Task.start(Catenary.SocialGraph, :update_from_logs, [state.identity, state.clump_id])
+              :references ->
+                Task.start(Catenary.Indices, :index_references, [si, state.clump_id])
+
+              # This "index" is maintained in Baobab and is a heavy operation
+              # it should perhaps be less often run
+              :graph ->
+                Task.start(Catenary.SocialGraph, :update_from_logs, [
+                  state.identity,
+                  state.clump_id
+                ])
+            end
+
+          pid
       end
 
-    %{which => pid}
+    %{which => new_state}
   end
 
   defp check_connections([], acc), do: acc

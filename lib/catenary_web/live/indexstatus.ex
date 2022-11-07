@@ -18,15 +18,19 @@ defmodule Catenary.Live.IndexStatus do
 
   defp istatus([], chars), do: Enum.join(chars, " ")
 
-  # These should likely be macros as well, but I wrote them by hand first.
-  defp istatus([{:references, :not_running} | rest], chars), do: istatus(rest, ["※" | chars])
-  defp istatus([{:references, _pid} | rest], chars), do: istatus(rest, ["𝍂" | chars])
-  defp istatus([{:aliases, :not_running} | rest], chars), do: istatus(rest, ["⍱" | chars])
-  defp istatus([{:aliases, _pid} | rest], chars), do: istatus(rest, ["⍲" | chars])
-  defp istatus([{:tags, :not_running} | rest], chars), do: istatus(rest, ["‽" | chars])
-  defp istatus([{:tags, _pid} | rest], chars), do: istatus(rest, ["⸘" | chars])
-  defp istatus([{:timelines, :not_running} | rest], chars), do: istatus(rest, ["∥" | chars])
-  defp istatus([{:timelines, _pid} | rest], chars), do: istatus(rest, ["∦" | chars])
-  defp istatus([{:graph, :not_running} | rest], chars), do: istatus(rest, ["∋" | chars])
-  defp istatus([{:graph, _pid} | rest], chars), do: istatus(rest, ["∌" | chars])
+  @status_indica [
+    {:references, "𝍂", "𝍂"},
+    {:aliases, "⍲", "⍱"},
+    {:tags, "⸘", "‽"},
+    {:timelines, "∦", "∥"},
+    {:graph, "∌", "∋"}
+  ]
+
+  for {index, running, idle} <- @status_indica do
+    defp istatus([{unquote(index), pid} | rest], chars) when is_pid(pid),
+      do: istatus(rest, [unquote(running) | chars])
+
+    defp istatus([{unquote(index), _shash} | rest], chars),
+      do: istatus(rest, [unquote(idle) | chars])
+  end
 end
