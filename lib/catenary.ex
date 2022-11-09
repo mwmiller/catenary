@@ -7,7 +7,7 @@ defmodule Catenary do
   """
   @dets_tables %{
     aliases: "aliases.dets",
-    refs: "references.dets",
+    references: "references.dets",
     prefs: "preferences.dets",
     graph: "social_graph.dets",
     tags: "tags.dets",

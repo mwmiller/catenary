@@ -2,13 +2,13 @@ defmodule CatenaryWeb.Live do
   use CatenaryWeb, :live_view
   alias Catenary.{Navigation, Oases, LogWriter}
 
-  @ui_speed 2909
   @indices [:tags, :references, :timelines, :aliases, :graph]
 
   def mount(_params, session, socket) do
     # Making sure these exist, but also faux docs
     {:asc, :desc, :author, :logid, :seq}
     Phoenix.PubSub.subscribe(Catenary.PubSub, "ui")
+    Phoenix.PubSub.subscribe(Catenary.PubSub, "background")
 
     whoami = Catenary.Preferences.get(:identity)
     clumps = Application.get_env(:catenary, :clumps)
@@ -37,8 +37,6 @@ defmodule CatenaryWeb.Live do
     CatenaryWindow
     |> Desktop.Window.webview()
     |> :wxWebView.enableContextMenu()
-
-    Process.send_after(self(), :ui_loop, @ui_speed, [])
 
     {:ok,
      state_set(
@@ -166,8 +164,26 @@ defmodule CatenaryWeb.Live do
     {:noreply, state_set(socket, Navigation.move_to("specified", which, socket.assigns))}
   end
 
-  def handle_info(:ui_loop, socket) do
-    {:noreply, ui_loop(socket)}
+  def handle_info({:completed, which}, %{assigns: assigns} = socket) do
+    # This is non-atomically incorrect.  FIXME
+    thehash = Baobab.Persistence.current_hash(:content, assigns.clump_id)
+
+    update =
+      case which do
+        {:indexing, :aliases, _pid} ->
+          %{
+            aliases: Catenary.alias_state(),
+            indexing: Map.merge(assigns.indexing, %{:aliases => thehash})
+          }
+
+        {:indexing, key, _pid} ->
+          %{indexing: Map.merge(assigns.indexing, %{key => thehash})}
+
+        {:connection, ident} ->
+          %{connections: Enum.reject(assigns.connections, fn {i, _map} -> i == ident end)}
+      end
+
+    {:noreply, state_set(socket, update)}
   end
 
   def handle_event("toview", %{"value" => sview}, socket) do
@@ -321,33 +337,22 @@ defmodule CatenaryWeb.Live do
 
     which = Keyword.get(this_clump, :fallback_node)
 
-    case Baby.connect(Keyword.get(which, :host), Keyword.get(which, :port),
-           identity: Catenary.id_for_key(socket.assigns.identity),
-           clump_id: socket.assigns.clump_id
-         ) do
-      {:ok, pid} ->
-        {:noreply, state_set(socket, %{connections: [{pid, %{}} | socket.assigns.connections]})}
-
-      _ ->
-        {:noreply, socket}
-    end
+    ident = connector_wrap(Keyword.get(which, :host), Keyword.get(which, :port), socket)
+    {:noreply, state_set(socket, %{connections: [{ident, %{}} | socket.assigns.connections]})}
   end
 
   def handle_event("connect", %{"value" => where}, socket) do
     with {a, l, e} = index <- Catenary.string_to_index(where),
          %Baobab.Entry{payload: payload} <-
            Baobab.log_entry(a, e, log_id: l, clump_id: socket.assigns.clump_id),
-         {:ok, map, ""} <- CBOR.decode(payload),
-         {:ok, pid} <-
-           Baby.connect(map["host"], map["port"],
-             identity: Catenary.id_for_key(socket.assigns.identity),
-             clump_id: socket.assigns.clump_id
-           ) do
+         {:ok, map, ""} <- CBOR.decode(payload) do
+      ident = connector_wrap(map["host"], map["port"], socket)
+
       {:noreply,
        state_set(
          socket,
          %{
-           connections: [{pid, Map.put(map, :id, index)} | socket.assigns.connections]
+           connections: [{ident, Map.put(map, :id, index)} | socket.assigns.connections]
          }
        )}
     else
@@ -368,22 +373,6 @@ defmodule CatenaryWeb.Live do
   end
 
   defp do_prefs([_ | rest]), do: do_prefs(rest)
-
-  defp ui_loop(socket) do
-    state = socket.assigns
-
-    # We spin on this without regard to whether anything interesting happens
-    Process.send_after(self(), :ui_loop, @ui_speed)
-
-    # These are the conditions that might make us need to actually do work.
-    # Work is done in setting the state
-    case Baobab.Persistence.current_hash(:content, state.clump_id) != state.store_hash or
-           Enum.any?(state.indexing, fn {_, v} -> is_pid(v) end) or
-           state.connections != [] do
-      true -> state_set(socket, %{})
-      false -> socket
-    end
-  end
 
   defp state_set(socket, from_caller) do
     full_socket = assign(socket, from_caller)
@@ -406,22 +395,11 @@ defmodule CatenaryWeb.Live do
         _ -> Baobab.Identity.list()
       end
 
-    indexing = check_indices(state, shash, si)
-
-    aliases =
-      case {state.aliases, indexing.aliases} do
-        {{:out_of_date, _}, b} when is_binary(b) -> Catenary.alias_state()
-        {ok, b} when is_binary(b) -> ok
-        {{_, am}, _} -> {:out_of_date, am}
-      end
-
     assign(full_socket,
       identities: ids,
       id_hash: ihash,
       indexing: check_indices(state, shash, si),
-      connections: check_connections(state.connections, []),
       store_hash: shash,
-      aliases: aliases,
       store: si,
       oases: Oases.recents(si, clump_id, 4)
     )
@@ -447,9 +425,6 @@ defmodule CatenaryWeb.Live do
     end
   end
 
-  # FYI these Task.start items do not work as might be expected
-  # We get the task pid, not the underlying task process pid
-  # This might seem like the same thing, but it's not sometimes
   defp check_index(which, state, shash, si) do
     new_state =
       case state.store_hash == shash do
@@ -486,15 +461,43 @@ defmodule CatenaryWeb.Live do
     %{which => new_state}
   end
 
-  defp check_connections([], acc), do: acc
-
-  defp check_connections([{pid, _} = val | rest], acc) do
-    case Process.alive?(pid) do
-      true ->
-        check_connections(rest, [val | acc])
-
-      false ->
-        check_connections(rest, acc)
+  defp connector_wrap(host, port, socket) do
+    # This should probably use `Process.spawn` with `:monitor`
+    # Feel free to curse my name when that becomes true
+    # We get the task pid, not the underlying task process pid
+    # This might seem like the same thing, but it's not sometimes
+    #
+    done = fn ->
+      Phoenix.PubSub.local_broadcast(
+        Catenary.PubSub,
+        "background",
+        {:completed, {:connection, {host, port}}}
+      )
     end
+
+    Task.start(fn ->
+      with {:ok, pid} <-
+             Baby.connect(host, port,
+               identity: Catenary.id_for_key(socket.assigns.identity),
+               clump_id: socket.assigns.clump_id
+             ) do
+        loop = fn p, f ->
+          case Process.alive?(p) do
+            true ->
+              Process.sleep(547)
+              f.(p, f)
+
+            false ->
+              done.()
+          end
+        end
+
+        loop.(pid, loop)
+      else
+        _ -> done.()
+      end
+    end)
+
+    {host, port}
   end
 end

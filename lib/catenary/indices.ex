@@ -11,7 +11,7 @@ defmodule Catenary.Indices do
   def clear_all() do
     # This information is all over the place. :(
     # One source of truth
-    for table <- [:refs, :tags, :aliases, :timelines] do
+    for table <- [:references, :tags, :aliases, :timelines] do
       Catenary.dets_open(table)
       :dets.delete_all_objects(table)
       Catenary.dets_close(table)
@@ -19,9 +19,9 @@ defmodule Catenary.Indices do
   end
 
   def index_references(stored_info, clump_id) do
-    Catenary.dets_open(:refs)
-    index(stored_info, clump_id, QuaggaDef.logs_for_encoding(:cbor), :refs)
-    Catenary.dets_close(:refs)
+    Catenary.dets_open(:references)
+    index(stored_info, clump_id, QuaggaDef.logs_for_encoding(:cbor), :references)
+    Catenary.dets_close(:references)
   end
 
   def index_aliases(id, clump_id) do
@@ -55,7 +55,15 @@ defmodule Catenary.Indices do
     Catenary.dets_close(:timelines)
   end
 
-  defp index([], _, _, _), do: :ok
+  defp index([], _, _, which) do
+    Phoenix.PubSub.local_broadcast(
+      Catenary.PubSub,
+      "background",
+      {:completed, {:indexing, which, self()}}
+    )
+
+    :ok
+  end
 
   defp index([{a, l, _} | rest], clump_id, log_ids, which) do
     # Side-effects everywhere!
@@ -142,7 +150,7 @@ defmodule Catenary.Indices do
     entries_index(rest, clump_id, :aliases)
   end
 
-  defp entries_index([entry | rest], clump_id, :refs) do
+  defp entries_index([entry | rest], clump_id, :references) do
     try do
       %Baobab.Entry{author: a, log_id: l, seqnum: s, payload: payload} = entry
       index = {Baobab.Identity.as_base62(a), l, s}
@@ -152,21 +160,21 @@ defmodule Catenary.Indices do
         tref = lref |> List.to_tuple()
 
         old_val =
-          case :dets.lookup(:refs, tref) do
+          case :dets.lookup(:references, tref) do
             [] -> []
             [{^tref, val}] -> val
           end
 
         new_val = (old_val ++ [{published(data), index}]) |> Enum.sort() |> Enum.uniq()
 
-        :dets.insert(:refs, {tref, new_val})
+        :dets.insert(:references, {tref, new_val})
       end
     rescue
       _ ->
         :ok
     end
 
-    entries_index(rest, clump_id, :refs)
+    entries_index(rest, clump_id, :references)
   end
 
   defp published(data) when is_map(data) do

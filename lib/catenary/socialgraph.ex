@@ -22,6 +22,12 @@ defmodule Catenary.SocialGraph do
     |> order_operations(identity, clump_id, [])
     |> reduce_operations()
     |> apply_operations(clump_id)
+
+    Phoenix.PubSub.local_broadcast(
+      Catenary.PubSub,
+      "background",
+      {:completed, {:indexing, :graph, self()}}
+    )
   end
 
   defp order_operations([], _, _, acc), do: acc |> Enum.sort()

@@ -365,7 +365,7 @@ defmodule Catenary.Live.EntryViewer do
   defp from_refs(entry) do
     {tags, others} =
       entry
-      |> from_dets(:refs)
+      |> from_dets(:references)
       |> Enum.split_with(fn {_, l, _} -> QuaggaDef.base_log(l) == 749 end)
 
     %{"tagged-in" => tags, "fore-refs" => others}
