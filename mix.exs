@@ -33,6 +33,7 @@ defmodule Catenary.MixProject do
   # Type `mix help deps` for examples and options.
   defp deps do
     [
+      {:appleseed, git: "git@github.com:cmoid/appleseed.git"},
       {:baby, git: "https://github.com/mwmiller/baby_ex"},
       {:baobab, "~> 0.15.0"},
       {:quagga_def, ">= 0.0.0"},
