@@ -88,13 +88,13 @@ defmodule Catenary.SocialGraph do
 
   defp apply_operations([{"block", blockees} | rest], clump_id) do
     blockees
-    |> Enum.map(fn a -> Baobab.ClumpMeta.block_author(a, clump_id) end)
+    |> Enum.map(fn a -> Baobab.ClumpMeta.block(a, clump_id) end)
 
     apply_operations(rest, clump_id)
   end
 
   defp apply_operations([{"unblock", backees} | rest], clump_id) do
-    backees |> Enum.map(fn a -> Baobab.ClumpMeta.unblock_author(a, clump_id) end)
+    backees |> Enum.map(fn a -> Baobab.ClumpMeta.unblock(a, clump_id) end)
     apply_operations(rest, clump_id)
   end
 

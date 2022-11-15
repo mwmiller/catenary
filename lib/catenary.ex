@@ -137,7 +137,7 @@ defmodule Catenary do
   end
 
   # This should use the local indices eventually
-  def blocked?({:profile, a}, clump_id), do: Baobab.ClumpMeta.blocked_author?(a, clump_id)
-  def blocked?({a, _, _}, clump_id), do: Baobab.ClumpMeta.blocked_author?(a, clump_id)
+  def blocked?({:profile, a}, clump_id), do: Baobab.ClumpMeta.blocked?(a, clump_id)
+  def blocked?({a, _, _}, clump_id), do: Baobab.ClumpMeta.blocked?(a, clump_id)
   def blocked?(_, _), do: false
 end
