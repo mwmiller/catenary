@@ -72,7 +72,7 @@ defmodule Catenary.Navigation do
         sent |> Tagline.next(tag) |> new_path(assigns)
 
       "origin" ->
-        new_path({:profile, id}, assigns)
+        new_path(%{view: :entries, entry: {:profile, id}}, assigns)
 
       _ ->
         new_path(sent, assigns)
