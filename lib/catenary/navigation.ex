@@ -8,42 +8,41 @@ defmodule Catenary.Navigation do
   @doc """
   Move to a different entry based on the supplied entry and Phoenix assigns
   """
-  def move_to(motion, from, %{:store => store, :identity => id} = assigns) do
+  def move_to(
+        motion,
+        from,
+        %{
+          store: store,
+          entry: entry,
+          identity: id,
+          entry_back: entry_back,
+          view: view,
+          entry_fore: entry_fore
+        } = assigns
+      ) do
     sent =
       case from do
-        :current -> assigns.entry
+        :current -> %{view: view, entry: entry}
         supplied -> supplied
       end
 
     case motion do
       "back" ->
-        case assigns.entry_back do
+        case entry_back do
           [] ->
-            base_val(sent)
+            sent
 
           [prev | rest] ->
-            Map.merge(
-              base_val(prev),
-              %{
-                entry_back: rest,
-                entry_fore: [sent | assigns.entry_fore]
-              }
-            )
+            Map.merge(prev, %{entry_back: rest, entry_fore: [sent | entry_fore]})
         end
 
       "forward" ->
-        case assigns.entry_fore do
+        case entry_fore do
           [] ->
-            base_val(sent)
+            sent
 
           [next | rest] ->
-            Map.merge(
-              base_val(next),
-              %{
-                entry_fore: rest,
-                entry_back: [sent | assigns.entry_back]
-              }
-            )
+            Map.merge(next, %{entry_fore: rest, entry_back: [sent | entry_back]})
         end
 
       # This does not yet appear in the store
@@ -80,18 +79,21 @@ defmodule Catenary.Navigation do
     end
   end
 
-  defp base_val(to), do: %{view: :entries, entry: to}
-
-  defp new_path(next, %{entry: at, store: store, entry_back: back}, check_existence? \\ true) do
+  defp new_path(
+         next,
+         %{view: view, entry: entry, store: store, entry_back: back},
+         check_existence? \\ true
+       ) do
+    at = %{view: view, entry: entry}
     to = if check_existence?, do: maybe_wrap(next, store), else: next
 
     case to == at do
-      true -> base_val(to)
-      false -> Map.merge(base_val(to), %{entry_back: [at | back], entry_fore: []})
+      true -> to
+      false -> Map.merge(to, %{entry_back: [at | back], entry_fore: []})
     end
   end
 
-  defp maybe_wrap({a, l, e}, store) do
+  defp maybe_wrap(%{view: view, entry: {a, l, e}}, store) do
     max =
       store
       |> Enum.reduce(1, fn
@@ -99,12 +101,15 @@ defmodule Catenary.Navigation do
         _, acc -> acc
       end)
 
-    cond do
-      # Wrap around
-      e < 1 -> {a, l, max}
-      e > max -> {a, l, 1}
-      true -> {a, l, e}
-    end
+    entry =
+      cond do
+        # Wrap around
+        e < 1 -> {a, l, max}
+        e > max -> {a, l, 1}
+        true -> {a, l, e}
+      end
+
+    %{view: view, entry: entry}
   end
 
   defp maybe_wrap(entry, _), do: entry

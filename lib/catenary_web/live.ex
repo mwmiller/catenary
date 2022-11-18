@@ -96,7 +96,7 @@ defmodule CatenaryWeb.Live do
   def render(%{view: :tags} = assigns) do
     ~L"""
      <div class="max-h-screen w-100 grid grid-cols-3 gap-2 justify-center">
-       <%= live_component(Catenary.Live.TagExplorer, id: :tags, tag: :all) %>
+       <%= live_component(Catenary.Live.TagExplorer, id: :tags, tag: @entry) %>
        <%= sidebar(assigns) %>
      </div>
     """
@@ -105,7 +105,7 @@ defmodule CatenaryWeb.Live do
   def render(%{view: :unshown} = assigns) do
     ~L"""
      <div class="max-h-screen w-100 grid grid-cols-3 gap-2 justify-center">
-       <%= live_component(Catenary.Live.UnshownExplorer, id: :unshown, which: :all, clump_id: @clump_id, store_hash: @store_hash) %>
+       <%= live_component(Catenary.Live.UnshownExplorer, id: :unshown, which: @entry, clump_id: @clump_id, store_hash: @store_hash) %>
        <%= sidebar(assigns) %>
      </div>
     """
@@ -140,28 +140,16 @@ defmodule CatenaryWeb.Live do
     """
   end
 
-  def handle_info(%{view: :prefs}, socket) do
-    {:noreply, state_set(socket, %{view: :prefs})}
-  end
-
-  def handle_info(%{view: :aliases}, socket) do
-    {:noreply, state_set(socket, %{view: :aliases})}
-  end
-
-  def handle_info(%{view: :tags}, socket) do
-    {:noreply, state_set(socket, %{view: :tags})}
-  end
-
-  def handle_info(%{view: :unshown}, socket) do
-    {:noreply, state_set(socket, %{view: :unshown})}
-  end
-
   def handle_info(%{view: :dashboard}, socket) do
     {:noreply, push_redirect(socket, to: Routes.live_dashboard_path(socket, :home))}
   end
 
-  def handle_info(%{entry: which}, socket) do
-    {:noreply, state_set(socket, Navigation.move_to("specified", which, socket.assigns))}
+  def handle_info(%{view: view, entry: which}, socket) do
+    {:noreply,
+     state_set(
+       socket,
+       Navigation.move_to("specified", %{view: view, entry: which}, socket.assigns)
+     )}
   end
 
   def handle_info({:completed, which}, %{assigns: assigns} = socket) do
@@ -187,7 +175,8 @@ defmodule CatenaryWeb.Live do
   end
 
   def handle_event("toview", %{"value" => sview}, socket) do
-    {:noreply, state_set(socket, %{view: String.to_existing_atom(sview)})}
+    # This :all default might not make sense in the long-term
+    {:noreply, state_set(socket, %{view: String.to_existing_atom(sview), entry: :all})}
   end
 
   def handle_event("shown", %{"value" => mark}, socket) do
@@ -223,6 +212,7 @@ defmodule CatenaryWeb.Live do
     {:noreply,
      state_set(socket, %{
        clump_id: clump_id,
+       view: :entries,
        entry: {:profile, socket.assigns.identity}
      })}
   end
@@ -307,12 +297,20 @@ defmodule CatenaryWeb.Live do
     {:noreply,
      state_set(
        socket,
-       Navigation.move_to("specified", Catenary.string_to_index(index_string), socket.assigns)
+       Navigation.move_to(
+         "specified",
+         %{view: :entries, entry: Catenary.string_to_index(index_string)},
+         socket.assigns
+       )
      )}
   end
 
   def handle_event("view-tag", %{"value" => tag}, socket) do
-    {:noreply, state_set(socket, Navigation.move_to("specified", {:tag, tag}, socket.assigns))}
+    {:noreply,
+     state_set(
+       socket,
+       Navigation.move_to("specified", %{view: :entries, entry: {:tag, tag}}, socket.assigns)
+     )}
   end
 
   def handle_event("nav-forward", _, socket) do
@@ -327,7 +325,11 @@ defmodule CatenaryWeb.Live do
     {:noreply,
      state_set(
        socket,
-       Navigation.move_to("new", LogWriter.new_entry(values, socket), socket.assigns)
+       Navigation.move_to(
+         "new",
+         %{view: :entries, entry: LogWriter.new_entry(values, socket)},
+         socket.assigns
+       )
      )}
   end
 

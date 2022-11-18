@@ -94,8 +94,8 @@ defmodule Catenary.Application do
     [
       {"File",
        [
-         %{label: "Dashboard", command: "dashboard", action: %{view: :dashboard}},
-         %{label: "Preferences...", command: "prefs", action: %{view: :prefs}},
+         %{label: "Dashboard", command: "dashboard", action: %{view: :dashboard, entry: :none}},
+         %{label: "Preferences...", command: "prefs", action: %{view: :prefs, entry: :none}},
          :rule,
          %{label: "Reset view", command: "reset"},
          :rule,
@@ -103,13 +103,13 @@ defmodule Catenary.Application do
        ]},
       {"Explore",
        [
-         %{label: "Unshown", command: "unshown", action: %{view: :unshown}},
-         %{label: "Tags", command: "tag", action: %{view: :tags}},
-         %{label: "Journals", command: "journal", action: %{entry: :journal}},
-         %{label: "Replies", command: "reply", action: %{entry: :reply}},
-         %{label: "Aliases", command: "alias", action: %{view: :aliases}},
-         %{label: "Oases", command: "oasis", action: %{entry: :oasis}},
-         %{label: "Test posts", command: "test", action: %{entry: :test}}
+         %{label: "Unshown", command: "unshown", action: %{view: :unshown, entry: :all}},
+         %{label: "Tags", command: "tag", action: %{view: :tags, entry: :all}},
+         %{label: "Journals", command: "journal", action: %{view: :entries, entry: :journal}},
+         %{label: "Replies", command: "reply", action: %{view: :entries, entry: :reply}},
+         %{label: "Aliases", command: "alias", action: %{view: :aliases, entry: :all}},
+         %{label: "Oases", command: "oasis", action: %{view: :entries, entry: :oasis}},
+         %{label: "Test posts", command: "test", action: %{view: :entries, entry: :test}}
        ]}
     ]
   end

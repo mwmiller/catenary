@@ -27,7 +27,7 @@ defmodule Catenary.Live.EntryViewer do
             update(assigns, socket)
 
           card ->
-            Phoenix.PubSub.local_broadcast(Catenary.PubSub, "ui", %{entry: entry})
+            Phoenix.PubSub.local_broadcast(Catenary.PubSub, "ui", %{view: :entries, entry: entry})
             {:ok, assign(socket, Map.merge(assigns, %{card: card}))}
         end
     end
@@ -326,7 +326,7 @@ defmodule Catenary.Live.EntryViewer do
       "title" => "Malformed Entry",
       "back-refs" => [],
       "body" => maybe_text(body),
-      "published" => "unknown"
+      "published" => :unknown
     }
   end
 

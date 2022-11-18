@@ -21,7 +21,7 @@ defmodule Catenary.Live.Ident do
   # This seems a bit convoluted, but I want to reuse the menu logic
   @impl true
   def handle_event("to-im", _, socket) do
-    Phoenix.PubSub.local_broadcast(Catenary.PubSub, "ui", %{view: :prefs})
+    Phoenix.PubSub.local_broadcast(Catenary.PubSub, "ui", %{view: :prefs, entry: :none})
     {:noreply, socket}
   end
 end

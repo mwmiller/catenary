@@ -13,7 +13,7 @@ defmodule Catenary.Tagline do
   """
   def prev(entry, tag), do: move(entry, tag, :prev)
 
-  defp move({a, l, e} = entry, tag, dir) do
+  defp move(%{view: :entries, entry: {a, l, e} = entry}, tag, dir) do
     Catenary.dets_open(:tags)
     ti = {"", tag}
 
@@ -37,7 +37,7 @@ defmodule Catenary.Tagline do
         :next -> Enum.at(tagline, wherearewe + 1, Enum.at(tagline, 0))
       end
 
-    to_entry
+    %{view: :entries, entry: to_entry}
   end
 
   defp move(entry, _, _), do: entry

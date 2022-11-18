@@ -21,10 +21,10 @@ defmodule Catenary.Timeline do
   """
   def prev(entry), do: move(entry, :prev)
 
-  defp move({:tag, t}, _), do: {:tag, t}
-  defp move({:profile, a}, _), do: {:profile, a}
+  defp move(%{view: :entries, entry: {:tag, _t}} = c, _), do: c
+  defp move(%{view: :entries, entry: {:profile, _a}} = c, _), do: c
 
-  defp move({a, l, e} = entry, dir) when l in @timeline_ids do
+  defp move(%{view: :entries, entry: {a, l, e} = entry}, dir) when l in @timeline_ids do
     Catenary.dets_open(:timelines)
 
     timeline =
@@ -47,9 +47,14 @@ defmodule Catenary.Timeline do
         :next -> Enum.at(timeline, wherearewe + 1, Enum.at(timeline, 0))
       end
 
-    to_entry
+    %{view: :entries, entry: to_entry}
   end
 
-  defp move({a, l, e}, :prev), do: {a, l, e - 1}
-  defp move({a, l, e}, :next), do: {a, l, e + 1}
+  defp move(%{view: :entries, entry: {a, l, e}}, :prev),
+    do: %{view: :entries, entry: {a, l, e - 1}}
+
+  defp move(%{view: :entries, entry: {a, l, e}}, :next),
+    do: %{view: :entries, entry: {a, l, e + 1}}
+
+  defp move(curr, _), do: curr
 end
