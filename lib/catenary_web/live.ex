@@ -87,7 +87,7 @@ defmodule CatenaryWeb.Live do
   def render(%{view: :entries, entry: {:tag, tag}} = assigns) do
     ~L"""
      <div class="max-h-screen w-100 grid grid-cols-3 gap-2 justify-center">
-       <%= live_component(Catenary.Live.TagViewer, id: :tags, tag: tag ) %>
+       <%= live_component(Catenary.Live.TagViewer, id: :tags, entry: tag ) %>
        <%= sidebar(assigns) %>
      </div>
     """
@@ -96,7 +96,7 @@ defmodule CatenaryWeb.Live do
   def render(%{view: :tags} = assigns) do
     ~L"""
      <div class="max-h-screen w-100 grid grid-cols-3 gap-2 justify-center">
-       <%= live_component(Catenary.Live.TagExplorer, id: :tags, tag: @entry) %>
+       <%= live_component(Catenary.Live.TagExplorer, id: :tags, entry: @entry) %>
        <%= sidebar(assigns) %>
      </div>
     """
@@ -278,7 +278,7 @@ defmodule CatenaryWeb.Live do
   def handle_event(<<"rename-id-", _::binary>>, _, socket), do: {:noreply, socket}
 
   def handle_event("tag-explorer", _, socket) do
-    {:noreply, state_set(socket, %{view: :tags})}
+    {:noreply, state_set(socket, %{view: :tags, entry: :all})}
   end
 
   def handle_event(<<"toggle-", which::binary>>, _, socket) do

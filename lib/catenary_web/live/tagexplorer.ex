@@ -3,7 +3,7 @@ defmodule Catenary.Live.TagExplorer do
   use Phoenix.LiveComponent
 
   @impl true
-  def update(%{tag: which} = assigns, socket) do
+  def update(%{entry: which} = assigns, socket) do
     {:ok, assign(socket, Map.merge(assigns, %{card: extract(which)}))}
   end
 

@@ -3,8 +3,8 @@ defmodule Catenary.Live.TagViewer do
   use Phoenix.LiveComponent
 
   @impl true
-  def update(%{tag: which} = assigns, socket) do
-    {:ok, assign(socket, Map.merge(assigns, %{card: extract(which)}))}
+  def update(%{entry: tag} = assigns, socket) do
+    {:ok, assign(socket, Map.merge(assigns, %{card: extract(tag), tag: tag}))}
   end
 
   @impl true
