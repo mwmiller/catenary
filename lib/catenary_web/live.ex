@@ -241,8 +241,16 @@ defmodule CatenaryWeb.Live do
     {:noreply, state_set(socket, %{facet_id: fid})}
   end
 
-  # I keep thinking I will write these with `phx-target` to the component
-  # but then I realise I need the global state updates
+  # There should always be a selection.  Make sure it's not being dropped
+  def handle_event("identity-change", %{"selection" => whom, "drop" => whom}, socket) do
+    {:noreply, state_set(socket, %{identity: whom |> Baobab.Identity.as_base62()})}
+  end
+
+  def handle_event("identity-change", %{"selection" => whom, "drop" => doom}, socket) do
+    :ok = Baobab.Identity.drop(doom)
+    {:noreply, state_set(socket, %{identity: whom |> Baobab.Identity.as_base62()})}
+  end
+
   def handle_event("identity-change", %{"selection" => whom}, socket) do
     {:noreply, state_set(socket, %{identity: whom |> Baobab.Identity.as_base62()})}
   end

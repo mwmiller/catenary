@@ -18,9 +18,10 @@ defmodule Catenary.Live.PrefsManager do
           <% end %>
         </select>
       </form>
-      <form method="post" id="identity-form" phx-change="identity-change" phx=hook="clumpUpdated">
+      <form method="post" id="identity-form" phx-change="identity-change">
       <table class="min-w-full"><thead>
-        <tr class="border border-slate-200 dark:border-slate-800"><th>Selection</th><th>Name</th><th>Identicon</th><th>AKA</th><th>Activity</th></tr>
+        <thead>
+          <tr class="border border-slate-200 dark:border-slate-800"><th>Select</th><th>Name</th><th>Identicon</th><th>AKA</th><th>Activity</th><th class="text-amber-900">DROP</th></tr>
       </thead>
       <tbody class="text-center">
         <%= for {n, k} <- @identities do %>
@@ -30,6 +31,7 @@ defmodule Catenary.Live.PrefsManager do
             <td><img class="mx-auto" src="<%= Catenary.identicon(k, 4) %>"></td>
             <td><%= Catenary.linked_author(k, @aliases) %></td>
             <td><%= log_info_string(@store, k) %></td>
+            <td> <%= if k == @identity do %>⛒<% else %><input type="radio" name="drop" value="<%= n %>"><% end %></td>
           </tr>
         <% end %>
         <tr class="my-10 border border-slate-200 dark:border-slate-800">
@@ -38,6 +40,7 @@ defmodule Catenary.Live.PrefsManager do
           <td>&nbsp;</td>
           <td>&nbsp;</td>
           <td>none yet</td>
+          <td>⛒</td>
         </tr>
       </tbody>
     </table>
