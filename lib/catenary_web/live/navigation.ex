@@ -76,7 +76,7 @@ defmodule Catenary.Live.Navigation do
   defp extra_nav(%{:extra_nav => :journal} = assigns) do
     ~L"""
     <div id="posting" class="font-sans">
-      <%= log_posting_form(assigns, :journal, "") %>
+        <%= log_posting_form(assigns, :journal, "") %>
     </div>
     """
   end
@@ -216,7 +216,9 @@ defmodule Catenary.Live.Navigation do
     ~L"""
     <form method="post" id="posting-form" phx-submit="new-entry">
       <input type="hidden" name="log_id" value="<%= QuaggaDef.base_log(which) %>">
+      <% if which == :reply do %>
       <input type="hidden" name="ref" value="<%= Catenary.index_to_string(@entry) %>">
+      <% end %>
       <br/>
       <input class="bg-white dark:bg-black" type="text" value="<%= suggested_title %>" name="title"/>
       <br/>
