@@ -152,6 +152,12 @@ defmodule CatenaryWeb.Live do
      )}
   end
 
+  def handle_info({:refresh, :connection}, socket) do
+    # Ongoing connection may have altered the store
+    # Pray it does not alter it further.
+    {:noreply, state_set(socket, %{})}
+  end
+
   def handle_info({:completed, which}, %{assigns: assigns} = socket) do
     # This is non-atomically incorrect.  FIXME
     thehash = Baobab.Persistence.current_hash(:content, assigns.clump_id)
@@ -477,24 +483,37 @@ defmodule CatenaryWeb.Live do
       )
     end
 
+    refresh = fn ->
+      Phoenix.PubSub.local_broadcast(
+        Catenary.PubSub,
+        "background",
+        {:refresh, :connection}
+      )
+    end
+
     Task.start(fn ->
       with {:ok, pid} <-
              Baby.connect(host, port,
                identity: Catenary.id_for_key(socket.assigns.identity),
                clump_id: socket.assigns.clump_id
              ) do
-        loop = fn p, f ->
+        loop = fn p, i, f ->
           case Process.alive?(p) do
             true ->
+              case rem(i, 7) do
+                0 -> refresh.()
+                _ -> :ok
+              end
+
               Process.sleep(547)
-              f.(p, f)
+              f.(p, i + 1, f)
 
             false ->
               done.()
           end
         end
 
-        loop.(pid, loop)
+        loop.(pid, 1, loop)
       else
         _ -> done.()
       end
