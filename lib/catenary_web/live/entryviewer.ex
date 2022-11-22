@@ -381,7 +381,7 @@ defmodule Catenary.Live.EntryViewer do
   defp group_list({ln, items}, clump_id, si) do
     recents =
       items
-      |> Enum.take(2)
+      |> Enum.take(3)
       |> Enum.map(fn e -> {e, extract(e, clump_id, si)} end)
       |> Enum.reduce("", fn {e, vals}, acc ->
         acc <>
