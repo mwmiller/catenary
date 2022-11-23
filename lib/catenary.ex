@@ -59,10 +59,15 @@ defmodule Catenary do
     end
   end
 
-  def linked_author({a, _, _}, aliases), do: linked_author(a, aliases)
+  def linked_author(author, aliases, type \\ :button)
+  def linked_author({a, _, _}, aliases, type), do: linked_author(a, aliases, type)
 
-  def linked_author(a, aliases) do
+  def linked_author(a, aliases, :button) do
     view_entry_button({:profile, a}, short_id(a, aliases)) |> Phoenix.HTML.raw()
+  end
+
+  def linked_author(a, aliases, :href) do
+    Phoenix.HTML.raw("<a href=\"/authors/" <> a <> "\">" <> short_id(a, aliases) <> "</a>")
   end
 
   defp view_entry_button(entry, contents) do
