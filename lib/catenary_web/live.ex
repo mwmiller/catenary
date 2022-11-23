@@ -180,6 +180,12 @@ defmodule CatenaryWeb.Live do
     {:noreply, state_set(socket, update)}
   end
 
+  def handle_event("shown-type", %{"value" => section}, socket) do
+    tomark = section |> String.downcase() |> String.to_existing_atom()
+    Catenary.Preferences.mark_entry_type(:shown, tomark)
+    {:noreply, state_set(socket, %{store_hash: ""})}
+  end
+
   def handle_event("toview", %{"value" => sview}, socket) do
     # This :all default might not make sense in the long-term
     {:noreply, state_set(socket, %{view: String.to_existing_atom(sview), entry: :all})}

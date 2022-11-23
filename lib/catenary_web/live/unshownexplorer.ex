@@ -30,7 +30,7 @@ defmodule Catenary.Live.UnshownExplorer do
       <h1 class="text=center">Unshown Explorer</h1>
       <hr/>
       <%= for {type, entries} <- @card do %>
-        <h3  class="pt-5 text-slate-600 dark:text-slate-300"><%= type %></h3>
+          <h3 class="text-slate-600 dark:text-slate-300"><button phx-click="shown-type" value="<%= type %>">∅</button>&nbsp;&nbsp;<%= type %></h3>
         <div class="grid grid-cols-5 my-2">
         <%= entries %>
         </div>
