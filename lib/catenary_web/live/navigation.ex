@@ -216,7 +216,7 @@ defmodule Catenary.Live.Navigation do
     ~L"""
     <form method="post" id="posting-form" phx-submit="new-entry">
       <input type="hidden" name="log_id" value="<%= QuaggaDef.base_log(which) %>">
-      <% if which == :reply do %>
+      <%= if which == :reply do %>
       <input type="hidden" name="ref" value="<%= Catenary.index_to_string(@entry) %>">
       <% end %>
       <br/>
