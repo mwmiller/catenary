@@ -52,7 +52,7 @@ defmodule Catenary.Live.Navigation do
        <div class="flex-auto p-1 text-center">
          <button phx-click="toggle-journal">✎̟</button>
        <%= if @on_log_entry do %>
-        <button phx-click="toggle-reply">↺̟</button>
+         <button phx-click="toggle-reply">↩︎̟</button>
         <button phx-click="toggle-tags">#̟</button>
         <button phx-click="toggle-aliases">~̟</button>
        <% end %>
