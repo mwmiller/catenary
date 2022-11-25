@@ -7,7 +7,7 @@ defmodule Catenary.Preferences do
   # heads for is_valid? to maintain the sanity of the store
   # Provide resonable defaults. We'd prefer not to use these
   # defaults as "unset" signals.. just working values.
-  @keys [:identity, :clump_id, :shown, :view, :facet_id]
+  @keys [:identity, :clump_id, :shown, :view, :facet_id, :entry]
   def keys(), do: @keys
 
   defp default(:identity) do
@@ -25,6 +25,8 @@ defmodule Catenary.Preferences do
 
   defp default(:view), do: :prefs
 
+  defp default(:entry), do: {:profile, get(:identity)}
+
   defp default(:clump_id),
     do: Application.get_env(:catenary, :clumps) |> Map.keys() |> hd
 
@@ -40,6 +42,9 @@ defmodule Catenary.Preferences do
   # We'll hope they keep the values sane on their own
   defp is_valid?(val, :shown) when is_map(val), do: true
   defp is_valid?(_, :shown), do: false
+
+  # This is all confused at present, so assume it's fine.
+  defp is_valid?(_, :entry), do: true
 
   defp is_valid?(clump_id, :clump_id),
     do: Map.has_key?(Application.get_env(:catenary, :clumps), clump_id)
