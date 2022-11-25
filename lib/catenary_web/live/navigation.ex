@@ -88,7 +88,9 @@ defmodule Catenary.Live.Navigation do
     <div id="aliases">
        <form method="post" id="alias-form" phx-submit="new-entry">
          <input type="hidden" name="log_id" value="53">
+         <%= if @on_log_entry do %>
          <input type="hidden" name="ref" value="<%= Catenary.index_to_string(@entry) %>" />
+         <% end %>
          <input type="hidden" name="whom" value="<%= @whom %>" />
          <img class="mx-auto" src="<%= Catenary.identicon(@whom, 4) %>">
            <h3><%= Catenary.short_id(@whom, @aliases) %></h3>
@@ -112,7 +114,9 @@ defmodule Catenary.Live.Navigation do
     <form method="post" id="block-form" phx-submit="new-entry">
      <input type="hidden" name="log_id" value="1337">
      <input type="hidden" name="action" value="unblock">
+     <%= if @on_log_entry do %>
      <input type="hidden" name="ref" value="<%= Catenary.index_to_string(@entry) %>" />
+     <% end %>
      <input type="hidden" name="whom" value="<%= @whom %>" />
      <div class="w-100 grid grid-cols-3">
        <div>Unblock:</div><div><img src="<%= Catenary.identicon(@whom, 2) %>"></div><div><%= Catenary.short_id(@whom, @aliases) %></div>
@@ -135,7 +139,9 @@ defmodule Catenary.Live.Navigation do
        <form method="post" id="block-form" phx-submit="new-entry">
          <input type="hidden" name="log_id" value="1337">
          <input type="hidden" name="action" value="block">
+         <%= if @on_log_entry do %>
          <input type="hidden" name="ref" value="<%= Catenary.index_to_string(@entry) %>" />
+         <% end %>
          <input type="hidden" name="whom" value="<%= @whom %>" />
          <div class="w-100 grid grid-cols-3">
            <div>Block:</div><div><img src="<%= Catenary.identicon(@whom, 2) %>"></div><div><%= Catenary.short_id(@whom, @aliases) %></div>
