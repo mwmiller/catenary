@@ -47,21 +47,10 @@ defmodule Catenary.Live.EntryViewer do
   end
 
   @impl true
-  def render(%{card: :none} = assigns) do
-    ~L"""
-      <div class="min-w-full font-sans row-span-full">
-        <h1>No data just yet</h1>
-      </div>
-    """
-  end
 
-  def render(%{card: :error} = assigns) do
-    ~L"""
-      <div class="min-w-full font-sans row-span-full">
-        <h1>Unrenderable card</h1>
-      </div>
-    """
-  end
+  def render(%{card: :none} = assigns), do: Catenary.GeneriCard.no_data_card(assigns)
+
+  def render(%{card: :error} = assigns), do: Catenary.GeneriCard.error_card(assigns)
 
   def render(%{card: :blocked} = assigns) do
     ~L"""
