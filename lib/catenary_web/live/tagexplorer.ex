@@ -16,10 +16,11 @@ defmodule Catenary.Live.TagExplorer do
     ~L"""
      <div id="tagexplore-wrap" class="col-span-2 overflow-y-auto max-h-screen m-2 p-x-2">
       <h1 class="text=center">Tag Explorer</h1>
-      <hr/>
+        <%= for g <-  @card["tags"] do %>
       <div class="grid grid-cols-3 mt-10">
-        <%= @card["tags"] %>
+        <%= g %>
       </div>
+      <% end %>
     </div>
     """
   end
@@ -42,7 +43,7 @@ defmodule Catenary.Live.TagExplorer do
         end
       end)
       |> size_group
-      |> to_links()
+      |> link_groups([])
 
     Catenary.dets_close(:tags)
     %{"tags" => tags}
@@ -55,8 +56,12 @@ defmodule Catenary.Live.TagExplorer do
     |> Enum.group_by(fn {_, _, c} -> trunc(:math.log(c)) end)
     |> Map.to_list()
     |> Enum.sort(:desc)
-    |> Enum.reduce([], fn {_s, i}, acc -> acc ++ Enum.shuffle(i) end)
+    |> Enum.reduce([], fn {_s, i}, acc -> [Enum.shuffle(i) | acc] end)
+    |> Enum.reverse()
   end
+
+  defp link_groups([], acc), do: Enum.reverse(acc)
+  defp link_groups([tags | rest], acc), do: link_groups(rest, [to_links(tags) | acc])
 
   defp to_links(tags) do
     tags
