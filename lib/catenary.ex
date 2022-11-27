@@ -7,6 +7,7 @@ defmodule Catenary do
   """
   @dets_tables %{
     aliases: "aliases.dets",
+    identicons: "identicons.dets",
     references: "references.dets",
     prefs: "preferences.dets",
     graph: "social_graph.dets",
@@ -43,7 +44,25 @@ defmodule Catenary do
   defp find_id_for_key([_ | rest], key), do: find_id_for_key(rest, key)
 
   def identicon(id, mag \\ 4) do
-    "data:image/svg+xml;base64," <> Excon.ident(id, base64: true, type: :svg, magnification: mag)
+    dets_open(:identicons)
+    k = {id, mag}
+
+    idi =
+      case :dets.lookup(:identicons, k) do
+        [{^k, v}] ->
+          v
+
+        [] ->
+          val =
+            "data:image/svg+xml;base64," <>
+              Excon.ident(id, base64: true, type: :svg, magnification: mag)
+
+          :dets.insert(:identicons, {k, val})
+          val
+      end
+
+    dets_close(:identicons)
+    idi
   end
 
   @list_sep "‑"
