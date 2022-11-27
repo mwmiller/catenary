@@ -183,9 +183,8 @@ defmodule CatenaryWeb.Live do
     {:noreply, state_set(socket, update)}
   end
 
-  def handle_event("shown-type", %{"value" => section}, socket) do
-    tomark = section |> String.downcase() |> String.to_existing_atom()
-    Catenary.Preferences.mark_entry_type(:shown, tomark)
+  def handle_event("shown-set", %{"value" => entries_string}, socket) do
+    Catenary.Preferences.mark_entries(:shown, Catenary.string_to_index_list(entries_string))
     {:noreply, state_set(socket, %{store_hash: ""})}
   end
 

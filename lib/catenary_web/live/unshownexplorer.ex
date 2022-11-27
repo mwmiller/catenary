@@ -17,8 +17,8 @@ defmodule Catenary.Live.UnshownExplorer do
      <div id="unshownexplore-wrap" class="col-span-2 overflow-y-auto max-h-screen m-2 p-x-2">
       <h1 class="text=center">Unshown Explorer</h1>
       <hr/>
-      <%= for {type, entries} <- @card do %>
-          <h3 class="text-slate-600 dark:text-slate-300"><button phx-click="shown-type" value="<%= type %>">∅</button>&nbsp;&nbsp;<%= type %></h3>
+      <%= for {type, entries, estring} <- @card do %>
+          <h3 class="text-slate-600 dark:text-slate-300"><button phx-click="shown-set" value="<%= estring %>">∅</button>&nbsp;&nbsp;<%= type %></h3>
         <div class="grid grid-cols-5 my-2">
         <%= entries %>
         </div>
@@ -50,7 +50,10 @@ defmodule Catenary.Live.UnshownExplorer do
   defp prettify([], acc), do: acc
 
   defp prettify([{k, v} | rest], acc),
-    do: prettify(rest, [{Catenary.pretty_log_name(k), icon_entries(v)} | acc])
+    do:
+      prettify(rest, [
+        {Catenary.pretty_log_name(k), icon_entries(v), Catenary.index_list_to_string(v)} | acc
+      ])
 
   defp icon_entries(entries) do
     entries

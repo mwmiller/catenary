@@ -46,9 +46,22 @@ defmodule Catenary do
     "data:image/svg+xml;base64," <> Excon.ident(id, base64: true, type: :svg, magnification: mag)
   end
 
+  @list_sep "‑"
+  def index_list_to_string(indices) when is_list(indices) do
+    indices |> Enum.map(fn i -> index_to_string(i) end) |> Enum.join(@list_sep)
+  end
+
+  def index_list_to_string(_), do: :error
+
   def index_to_string(tuple) do
     tuple |> Tuple.to_list() |> Enum.map(fn e -> to_string(e) end) |> Enum.join("⋀")
   end
+
+  def string_to_index_list(string) when is_binary(string) do
+    string |> String.split(@list_sep, trim: true) |> Enum.map(fn s -> string_to_index(s) end)
+  end
+
+  def string_to_index_list(_), do: :error
 
   def string_to_index(string) do
     # We assume all psuedo-entries are two-element tagged

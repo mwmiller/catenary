@@ -123,14 +123,20 @@ defmodule Catenary.Preferences do
     end)
   end
 
-  def mark_entry_type(how, type) do
-    lids = QuaggaDef.logs_for_name(type)
+  def mark_entries(:shown, entries) do
+    update(:shown, fn m ->
+      Map.update(m, get(:clump_id), MapSet.new(), fn ms ->
+        MapSet.union(ms, MapSet.new(entries))
+      end)
+    end)
+  end
 
-    :clump_id
-    |> get
-    |> Baobab.all_entries()
-    |> Enum.filter(fn {_, l, _} -> l in lids end)
-    |> Enum.map(fn e -> mark_entry(how, e) end)
+  def mark_entries(:unshown, entries) do
+    update(:shown, fn m ->
+      Map.update(m, get(:clump_id), MapSet.new(), fn ms ->
+        MapSet.difference(ms, MapSet.new(entries))
+      end)
+    end)
   end
 
   def shown?(entry),
