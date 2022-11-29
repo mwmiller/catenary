@@ -68,9 +68,11 @@ defmodule Catenary.Live.EntryViewer do
       <div id="entryview-wrap" class="col-span-2 overflow-y-auto max-h-screen m-2 p-x-2">
         <div class="min-w-full font-sans row-span-full">
         <img class = "float-left m-3" src="<%= Catenary.identicon(@card["author"], 8) %>">
+
           <h1><%= @card["title"] %></h1>
           <p class="text-sm font-light"><%= Catenary.linked_author(@card["author"], @aliases) %> &mdash; <%= nice_time(@card["published"]) %></p>
           <p><%= icon_entries(@card["back-refs"]) %>&nbsp;↹&nbsp;<%= icon_entries(@card["fore-refs"]) %></p>
+          <p class="float-right text-xs font-light"><%= @card["reactions"] %></p>
         <hr/>
         <br/>
         <div class="font-light">
@@ -166,7 +168,8 @@ defmodule Catenary.Live.EntryViewer do
         Map.merge(
           %{
             "author" => a,
-            "tags" => from_dets(entry, :tags)
+            "tags" => from_dets(entry, :tags),
+            "reactions" => from_dets(entry, :reactions)
           },
           from_refs(entry)
         )
@@ -227,6 +230,20 @@ defmodule Catenary.Live.EntryViewer do
       Map.merge(data, %{
         "title" => String.capitalize(data["action"]) <> ": " <> data["whom"],
         "body" => data["reason"],
+        "back-refs" => maybe_refs(data["references"])
+      })
+    rescue
+      e -> malformed(e, cbor)
+    end
+  end
+
+  defp extract_type(cbor, %{name: :react}) do
+    try do
+      {:ok, data, ""} = CBOR.decode(cbor)
+
+      Map.merge(data, %{
+        "title" => "Reactions",
+        "body" => Enum.join(data["reactions"], " "),
         "back-refs" => maybe_refs(data["references"])
       })
     rescue
@@ -357,7 +374,11 @@ defmodule Catenary.Live.EntryViewer do
       |> from_dets(:references)
       |> Enum.split_with(fn {_, l, _} -> QuaggaDef.base_log(l) == 749 end)
 
-    %{"tagged-in" => tags, "fore-refs" => others}
+    # Hack! FIXME
+    # Also the magic numbers
+    {reacts, toshow} = Enum.split_with(others, fn {_, l, _} -> QuaggaDef.base_log(l) == 101 end)
+
+    %{"tagged-in" => tags, "reacted-in" => reacts, "fore-refs" => toshow}
   end
 
   defp icon_entries(list, acc \\ "")

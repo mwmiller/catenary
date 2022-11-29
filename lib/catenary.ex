@@ -11,6 +11,7 @@ defmodule Catenary do
     references: "references.dets",
     prefs: "preferences.dets",
     graph: "social_graph.dets",
+    reactions: "reactions.dets",
     tags: "tags.dets",
     timelines: "timelines.dets"
   }

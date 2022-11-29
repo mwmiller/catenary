@@ -11,7 +11,7 @@ defmodule Catenary.Indices do
   def clear_all() do
     # This information is all over the place. :(
     # One source of truth
-    for table <- [:references, :tags, :aliases, :timelines] do
+    for table <- [:references, :tags, :reactions, :aliases, :timelines] do
       Catenary.dets_open(table)
       :dets.delete_all_objects(table)
       Catenary.dets_close(table)
@@ -40,6 +40,12 @@ defmodule Catenary.Indices do
     Catenary.dets_open(:tags)
     index(stored_info, clump_id, QuaggaDef.logs_for_name(:tag), :tags)
     Catenary.dets_close(:tags)
+  end
+
+  def index_reactions(stored_info, clump_id) do
+    Catenary.dets_open(:reactions)
+    index(stored_info, clump_id, QuaggaDef.logs_for_name(:react), :reactions)
+    Catenary.dets_close(:reactions)
   end
 
   def index_timelines(stored_info, clump_id) do
@@ -135,6 +141,30 @@ defmodule Catenary.Indices do
     end
 
     entries_index(rest, clump_id, :tags)
+  end
+
+  defp entries_index([entry | rest], clump_id, :reactions) do
+    try do
+      %Baobab.Entry{payload: payload} = entry
+      {:ok, data, ""} = CBOR.decode(payload)
+      reacts = data["reactions"] |> Enum.map(fn s -> {"", s} end)
+      [ent] = data["references"]
+      e = List.to_tuple(ent)
+
+      old =
+        case :dets.lookup(:reactions, e) do
+          [] -> []
+          [{^e, val}] -> val
+        end
+
+      # This might eventually have log-scale counting
+      into = (old ++ reacts) |> Enum.sort() |> Enum.uniq()
+      :dets.insert(:reactions, {e, into})
+    rescue
+      _ -> :ok
+    end
+
+    entries_index(rest, clump_id, :reactions)
   end
 
   defp entries_index([entry | rest], clump_id, :aliases) do

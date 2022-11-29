@@ -155,8 +155,54 @@ defmodule Catenary.LogWriter do
     entry
   end
 
+  def new_entry(
+        %{
+          "ref" => ref,
+          "log_id" => "101"
+        } = values,
+        socket
+      ) do
+    to = Catenary.string_to_index(ref)
+
+    # Phoenix must be able to combine fieldsets and
+    # yet here we are
+    rl =
+      values
+      |> Map.to_list()
+      |> Enum.reduce([], fn {k, v}, a ->
+        r = String.split(k, "reaction-")
+
+        case Enum.at(r, 1) == v do
+          true -> [v | a]
+          false -> a
+        end
+      end)
+
+    %Baobab.Entry{author: a, log_id: l, seqnum: e} =
+      %{
+        "references" => [to],
+        "reactions" => rl,
+        "published" => Timex.now() |> DateTime.to_string()
+      }
+      |> CBOR.encode()
+      |> append_log_for_socket(101, socket)
+
+    b62author = Baobab.Identity.as_base62(a)
+    entry = {b62author, l, e}
+    Catenary.Preferences.mark_entry(:shown, entry)
+    Catenary.Indices.index_reactions([entry], socket.assigns.clump_id)
+    Catenary.Indices.index_references([entry], socket.assigns.clump_id)
+
+    to
+  end
+
   # Punt
-  def new_entry(_, socket), do: {:profile, socket.assigns.identity}
+  def new_entry(assigns, socket) do
+    # This is a debug line I keep creating, so I am
+    # going to leave it here for a while.
+    IO.inspect(assigns)
+    {:profile, socket.assigns.identity}
+  end
 
   defp maybe_tag(entry, %{"tag0" => "", "tag1" => ""}, _), do: entry
 

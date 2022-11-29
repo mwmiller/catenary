@@ -55,6 +55,7 @@ defmodule Catenary.Live.Navigation do
          <button phx-click="toggle-reply">↩︎̟</button>
         <button phx-click="toggle-tags">#̟</button>
         <button phx-click="toggle-aliases">~̟</button>
+        <button phx-click="toggle-reactions">⌘̟</button>
        <% end %>
        </div>
      </div>
@@ -169,6 +170,25 @@ defmodule Catenary.Live.Navigation do
          <button phx-disable-with="𝄇" type="submit">➲</button>
        </form>
       <% end %>
+    </div>
+    """
+  end
+
+  defp extra_nav(%{:extra_nav => :reactions} = assigns) do
+    ~L"""
+    <div id="reactions-nav" class="flex flex-row 5 mt-20">
+      <%= if @on_log_entry do %>
+       <form method="post" id="reaction-form" phx-submit="new-entry">
+         <input type="hidden" name="log_id" value="101">
+         <input type="hidden" name="ref" value="<%= Catenary.index_to_string(@entry) %>">
+            <%= for e <- Catenary.Reactions.available() do %>
+             <input class="bg-white dark:bg-black" type="checkbox" name="reaction-<%= e %>" value="<%= e %>"> <%= e %><br>
+            <% end %>
+          <br>
+         <hr/>
+         <button phx-disable-with="𝄇" type="submit">➲</button>
+       </form>
+     <% end %>
     </div>
     """
   end
