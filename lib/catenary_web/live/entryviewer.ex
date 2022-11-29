@@ -82,8 +82,8 @@ defmodule Catenary.Live.EntryViewer do
           <%= for tname <- @card["tags"] do %>
             <div class="auto text-xs text-orange-600 dark:text-amber-200"><button value="prev-tag-<%= tname %>" phx-click="nav">«</button> <button value="<%= tname %>" phx-click="view-tag"><%= tname %></button> <button value="next-tag-<%= tname %>" phx-click="nav">»</button></div>
           <% end %>
-            <div class="flex flex-rows"><%= icon_entries(@card["tagged-in"]) %></div>
         </div>
+          <p class="float-left text-xs font-light"><%= icon_entries(@card["meta"]) %></p>
       </div>
     </div>
     """
@@ -202,7 +202,7 @@ defmodule Catenary.Live.EntryViewer do
 
   defp extract_type(text, %{name: :test}) do
     %{
-      "title" => "Test Post, Please Ignore",
+      "title" => added_title("Test Post"),
       "back-refs" => [],
       "body" => maybe_text(text),
       "published" => :unknown
@@ -214,7 +214,7 @@ defmodule Catenary.Live.EntryViewer do
       {:ok, data, ""} = CBOR.decode(cbor)
 
       Map.merge(data, %{
-        "title" => "Alias: ~" <> data["alias"],
+        "title" => added_title("Alias: ~" <> data["alias"]),
         "body" => Phoenix.HTML.raw("Key: " <> data["whom"]),
         "back-refs" => maybe_refs(data["references"])
       })
@@ -228,7 +228,7 @@ defmodule Catenary.Live.EntryViewer do
       {:ok, data, ""} = CBOR.decode(cbor)
 
       Map.merge(data, %{
-        "title" => String.capitalize(data["action"]) <> ": " <> data["whom"],
+        "title" => added_title(String.capitalize(data["action"]) <> ": " <> data["whom"]),
         "body" => data["reason"],
         "back-refs" => maybe_refs(data["references"])
       })
@@ -242,7 +242,7 @@ defmodule Catenary.Live.EntryViewer do
       {:ok, data, ""} = CBOR.decode(cbor)
 
       Map.merge(data, %{
-        "title" => "Reactions",
+        "title" => added_title("Reactions Added"),
         "body" => Enum.join(data["reactions"], " "),
         "back-refs" => maybe_refs(data["references"])
       })
@@ -256,7 +256,7 @@ defmodule Catenary.Live.EntryViewer do
       {:ok, data, ""} = CBOR.decode(cbor)
 
       %{
-        "title" => "Oasis: " <> data["name"],
+        "title" => added_title("Oasis: " <> data["name"]),
         "body" => data["host"] <> ":" <> Integer.to_string(data["port"]),
         "back-refs" => maybe_refs(data["references"]),
         "published" => data["running"]
@@ -306,7 +306,7 @@ defmodule Catenary.Live.EntryViewer do
       body = "<div>" <> Enum.join(tagdivs, "") <> "</div>"
 
       Map.merge(data, %{
-        "title" => "Tags Added",
+        "title" => added_title("Tags Added"),
         "back-refs" => maybe_refs(data["references"]),
         "body" => Phoenix.HTML.raw(body)
       })
@@ -368,17 +368,14 @@ defmodule Catenary.Live.EntryViewer do
     val
   end
 
+  @meta_ref_ids QuaggaDef.logs_for_name(:tag) ++ QuaggaDef.logs_for_name(:react)
   defp from_refs(entry) do
-    {tags, others} =
+    {meta, posts} =
       entry
       |> from_dets(:references)
-      |> Enum.split_with(fn {_, l, _} -> QuaggaDef.base_log(l) == 749 end)
+      |> Enum.split_with(fn {_, l, _} -> l in @meta_ref_ids end)
 
-    # Hack! FIXME
-    # Also the magic numbers
-    {reacts, toshow} = Enum.split_with(others, fn {_, l, _} -> QuaggaDef.base_log(l) == 101 end)
-
-    %{"tagged-in" => tags, "reacted-in" => reacts, "fore-refs" => toshow}
+    %{"meta" => meta, "fore-refs" => posts}
   end
 
   defp icon_entries(list, acc \\ "")
@@ -404,4 +401,6 @@ defmodule Catenary.Live.EntryViewer do
 
     "<div class=\"flex-auto\"><h4>" <> ln <> "</h4><ul>" <> recents <> "</ul></div>"
   end
+
+  defp added_title(title), do: "⸤" <> title <> "⸣"
 end
