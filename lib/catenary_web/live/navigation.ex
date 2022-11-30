@@ -40,22 +40,22 @@ defmodule Catenary.Live.Navigation do
          <button value="unshown" phx-click="toview">!⃣</button>
          <%= if @on_log_entry do %>
            <button phx-click="toggle-block">⛒̟</button>
+           <button phx-click="toggle-aliases">~̟</button>
          <% end %>
-         <button phx-click="toggle-stack">⇄</button>
         </div>
         <div class="flex-auto p-1 text-center">
          <button value="prev-author" phx-click="nav">↥</button>
          <button value="prev-entry" phx-click="nav">⇜</button>
+         <button phx-click="toggle-stack">⍟</button>
          <button value="next-entry" phx-click="nav">⇝</button>
          <button value="next-author" phx-click="nav">↧</button>
        </div>
        <div class="flex-auto p-1 text-center">
          <button phx-click="toggle-journal">✎̟</button>
        <%= if @on_log_entry do %>
-         <button phx-click="toggle-reply">↩︎̟</button>
-        <button phx-click="toggle-tags">#̟</button>
-        <button phx-click="toggle-aliases">~̟</button>
+        <button phx-click="toggle-reply">↩︎̟</button>
         <button phx-click="toggle-reactions">⌘̟</button>
+        <button phx-click="toggle-tags">#̟</button>
        <% end %>
        </div>
      </div>
