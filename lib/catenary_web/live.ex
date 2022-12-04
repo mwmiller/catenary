@@ -429,8 +429,8 @@ defmodule CatenaryWeb.Live do
     )
   end
 
-  defp check_indices(state, updated?, si) do
-    Enum.reduce(@indices, %{}, fn w, a -> Map.merge(a, check_index(w, state, updated?, si)) end)
+  defp check_indices(state, shash, si) do
+    Enum.reduce(@indices, %{}, fn w, a -> Map.merge(a, check_index(w, state, shash, si)) end)
   end
 
   # We have to match on literals, so we macro this.
