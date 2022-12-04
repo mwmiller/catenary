@@ -266,31 +266,8 @@ defmodule Catenary.Live.EntryViewer do
     end
   end
 
-  defp extract_type(cbor, %{name: :journal}) do
-    try do
-      {:ok, data, ""} = CBOR.decode(cbor)
-
-      Map.merge(data, %{
-        "body" => data["body"] |> Earmark.as_html!() |> Phoenix.HTML.raw(),
-        "back-refs" => maybe_refs(data["references"])
-      })
-    rescue
-      e -> malformed(e, cbor)
-    end
-  end
-
-  defp extract_type(cbor, %{name: :reply}) do
-    try do
-      {:ok, data, ""} = CBOR.decode(cbor)
-
-      Map.merge(data, %{
-        "back-refs" => maybe_refs(data["references"]),
-        "body" => data["body"] |> Earmark.as_html!() |> Phoenix.HTML.raw()
-      })
-    rescue
-      e -> malformed(e, cbor)
-    end
-  end
+  defp extract_type(cbor, %{name: :journal}), do: text_post(cbor)
+  defp extract_type(cbor, %{name: :reply}), do: text_post(cbor)
 
   defp extract_type(cbor, %{name: :tag}) do
     try do
@@ -403,4 +380,24 @@ defmodule Catenary.Live.EntryViewer do
   end
 
   defp added_title(title), do: "⸤" <> title <> "⸣"
+
+  defp text_post(cbor) do
+    try do
+      {:ok, data, ""} = CBOR.decode(cbor)
+
+      title =
+        case data["title"] do
+          <<>> -> added_title("untitled")
+          t -> t
+        end
+
+      Map.merge(data, %{
+        "title" => title,
+        "back-refs" => maybe_refs(data["references"]),
+        "body" => data["body"] |> Earmark.as_html!() |> Phoenix.HTML.raw()
+      })
+    rescue
+      e -> malformed(e, cbor)
+    end
+  end
 end
