@@ -160,6 +160,15 @@ defmodule Catenary do
   def timeline_logs, do: @timeline_logs
   def random_timeline_log(), do: @timeline_logs |> Enum.random()
 
+  # Let's not delve into why I hate using templates
+  def log_submit_button do
+    """
+    <hr/>
+    <button phx-disable-with="𝄇" type="submit">➲</button>
+    """
+    |> Phoenix.HTML.raw()
+  end
+
   def pretty_log_name(log_id) do
     case QuaggaDef.log_id_unpack(log_id) do
       {base_log, _} ->

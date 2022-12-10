@@ -97,8 +97,7 @@ defmodule Catenary.Live.Navigation do
            <h3><%= Catenary.short_id(@whom, @aliases) %></h3>
          <label for="alias">～</label>
          <input class="bg-white dark:bg-black" name="alias" value="<%= @ali %>" type="text" size="16" />
-         <hr/>
-         <button phx-disable-with="𝄇" type="submit">➲</button>
+         <%= Catenary.log_submit_button %>
        </form>
     </div>
     """
@@ -123,8 +122,7 @@ defmodule Catenary.Live.Navigation do
        <div>Unblock:</div><div><img src="<%= Catenary.identicon(@whom, 2) %>"></div><div><%= Catenary.short_id(@whom, @aliases) %></div>
        <div>Reason:</div><div class="grid-cols=2"><textarea class="bg-white dark:bg-black" name="reason" rows="4" cols="20"></textarea></div>
      </div>
-     <hr/>
-     <button phx-disable-with="𝄇" type="submit">➲</button>
+     <%= Catenary.log_submit_button %>
     </form>
     </div>
     """
@@ -148,8 +146,7 @@ defmodule Catenary.Live.Navigation do
            <div>Block:</div><div><img src="<%= Catenary.identicon(@whom, 2) %>"></div><div><%= Catenary.short_id(@whom, @aliases) %></div>
            <div>Reason:</div><div class="grid-cols=2"><textarea class="bg-white dark:bg-black" name="reason" rows="4" cols="20"></textarea></div>
          </div>
-         <hr/>
-         <button phx-disable-with="𝄇" type="submit">➲</button>
+         <%= Catenary.log_submit_button %>
        </form>
     </div>
     """
@@ -166,8 +163,7 @@ defmodule Catenary.Live.Navigation do
          <input type="hidden" name="ref" value="<%= Catenary.index_to_string(@entry) %>">
          <p>
          <%= tag_inputs(4) %>
-         <hr/>
-         <button phx-disable-with="𝄇" type="submit">➲</button>
+         <%= Catenary.log_submit_button %>
        </form>
       <% end %>
     </div>
@@ -185,8 +181,7 @@ defmodule Catenary.Live.Navigation do
              <input class="bg-white dark:bg-black" type="checkbox" name="reaction-<%= e %>" value="<%= e %>"> <%= e %><br>
             <% end %>
           <br>
-         <hr/>
-         <button phx-disable-with="𝄇" type="submit">➲</button>
+         <%= Catenary.log_submit_button %>
        </form>
      <% end %>
     </div>
@@ -251,8 +246,7 @@ defmodule Catenary.Live.Navigation do
       <textarea class="bg-white dark:bg-black" name="body" rows="8" cols="35"></textarea>
       <p>
       <%= tag_inputs(2) %>
-      <hr/>
-      <button phx-disable-with="𝄇" type="submit">➲</button>
+      <%= Catenary.log_submit_button %>
     </form>
     """
   end
