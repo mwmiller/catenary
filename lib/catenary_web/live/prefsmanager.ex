@@ -52,8 +52,30 @@ defmodule Catenary.Live.PrefsManager do
       <div class="flex-auto"><button class="border opacity-61 p-2 m-10 bg-stone-200 dark:bg-stone-800" value="all" phx-disable-with="⌘⌘⌘" phx-click="shown">catch up</button></div>
       <div class="flex-auto"><button class="border opacity-61 p-2 m-10 bg-stone-200 dark:bg-stone-800" value="none" phx-disable-with="⎚⎚⎚"  phx-click="shown">start fresh</button></div>
       <div class="flex-auto"><button class="border opacity-61 p-2 m-10 bg-stone-200 dark:bg-stone-800" value="all" phx-disable-with="〆〆〆"  phx-click="compact">compact logs</button></div>
+      <div class="flex-1 min-w-full">
+          <div>Reject log types</div>
+      <form method="post" id="reject-form" phx-submit="new-entry">
+        <input type="hidden" name="log_id" value="1337">
+        <input type="hidden" name="listed" value="reject">
+        <div class="grid grid-cols-2">
+          <%= for {s, a} <- Catenary.all_pretty_log_pairs do %>
+            <div><%= log_block_input(a) |> Phoenix.HTML.raw %>&nbsp;<%= s %> </div>
+          <% end %>
+    </div>
+        <%= Catenary.log_submit_button %>
+      </form>
+    </div>
     </div>
     """
+  end
+
+  defp log_block_input(:graph), do: "▩"
+
+  defp log_block_input(name) do
+    ln = Atom.to_string(name)
+
+    "<input class=\"bg-white dark:bg-black\" type=\"checkbox\"  name=\"log_name-" <>
+      ln <> "\" value=\"" <> ln <> "\"/>"
   end
 
   defp log_info_string(store, k) do

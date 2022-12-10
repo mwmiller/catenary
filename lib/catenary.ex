@@ -175,13 +175,19 @@ defmodule Catenary do
         base_log
         |> QuaggaDef.log_def()
         |> Map.get(:name, :unknown)
-        |> Atom.to_string()
-        |> String.capitalize()
+        |> cap_atom_string
 
       _ ->
         ""
     end
   end
+
+  def all_pretty_log_pairs() do
+    QuaggaDef.log_defs()
+    |> Enum.map(fn {_id, %{name: n}} -> {cap_atom_string(n), n} end)
+  end
+
+  defp cap_atom_string(a), do: a |> Atom.to_string() |> String.capitalize()
 
   # This should use the local indices eventually
   def blocked?({:profile, a}, clump_id), do: Baobab.ClumpMeta.blocked?(a, clump_id)
