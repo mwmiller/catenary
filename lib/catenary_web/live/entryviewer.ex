@@ -345,14 +345,14 @@ defmodule Catenary.Live.EntryViewer do
     val
   end
 
-  @meta_ref_ids QuaggaDef.logs_for_name(:tag) ++ QuaggaDef.logs_for_name(:react)
+  @reply_ref_ids QuaggaDef.logs_for_name(:reply)
   defp from_refs(entry) do
-    {meta, posts} =
+    {replies, meta} =
       entry
       |> from_dets(:references)
-      |> Enum.split_with(fn {_, l, _} -> l in @meta_ref_ids end)
+      |> Enum.split_with(fn {_, l, _} -> l in @reply_ref_ids end)
 
-    %{"meta" => meta, "fore-refs" => posts}
+    %{"meta" => meta, "fore-refs" => replies}
   end
 
   defp icon_entries(list, acc \\ "")
