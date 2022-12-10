@@ -39,8 +39,11 @@ defmodule Catenary.Authorline do
       end
 
     case entry do
-      {:profile, _} -> store
-      {_, log_id, _} -> Enum.filter(store, fn {_, l, _} -> log_id == l end)
+      {:profile, _} ->
+        store
+
+      {_, log_id, _} ->
+        Enum.filter(store, fn {_, l, _} -> QuaggaDef.base_log(log_id) == QuaggaDef.base_log(l) end)
     end
     |> Enum.sort(sdir)
   end
