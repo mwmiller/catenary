@@ -19,10 +19,10 @@ defmodule Catenary.Live.IndexStatus do
   defp istatus([], chars), do: Enum.join(chars, " ")
 
   @status_indica [
-    {:references, "𝍂", "𝍂"},
+    {:references, "🜪", "🜚"},
     {:aliases, "⍲", "⍱"},
     {:tags, "⸘", "‽"},
-    {:timelines, "∦", "∥"},
+    {:timelines, "⫝̸", "⫝"},
     {:graph, "∌", "∋"},
     {:reactions, "☽", "☾"}
   ]
