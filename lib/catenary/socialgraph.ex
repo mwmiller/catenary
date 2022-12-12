@@ -116,6 +116,7 @@ defmodule Catenary.SocialGraph do
   defp apply_operations([{"accept", oks} | rest], clump_id) do
     oks
     |> Enum.reduce([], fn n, a -> a ++ QuaggaDef.logs_for_name(String.to_atom(n)) end)
+    |> Enum.sort()
     |> Enum.map(fn l -> Baobab.ClumpMeta.unblock(l, clump_id) end)
 
     apply_operations(rest, clump_id)
@@ -124,6 +125,7 @@ defmodule Catenary.SocialGraph do
   defp apply_operations([{"reject", bads} | rest], clump_id) do
     bads
     |> Enum.reduce([], fn n, a -> a ++ QuaggaDef.logs_for_name(String.to_atom(n)) end)
+    |> Enum.sort()
     |> Enum.map(fn l -> Baobab.ClumpMeta.block(l, clump_id) end)
 
     apply_operations(rest, clump_id)
