@@ -162,12 +162,36 @@ defmodule Catenary.LogWriter do
         } = values,
         socket
       ) do
-    rl =
-      checkbox_expander(values, "log_name-")
-      |> Enum.reduce(fn s, a -> [s |> String.to_atom() |> QuaggaDef.logs_for_name() | a] end)
-      |> IO.inspect()
+    # We want to know about which logs we knew at the time of
+    # message creation, that way we don't need to make suppositions at 
+    # message read time
+    fl = QuaggaDef.log_defs() |> Enum.map(fn {_k, v} -> Atom.to_string(v.name) end)
 
-    {:profile, socket.assigns.identity}
+    pl = checkbox_expander(values, "log_name-")
+
+    dl = fl |> Enum.reject(fn s -> s in pl end)
+
+    arl =
+      case direction do
+        "accept" -> %{"accept" => pl, "reject" => dl}
+        "reject" -> %{"accept" => dl, "reject" => pl}
+      end
+
+    %Baobab.Entry{author: a, log_id: l, seqnum: e} =
+      Map.merge(
+        %{
+          "action" => "logs",
+          "published" => Timex.now() |> DateTime.to_string()
+        },
+        arl
+      )
+      |> CBOR.encode()
+      |> append_log_for_socket(1337, socket)
+
+    b62author = Baobab.Identity.as_base62(a)
+    entry = {b62author, l, e}
+    Catenary.SocialGraph.update_from_logs(b62author, socket.assigns.clump_id)
+    entry
   end
 
   def new_entry(
@@ -210,9 +234,7 @@ defmodule Catenary.LogWriter do
     # yet here we are
     boxes
     |> Map.to_list()
-    |> IO.inspect()
     |> Enum.reduce([], fn {k, v}, a ->
-      IO.inspect({k, name, v})
       r = String.split(k, name)
 
       case Enum.at(r, 1) == v do
@@ -220,7 +242,6 @@ defmodule Catenary.LogWriter do
         false -> a
       end
     end)
-    |> IO.inspect()
   end
 
   defp maybe_tag(entry, %{"tag0" => "", "tag1" => ""}, _), do: entry
