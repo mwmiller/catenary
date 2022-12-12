@@ -3,7 +3,9 @@ defmodule Catenary.Live.PrefsManager do
   use Phoenix.HTML
 
   @impl true
-  def update(assigns, socket), do: {:ok, assign(socket, assigns)}
+  def update(assigns, socket) do
+    {:ok, assign(socket, Map.merge(assigns, %{:blocked => blocked_map_set(assigns.clump_id)}))}
+  end
 
   @impl true
   def render(assigns) do
@@ -53,13 +55,13 @@ defmodule Catenary.Live.PrefsManager do
       <div class="flex-auto"><button class="border opacity-61 p-2 m-10 bg-stone-200 dark:bg-stone-800" value="none" phx-disable-with="⎚⎚⎚"  phx-click="shown">start fresh</button></div>
       <div class="flex-auto"><button class="border opacity-61 p-2 m-10 bg-stone-200 dark:bg-stone-800" value="all" phx-disable-with="〆〆〆"  phx-click="compact">compact logs</button></div>
       <div class="flex-1 min-w-full">
-          <div>Reject log types</div>
-      <form method="post" id="reject-form" phx-submit="new-entry">
+          <div>Accept log types</div>
+      <form method="post" id="accept-form" phx-submit="new-entry">
         <input type="hidden" name="log_id" value="1337">
-        <input type="hidden" name="listed" value="reject">
+        <input type="hidden" name="listed" value="accept">
         <div class="grid grid-cols-2">
           <%= for {s, a} <- Catenary.all_pretty_log_pairs do %>
-            <div><%= log_block_input(a) |> Phoenix.HTML.raw %>&nbsp;<%= s %> </div>
+            <div><%= log_accept_input(a, @blocked) |> Phoenix.HTML.raw %>&nbsp;<%= s %> </div>
           <% end %>
     </div>
         <%= Catenary.log_submit_button %>
@@ -69,13 +71,27 @@ defmodule Catenary.Live.PrefsManager do
     """
   end
 
-  defp log_block_input(:graph), do: "▩"
+  defp log_accept_input(:graph, _blocked),
+    do: "☑︎ <input type=\"hidden\" name=\"log_name-graph\" value=\"graph\">"
 
-  defp log_block_input(name) do
+  defp log_accept_input(name, blocked) do
+    logs = QuaggaDef.logs_for_name(name) |> MapSet.new()
+    # We'll assume that if any one is blocked we meant 
+    # to block them all.
+    checked =
+      case MapSet.intersection(blocked, logs) |> Enum.count() do
+        0 -> " checked "
+        _ -> ""
+      end
+
     ln = Atom.to_string(name)
 
     "<input class=\"bg-white dark:bg-black\" type=\"checkbox\"  name=\"log_name-" <>
-      ln <> "\" value=\"" <> ln <> "\"/>"
+      ln <> "\" value=\"" <> ln <> "\"" <> checked <> "/>"
+  end
+
+  defp blocked_map_set(clump_id) do
+    clump_id |> Baobab.ClumpMeta.blocks_list() |> MapSet.new()
   end
 
   defp log_info_string(store, k) do
