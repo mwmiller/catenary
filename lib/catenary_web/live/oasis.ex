@@ -11,6 +11,17 @@ defmodule Catenary.Live.OasisBox do
   end
 
   @impl true
+
+  def render(%{nodes: []} = assigns) do
+    ~L"""
+    <div class="font-mono text-xs my-2">
+      <div class="my-1 p-1 bg-slate-200 dark:bg-slate-700">
+        No recent oases found. <button phx-click="init-connect" phx-disable-with="↯ trying ↯">⇆ try fallback host ⇆</span></button>
+      </div>
+    </div>
+    """
+  end
+
   def render(assigns) do
     ~L"""
     <div class="font-mono text-xs my-2">
