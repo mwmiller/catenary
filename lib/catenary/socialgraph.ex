@@ -48,7 +48,7 @@ defmodule Catenary.SocialGraph do
     try do
       %Baobab.Entry{payload: payload} = curr
       {:ok, data, ""} = CBOR.decode(payload)
-      process_entries(rest, [{data["published"], data["whom"], data["action"]} | acc])
+      process_entries(rest, [{data["published"], data} | acc])
     rescue
       _ -> process_entries(rest, acc)
     end
@@ -60,20 +60,35 @@ defmodule Catenary.SocialGraph do
   defp reduce_operations([], acc), do: acc |> Map.to_list()
   # We shouldn't ever need these times after sorting, but I 
   # have maintained it for now in case I am proved wrong
-  defp reduce_operations([{_t, who, "block"} | rest], acc) do
+  defp reduce_operations([{_t, %{"action" => "block", "whom" => whom}} | rest], acc) do
     um =
       acc
-      |> Map.update("block", MapSet.new([who]), fn ms -> MapSet.put(ms, who) end)
-      |> Map.update("unblock", MapSet.new(), fn ms -> MapSet.delete(ms, who) end)
+      |> Map.update("block", MapSet.new([whom]), fn ms -> MapSet.put(ms, whom) end)
+      |> Map.update("unblock", MapSet.new(), fn ms -> MapSet.delete(ms, whom) end)
 
     reduce_operations(rest, um)
   end
 
-  defp reduce_operations([{_t, who, "unblock"} | rest], acc) do
+  defp reduce_operations([{_t, %{"action" => "unblock", "whom" => whom}} | rest], acc) do
     um =
       acc
-      |> Map.update("unblock", MapSet.new([who]), fn ms -> MapSet.put(ms, who) end)
-      |> Map.update("block", MapSet.new(), fn ms -> MapSet.delete(ms, who) end)
+      |> Map.update("unblock", MapSet.new([whom]), fn ms -> MapSet.put(ms, whom) end)
+      |> Map.update("block", MapSet.new(), fn ms -> MapSet.delete(ms, whom) end)
+
+    reduce_operations(rest, um)
+  end
+
+  defp reduce_operations(
+         [{_t, %{"action" => "logs", "accept" => al, "reject" => rl}} | rest],
+         acc
+       ) do
+    am = MapSet.new(al)
+    rm = MapSet.new(rl)
+
+    um =
+      acc
+      |> Map.update("accept", am, fn ms -> MapSet.difference(MapSet.union(ms, am), rm) end)
+      |> Map.update("reject", rm, fn ms -> MapSet.difference(MapSet.union(ms, rm), am) end)
 
     reduce_operations(rest, um)
   end
@@ -95,6 +110,22 @@ defmodule Catenary.SocialGraph do
 
   defp apply_operations([{"unblock", backees} | rest], clump_id) do
     backees |> Enum.map(fn a -> Baobab.ClumpMeta.unblock(a, clump_id) end)
+    apply_operations(rest, clump_id)
+  end
+
+  defp apply_operations([{"accept", oks} | rest], clump_id) do
+    oks
+    |> Enum.reduce([], fn n, a -> a ++ QuaggaDef.logs_for_name(String.to_atom(n)) end)
+    |> Enum.map(fn l -> Baobab.ClumpMeta.unblock(l, clump_id) end)
+
+    apply_operations(rest, clump_id)
+  end
+
+  defp apply_operations([{"reject", bads} | rest], clump_id) do
+    bads
+    |> Enum.reduce([], fn n, a -> a ++ QuaggaDef.logs_for_name(String.to_atom(n)) end)
+    |> Enum.map(fn l -> Baobab.ClumpMeta.block(l, clump_id) end)
+
     apply_operations(rest, clump_id)
   end
 
