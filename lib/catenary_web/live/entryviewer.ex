@@ -226,12 +226,30 @@ defmodule Catenary.Live.EntryViewer do
   defp extract_type(cbor, %{name: :graph}) do
     try do
       {:ok, data, ""} = CBOR.decode(cbor)
+      action = data["action"]
 
-      Map.merge(data, %{
-        "title" => added_title(String.capitalize(data["action"]) <> ": " <> data["whom"]),
-        "body" => data["reason"],
-        "back-refs" => maybe_refs(data["references"])
-      })
+      common =
+        Map.merge(data, %{
+          "title" => added_title(String.capitalize(data["action"])),
+          "back-refs" => maybe_refs(data["references"])
+        })
+
+      case action do
+        "block" ->
+          Map.merge(common, %{
+            "body" => Phoenix.HTML.raw("Key: " <> data["whom"] <> "<br/>" <> data["reason"])
+          })
+
+        "logs" ->
+          Map.merge(common, %{
+            "body" =>
+              Phoenix.HTML.raw(
+                "Accept: " <>
+                  Enum.join(data["accept"], ", ") <>
+                  "<br/>Reject: " <> Enum.join(data["reject"], ", ")
+              )
+          })
+      end
     rescue
       e -> malformed(e, cbor)
     end
