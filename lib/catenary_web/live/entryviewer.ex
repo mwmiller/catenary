@@ -114,19 +114,22 @@ defmodule Catenary.Live.EntryViewer do
           {"<div class=\"flex flex-rows-3\">" <> groups <> "</div>", as_of}
       end
 
-    log_map =
+    items =
       si
       |> Enum.filter(fn {author, _, _} -> author == a end)
       |> Enum.group_by(fn {_, l, _} -> QuaggaDef.log_def(l) end)
       |> Enum.reject(fn {ldef, _} -> ldef == %{} end)
-
-    items =
-      for {%{name: name}, [entry | _]} <- log_map do
-        "<div class=\"border-y row-auto m-2 p-1 \"><button class=\"text-xs\" value=\"" <>
-          Catenary.index_to_string(entry) <>
-          "\" phx-click=\"view-entry\">" <>
-          String.capitalize(Atom.to_string(name)) <> "</button></div>"
-      end
+      |> Enum.filter(fn {%{name: name}, _} -> Preferences.accept_log_name?(name) end)
+      |> Enum.reduce([], fn {%{name: name}, [entry | _]}, a ->
+        [
+          "<div class=\"border-y row-auto m-2 p-1 \"><button class=\"text-xs\" value=\"" <>
+            Catenary.index_to_string(entry) <>
+            "\" phx-click=\"view-entry\">" <>
+            String.capitalize(Atom.to_string(name)) <> "</button></div>"
+          | a
+        ]
+      end)
+      |> Enum.reverse()
 
     others =
       case length(items) do
