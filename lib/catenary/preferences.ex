@@ -7,7 +7,7 @@ defmodule Catenary.Preferences do
   # heads for is_valid? to maintain the sanity of the store
   # Provide resonable defaults. We'd prefer not to use these
   # defaults as "unset" signals.. just working values.
-  @keys [:identity, :clump_id, :shown, :view, :facet_id, :entry]
+  @keys [:identity, :clump_id, :shown, :view, :facet_id, :entry, :accept]
   def keys(), do: @keys
 
   defp default(:identity) do
@@ -30,7 +30,8 @@ defmodule Catenary.Preferences do
   defp default(:clump_id),
     do: Application.get_env(:catenary, :clumps) |> Map.keys() |> hd
 
-  defp default(:shown), do: MapSet.new()
+  defp default(:shown), do: %{}
+  defp default(:accept), do: %{}
 
   defp default(:facet_id), do: 0
 
@@ -42,6 +43,11 @@ defmodule Catenary.Preferences do
   # We'll hope they keep the values sane on their own
   defp is_valid?(val, :shown) when is_map(val), do: true
   defp is_valid?(_, :shown), do: false
+
+  # `:accept` should be a map of mapsets.
+  # We'll hope they keep the values sane on their own
+  defp is_valid?(val, :accept) when is_map(val), do: true
+  defp is_valid?(_, :accept), do: false
 
   # This is all confused at present, so assume it's fine.
   defp is_valid?(_, :entry), do: true
@@ -141,4 +147,11 @@ defmodule Catenary.Preferences do
 
   def shown?(entry),
     do: get(:shown) |> Map.get(get(:clump_id), MapSet.new()) |> MapSet.member?(entry)
+
+  def accept_log_name_set(rejects) do
+    set(:accept, Map.put(get(:accept), get(:clump_id), MapSet.new(rejects)))
+  end
+
+  def accept_log_name?(type),
+    do: get(:accept) |> Map.get(get(:clump_id), MapSet.new()) |> MapSet.member?(type)
 end

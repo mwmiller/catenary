@@ -1,6 +1,7 @@
 defmodule Catenary.Live.EntryViewer do
   require Logger
   use Phoenix.LiveComponent
+  alias Catenary.Preferences
 
   @impl true
   def update(%{entry: :random} = assigns, socket) do
@@ -90,7 +91,7 @@ defmodule Catenary.Live.EntryViewer do
   end
 
   def extract({:profile, a} = entry, clump_id, si) do
-    Catenary.Preferences.mark_entry(:shown, entry)
+    Preferences.mark_entry(:shown, entry)
 
     {timeline, as_of} =
       case from_dets(a, :timelines) do
@@ -152,7 +153,7 @@ defmodule Catenary.Live.EntryViewer do
   def extract({a, l, e} = entry, clump_id, _si) do
     # We want failure to save here to fail loudly without any further work
     # But if it does fail later we don't mind having said it was shown
-    Catenary.Preferences.mark_entry(:shown, {a, l, e})
+    Preferences.mark_entry(:shown, {a, l, e})
 
     try do
       payload =
@@ -164,12 +165,24 @@ defmodule Catenary.Live.EntryViewer do
             :missing
         end
 
+      tags =
+        case Preferences.accept_log_name?(:tag) do
+          true -> from_dets(entry, :tags)
+          false -> []
+        end
+
+      reactions =
+        case Preferences.accept_log_name?(:react) do
+          true -> from_dets(entry, :reactions)
+          false -> []
+        end
+
       base =
         Map.merge(
           %{
             "author" => a,
-            "tags" => from_dets(entry, :tags),
-            "reactions" => from_dets(entry, :reactions)
+            "tags" => tags,
+            "reactions" => reactions
           },
           from_refs(entry)
         )

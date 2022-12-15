@@ -1,5 +1,6 @@
 defmodule Catenary.Live.Navigation do
   use Phoenix.LiveComponent
+  alias Catenary.Preferences
 
   @impl true
 
@@ -40,7 +41,9 @@ defmodule Catenary.Live.Navigation do
          <button value="unshown" phx-click="toview">!⃣</button>
          <%= if @on_log_entry do %>
            <button phx-click="toggle-block">⛒̟</button>
+          <%= if Preferences.accept_log_name?(:alias) do %>
            <button phx-click="toggle-aliases">~̟</button>
+         <% end %>
          <% end %>
         </div>
         <div class="flex-auto p-1 text-center">
@@ -51,11 +54,19 @@ defmodule Catenary.Live.Navigation do
          <button value="next-author" phx-click="nav">↧</button>
        </div>
        <div class="flex-auto p-1 text-center">
+         <%= if Preferences.accept_log_name?(:journal) do %>
          <button phx-click="toggle-journal">✎̟</button>
+       <% end %>
        <%= if @on_log_entry do %>
+        <%= if Preferences.accept_log_name?(:reply) do %>
         <button phx-click="toggle-reply">↩︎̟</button>
+        <% end %>
+        <%= if Preferences.accept_log_name?(:react) do %>
         <button phx-click="toggle-reactions">⌘̟</button>
+        <% end %>
+        <%= if Preferences.accept_log_name?(:tag) do %>
         <button phx-click="toggle-tags">#̟</button>
+        <% end %> 
        <% end %>
        </div>
      </div>

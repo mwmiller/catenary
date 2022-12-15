@@ -17,17 +17,24 @@ defmodule Catenary.SocialGraph do
   # Our best hope is that there are not conflicts in
   # the timing error bars.
   def update_from_logs(identity, clump_id) do
-    :graph
-    |> QuaggaDef.logs_for_name()
-    |> order_operations(identity, clump_id, [])
-    |> reduce_operations()
-    |> apply_operations(clump_id)
+    ops =
+      :graph
+      |> QuaggaDef.logs_for_name()
+      |> order_operations(identity, clump_id, [])
+      |> reduce_operations()
+      |> note_operations()
 
-    Phoenix.PubSub.local_broadcast(
-      Catenary.PubSub,
-      "background",
-      {:completed, {:indexing, :graph, self()}}
-    )
+    ppid = self()
+
+    Task.start(fn ->
+      apply_operations(ops, clump_id)
+
+      Phoenix.PubSub.local_broadcast(
+        Catenary.PubSub,
+        "background",
+        {:completed, {:indexing, :graph, ppid}}
+      )
+    end)
   end
 
   defp order_operations([], _, _, acc), do: acc |> Enum.sort()
@@ -53,6 +60,20 @@ defmodule Catenary.SocialGraph do
       _ -> process_entries(rest, acc)
     end
   end
+
+  defp note_operations(ops, acc \\ [])
+  defp note_operations([], acc), do: Enum.reverse(acc)
+  # We only care about certain operations in certain ways
+  defp note_operations([{"accept", acceptables} = op | rest], acc) do
+    Catenary.Preferences.accept_log_name_set(
+      acceptables
+      |> Enum.map(fn s -> String.to_existing_atom(s) end)
+    )
+
+    note_operations(rest, [op | acc])
+  end
+
+  defp note_operations([op | rest], acc), do: note_operations(rest, [op | acc])
 
   # It might be confusing if we take in an empty map accumulator
   # and return a list of tuples, so this convenience function
