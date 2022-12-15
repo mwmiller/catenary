@@ -256,7 +256,7 @@ defmodule Catenary.Live.Navigation do
       <br/>
       <textarea class="bg-white dark:bg-black" name="body" rows="8" cols="35"></textarea>
       <p>
-      <%= tag_inputs(2) %>
+      <%= if Preferences.accept_log_name?(:tag), do: tag_inputs(2) %>
       <%= Catenary.log_submit_button %>
     </form>
     """
