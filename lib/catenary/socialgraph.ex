@@ -64,10 +64,10 @@ defmodule Catenary.SocialGraph do
   defp note_operations(ops, acc \\ [])
   defp note_operations([], acc), do: Enum.reverse(acc)
   # We only care about certain operations in certain ways
-  defp note_operations([{"accept", acceptables} = op | rest], acc) do
-    Catenary.Preferences.accept_log_name_set(
-      acceptables
-      |> Enum.map(fn s -> String.to_existing_atom(s) end)
+  defp note_operations([{"reject", rejects} = op | rest], acc) do
+    Catenary.Preferences.reject_log_name_set(
+      rejects
+      |> Enum.map(fn s -> String.to_atom(s) end)
     )
 
     note_operations(rest, [op | acc])
