@@ -193,4 +193,19 @@ defmodule Catenary do
   def blocked?({:profile, a}, clump_id), do: Baobab.ClumpMeta.blocked?(a, clump_id)
   def blocked?({a, _, _}, clump_id), do: Baobab.ClumpMeta.blocked?(a, clump_id)
   def blocked?(_, _), do: false
+
+  def checkbox_expander(boxes, name) do
+    # Phoenix must be able to combine fieldsets and
+    # yet here we are
+    boxes
+    |> Map.to_list()
+    |> Enum.reduce([], fn {k, v}, a ->
+      r = String.split(k, name)
+
+      case Enum.at(r, 1) == v do
+        true -> [v | a]
+        false -> a
+      end
+    end)
+  end
 end

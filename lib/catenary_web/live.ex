@@ -51,6 +51,7 @@ defmodule CatenaryWeb.Live do
          identities: [],
          aliases: {:out_of_date, %{}},
          view: view,
+         hidden_us: Catenary.Preferences.hidden_unshown_ms(),
          extra_nav: :stack,
          indexing: Enum.reduce(@indices, %{}, fn i, a -> Map.merge(a, %{i => :not_running}) end),
          entry: entry,
@@ -108,7 +109,7 @@ defmodule CatenaryWeb.Live do
   def render(%{view: :unshown} = assigns) do
     ~L"""
      <div class="max-h-screen w-100 grid grid-cols-3 gap-2 justify-center">
-       <%= live_component(Catenary.Live.UnshownExplorer, id: :unshown, which: @entry, clump_id: @clump_id, store_hash: @store_hash) %>
+       <%= live_component(Catenary.Live.UnshownExplorer, id: :unshown, which: @entry, clump_id: @clump_id, store_hash: @store_hash, hidden_us: @hidden_us) %>
        <%= sidebar(assigns) %>
      </div>
     """
@@ -138,7 +139,7 @@ defmodule CatenaryWeb.Live do
       <%= live_component(Catenary.Live.Ident, id: :ident, identity: @identity, clump_id: @clump_id, aliases: @aliases) %>
       <%= live_component(Catenary.Live.IndexStatus, id: :indices, indexing: @indexing) %>
       <%= live_component(Catenary.Live.OasisBox, id: :recents, connections: @connections, oases: @oases, aliases: @aliases) %>
-      <%= live_component(Catenary.Live.Navigation, id: :nav, entry: @entry, extra_nav: @extra_nav, identity: @identity, view: @view, aliases: @aliases, entry_fore: @entry_fore, entry_back: @entry_back, clump_id: @clump_id) %>
+      <%= live_component(Catenary.Live.Navigation, id: :nav, entry: @entry, extra_nav: @extra_nav, identity: @identity, view: @view, aliases: @aliases, entry_fore: @entry_fore, entry_back: @entry_back, clump_id: @clump_id, hidden_us: @hidden_us) %>
     </div>
     """
   end
@@ -229,6 +230,15 @@ defmodule CatenaryWeb.Live do
        view: :entries,
        entry: {:profile, socket.assigns.identity}
      })}
+  end
+
+  def handle_event("filter-unshown", vals, socket) do
+    hl =
+      Catenary.checkbox_expander(vals, "log_name-")
+      |> Enum.map(fn s -> String.to_existing_atom(s) end)
+
+    Catenary.Preferences.hidden_unshown_set(hl)
+    {:noreply, assign(socket, hidden_us: Catenary.Preferences.hidden_unshown_ms())}
   end
 
   def handle_event("facet-change", %{"value" => facet_id}, socket) do

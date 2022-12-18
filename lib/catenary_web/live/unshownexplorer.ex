@@ -3,8 +3,8 @@ defmodule Catenary.Live.UnshownExplorer do
   use Phoenix.LiveComponent
 
   @impl true
-  def update(%{which: which, clump_id: clump_id} = assigns, socket) do
-    {:ok, assign(socket, Map.merge(assigns, %{card: extract(which, clump_id)}))}
+  def update(%{which: which, clump_id: clump_id, hidden_us: hidden} = assigns, socket) do
+    {:ok, assign(socket, Map.merge(assigns, %{card: extract(which, hidden, clump_id)}))}
   end
 
   @impl true
@@ -27,22 +27,28 @@ defmodule Catenary.Live.UnshownExplorer do
     """
   end
 
-  defp extract(:all, clump_id) do
+  defp extract(:all, hidden, clump_id) do
     shown = Catenary.Preferences.get(:shown) |> Map.get(clump_id, MapSet.new())
 
     Baobab.all_entries(clump_id)
     |> MapSet.new()
     |> MapSet.difference(shown)
     |> MapSet.to_list()
-    |> group_entries
+    |> group_entries(hidden)
   end
 
-  defp extract(_, _), do: :none
+  defp extract(_, _, _), do: :none
 
-  defp group_entries(entries) do
+  defp group_entries(entries, hidden) do
     entries
     |> Enum.group_by(fn {_, l, _} -> QuaggaDef.base_log(l) end)
     |> Map.to_list()
+    |> Enum.reject(fn {l, _} ->
+      case QuaggaDef.log_def(l) do
+        %{name: n} -> MapSet.member?(hidden, n)
+        _ -> false
+      end
+    end)
     |> prettify([])
     |> Enum.sort(:asc)
   end

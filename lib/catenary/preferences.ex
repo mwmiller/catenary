@@ -7,7 +7,7 @@ defmodule Catenary.Preferences do
   # heads for is_valid? to maintain the sanity of the store
   # Provide resonable defaults. We'd prefer not to use these
   # defaults as "unset" signals.. just working values.
-  @keys [:identity, :clump_id, :shown, :view, :facet_id, :entry, :reject]
+  @keys [:identity, :clump_id, :shown, :view, :facet_id, :entry, :reject, :hidden_unshown]
   def keys(), do: @keys
 
   defp default(:identity) do
@@ -32,7 +32,7 @@ defmodule Catenary.Preferences do
 
   defp default(:shown), do: %{}
   defp default(:reject), do: %{}
-
+  defp default(:hidden_unshown), do: %{}
   defp default(:facet_id), do: 0
 
   # `:identity` should in the known list when it is set
@@ -49,6 +49,8 @@ defmodule Catenary.Preferences do
   defp is_valid?(val, :reject) when is_map(val), do: true
   defp is_valid?(_, :reject), do: false
 
+  defp is_valid?(val, :hidden_unshown) when is_map(val), do: true
+  defp is_valid?(_, :hidden_unshown), do: false
   # This is all confused at present, so assume it's fine.
   defp is_valid?(_, :entry), do: true
 
@@ -158,5 +160,17 @@ defmodule Catenary.Preferences do
   def accept_log_name?(type) do
     rejects = get(:reject) |> Map.get(get(:clump_id), MapSet.new())
     not MapSet.member?(rejects, type)
+  end
+
+  def hidden_unshown_set(hidden) do
+    set(:hidden_unshown, Map.put(get(:hidden_unshown), get(:clump_id), MapSet.new(hidden)))
+  end
+
+  def hidden_unshown_ms() do
+    get(:hidden_unshown) |> Map.get(get(:clump_id), MapSet.new())
+  end
+
+  def hidden_unshown?(type) do
+    hidden_unshown_ms() |> MapSet.member?(type)
   end
 end

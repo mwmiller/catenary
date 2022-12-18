@@ -167,7 +167,7 @@ defmodule Catenary.LogWriter do
     # message read time
     fl = QuaggaDef.log_defs() |> Enum.map(fn {_k, v} -> Atom.to_string(v.name) end)
 
-    pl = checkbox_expander(values, "log_name-")
+    pl = Catenary.checkbox_expander(values, "log_name-")
 
     dl = fl |> Enum.reject(fn s -> s in pl end)
 
@@ -206,7 +206,7 @@ defmodule Catenary.LogWriter do
     %Baobab.Entry{author: a, log_id: l, seqnum: e} =
       %{
         "references" => [to],
-        "reactions" => checkbox_expander(values, "reaction-"),
+        "reactions" => Catenary.checkbox_expander(values, "reaction-"),
         "published" => Timex.now() |> DateTime.to_string()
       }
       |> CBOR.encode()
@@ -227,21 +227,6 @@ defmodule Catenary.LogWriter do
     # going to leave it here for a while.
     IO.inspect(assigns)
     {:profile, socket.assigns.identity}
-  end
-
-  defp checkbox_expander(boxes, name) do
-    # Phoenix must be able to combine fieldsets and
-    # yet here we are
-    boxes
-    |> Map.to_list()
-    |> Enum.reduce([], fn {k, v}, a ->
-      r = String.split(k, name)
-
-      case Enum.at(r, 1) == v do
-        true -> [v | a]
-        false -> a
-      end
-    end)
   end
 
   defp maybe_tag(entry, %{"tag0" => "", "tag1" => ""}, _), do: entry
