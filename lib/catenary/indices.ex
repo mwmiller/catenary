@@ -5,6 +5,7 @@ defmodule Catenary.Indices do
   Functions to recompute indices
 
   There is no sense in having stateful gen_servers
+
   for these.  We have no idea what to do if we fail.
   """
 
@@ -19,8 +20,18 @@ defmodule Catenary.Indices do
   end
 
   def index_references(stored_info, clump_id) do
+    {hash, logs} = pick_logs(stored_info, QuaggaDef.logs_for_encoding(:cbor))
     Catenary.dets_open(:references)
-    index(stored_info, clump_id, QuaggaDef.logs_for_encoding(:cbor), :references)
+
+    case :dets.lookup(:references, :prev_hash) do
+      [{:prev_hash, ^hash}] ->
+        :ok
+
+      _ ->
+        index(logs, clump_id, :references)
+        :dets.insert(:references, {:prev_hash, hash})
+    end
+
     Catenary.dets_close(:references)
   end
 
@@ -31,37 +42,72 @@ defmodule Catenary.Indices do
 
     alias_logs
     |> Enum.map(fn l -> {id, l, 1} end)
-    |> index(clump_id, alias_logs, :aliases)
+    |> index(clump_id, :aliases)
 
     Catenary.dets_close(:aliases)
   end
 
   def index_tags(stored_info, clump_id) do
+    {hash, logs} = pick_logs(stored_info, QuaggaDef.logs_for_name(:tag))
     Catenary.dets_open(:tags)
-    index(stored_info, clump_id, QuaggaDef.logs_for_name(:tag), :tags)
+
+    case :dets.lookup(:tags, :prev_hash) do
+      [{:prev_hash, ^hash}] ->
+        :ok
+
+      _ ->
+        index(logs, clump_id, :tags)
+        :dets.insert(:tags, {:prev_hash, hash})
+    end
+
+    index(logs, clump_id, :tags)
     Catenary.dets_close(:tags)
   end
 
   def index_reactions(stored_info, clump_id) do
+    {hash, logs} = pick_logs(stored_info, QuaggaDef.logs_for_name(:react))
     Catenary.dets_open(:reactions)
-    index(stored_info, clump_id, QuaggaDef.logs_for_name(:react), :reactions)
+
+    case :dets.lookup(:reactions, :prev_hash) do
+      [{:prev_hash, ^hash}] ->
+        :ok
+
+      _ ->
+        index(logs, clump_id, :reactions)
+        :dets.insert(:reactions, {:prev_hash, hash})
+    end
+
+    index(stored_info, clump_id, :reactions)
     Catenary.dets_close(:reactions)
   end
 
   def index_timelines(stored_info, clump_id) do
+    {hash, logs} =
+      pick_logs(
+        stored_info,
+        Enum.reduce(Catenary.timeline_logs(), [], fn n, a -> a ++ QuaggaDef.logs_for_name(n) end)
+      )
+
     Catenary.dets_open(:timelines)
 
-    index(
-      stored_info,
-      clump_id,
-      Enum.reduce(Catenary.timeline_logs(), [], fn n, a -> a ++ QuaggaDef.logs_for_name(n) end),
-      :timelines
-    )
+    case :dets.lookup(:timelines, :prev_hash) do
+      [{:prev_hash, ^hash}] ->
+        :ok
+
+      _ ->
+        index(logs, clump_id, :timelines)
+        :dets.insert(:timelines, {:prev_hash, hash})
+    end
 
     Catenary.dets_close(:timelines)
   end
 
-  defp index([], _, _, which) do
+  defp pick_logs(logs, matches) do
+    set = Enum.filter(logs, fn {_, l, _} -> l in matches end)
+    {set |> :erlang.term_to_binary() |> Blake2.hash2b(), set}
+  end
+
+  defp index([], _, which) do
     Phoenix.PubSub.local_broadcast(
       Catenary.PubSub,
       "background",
@@ -71,14 +117,9 @@ defmodule Catenary.Indices do
     :ok
   end
 
-  defp index([{a, l, _} | rest], clump_id, log_ids, which) do
-    # Side-effects everywhere!
-    case l in log_ids do
-      true -> entries_index(Baobab.full_log(a, log_id: l, clump_id: clump_id), clump_id, which)
-      false -> :ok
-    end
-
-    index(rest, clump_id, log_ids, which)
+  defp index([{a, l, _} | rest], clump_id, which) do
+    entries_index(Baobab.full_log(a, log_id: l, clump_id: clump_id), clump_id, which)
+    index(rest, clump_id, which)
   end
 
   # This could maybe give up on a CBOR failure, eventurally
