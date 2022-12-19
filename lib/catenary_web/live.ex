@@ -48,7 +48,7 @@ defmodule CatenaryWeb.Live do
          store: [],
          id_hash: <<>>,
          identities: [],
-         aliases: {:out_of_date, %{}},
+         aliases: Catenary.alias_state(),
          view: view,
          hidden_us: Catenary.Preferences.hidden_unshown_ms(),
          extra_nav: :stack,
