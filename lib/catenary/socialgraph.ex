@@ -16,7 +16,7 @@ defmodule Catenary.SocialGraph do
   # synchronised clocks between all facet providers.
   # Our best hope is that there are not conflicts in
   # the timing error bars.
-  def update_from_logs(identity, clump_id) do
+  def update_from_logs(identity, clump_id, inform \\ nil) do
     ops =
       :graph
       |> QuaggaDef.logs_for_name()
@@ -29,11 +29,10 @@ defmodule Catenary.SocialGraph do
     Task.start(fn ->
       apply_operations(ops, clump_id)
 
-      Phoenix.PubSub.local_broadcast(
-        Catenary.PubSub,
-        "background",
-        {:completed, {:indexing, :graph, ppid}}
-      )
+      case inform do
+        nil -> :ok
+        pid -> Process.send(pid, {:completed, {:indexing, :graph, ppid}}, [])
+      end
     end)
   end
 

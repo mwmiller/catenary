@@ -16,7 +16,7 @@ defmodule Catenary.LogWriter do
       |> append_log_for_socket(360_360, socket)
 
     entry = {Baobab.Identity.as_base62(a), l, e}
-    Catenary.Indices.index_references([entry], socket.assigns.clump_id)
+    Catenary.Indices.update_index(:references, [entry], socket.assigns.clump_id)
     maybe_tag(entry, vals, socket)
   end
 
@@ -67,7 +67,7 @@ defmodule Catenary.LogWriter do
       |> append_log_for_socket(533, socket)
 
     entry = {Baobab.Identity.as_base62(a), l, e}
-    Catenary.Indices.index_references([entry], socket.assigns.clump_id)
+    Catenary.Indices.update_index(:references, [entry], socket.assigns.clump_id)
     maybe_tag(entry, vals, socket)
   end
 
@@ -84,8 +84,8 @@ defmodule Catenary.LogWriter do
 
     b62author = Baobab.Identity.as_base62(a)
     entry = {b62author, l, e}
-    Catenary.Indices.index_aliases(b62author, socket.assigns.clump_id)
-    Catenary.Indices.index_references([entry], socket.assigns.clump_id)
+    Catenary.Indices.update_index(:aliases, [{a, l, e}], socket.assigns.clump_id)
+    Catenary.Indices.update_index(:references, [entry], socket.assigns.clump_id)
     entry
   end
 
@@ -119,8 +119,8 @@ defmodule Catenary.LogWriter do
         b62author = Baobab.Identity.as_base62(a)
         entry = {b62author, l, e}
         Catenary.Preferences.mark_entry(:shown, entry)
-        Catenary.Indices.index_tags([entry], socket.assigns.clump_id)
-        Catenary.Indices.index_references([entry], socket.assigns.clump_id)
+        Catenary.Indices.update_index(:tags, [entry], socket.assigns.clump_id)
+        Catenary.Indices.update_index(:references, [entry], socket.assigns.clump_id)
         # Here we send them back to the referenced post which should now have tags applied
         # They can see the actual tagging post from the footer (or profile)
         references
@@ -151,7 +151,7 @@ defmodule Catenary.LogWriter do
     b62author = Baobab.Identity.as_base62(a)
     entry = {b62author, l, e}
     Catenary.SocialGraph.update_from_logs(b62author, socket.assigns.clump_id)
-    Catenary.Indices.index_references([entry], socket.assigns.clump_id)
+    Catenary.Indices.update_index(:references, [entry], socket.assigns.clump_id)
     entry
   end
 
@@ -215,8 +215,8 @@ defmodule Catenary.LogWriter do
     b62author = Baobab.Identity.as_base62(a)
     entry = {b62author, l, e}
     Catenary.Preferences.mark_entry(:shown, entry)
-    Catenary.Indices.index_reactions([entry], socket.assigns.clump_id)
-    Catenary.Indices.index_references([entry], socket.assigns.clump_id)
+    Catenary.Indices.update_index(:reactions, [entry], socket.assigns.clump_id)
+    Catenary.Indices.update_index(:references, [entry], socket.assigns.clump_id)
 
     to
   end

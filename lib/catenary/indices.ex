@@ -19,87 +19,29 @@ defmodule Catenary.Indices do
     end
   end
 
-  def index_references(stored_info, clump_id) do
-    {hash, logs} = pick_logs(stored_info, QuaggaDef.logs_for_encoding(:cbor))
-    Catenary.dets_open(:references)
+  @logs_for_table %{
+    references: QuaggaDef.logs_for_encoding(:cbor),
+    aliases: QuaggaDef.logs_for_name(:alias),
+    tags: QuaggaDef.logs_for_name(:tag),
+    reactions: QuaggaDef.logs_for_name(:react),
+    timelines:
+      Enum.reduce(Catenary.timeline_logs(), [], fn n, a -> a ++ QuaggaDef.logs_for_name(n) end)
+  }
 
-    case :dets.lookup(:references, :prev_hash) do
+  def update_index(which, stored_info, clump_id, inform \\ nil) do
+    {hash, logs} = pick_logs(stored_info, @logs_for_table[which])
+    Catenary.dets_open(which)
+
+    case :dets.lookup(which, :prev_hash) do
       [{:prev_hash, ^hash}] ->
         :ok
 
       _ ->
-        index(logs, clump_id, :references)
-        :dets.insert(:references, {:prev_hash, hash})
+        index(logs, clump_id, which, inform)
+        :dets.insert(which, {:prev_hash, hash})
     end
 
-    Catenary.dets_close(:references)
-  end
-
-  def index_aliases(id, clump_id) do
-    alias_logs = QuaggaDef.logs_for_name(:alias)
-    Catenary.dets_open(:aliases)
-    :dets.delete_all_objects(:aliases)
-
-    alias_logs
-    |> Enum.map(fn l -> {id, l, 1} end)
-    |> index(clump_id, :aliases)
-
-    Catenary.dets_close(:aliases)
-  end
-
-  def index_tags(stored_info, clump_id) do
-    {hash, logs} = pick_logs(stored_info, QuaggaDef.logs_for_name(:tag))
-    Catenary.dets_open(:tags)
-
-    case :dets.lookup(:tags, :prev_hash) do
-      [{:prev_hash, ^hash}] ->
-        :ok
-
-      _ ->
-        index(logs, clump_id, :tags)
-        :dets.insert(:tags, {:prev_hash, hash})
-    end
-
-    index(logs, clump_id, :tags)
-    Catenary.dets_close(:tags)
-  end
-
-  def index_reactions(stored_info, clump_id) do
-    {hash, logs} = pick_logs(stored_info, QuaggaDef.logs_for_name(:react))
-    Catenary.dets_open(:reactions)
-
-    case :dets.lookup(:reactions, :prev_hash) do
-      [{:prev_hash, ^hash}] ->
-        :ok
-
-      _ ->
-        index(logs, clump_id, :reactions)
-        :dets.insert(:reactions, {:prev_hash, hash})
-    end
-
-    index(stored_info, clump_id, :reactions)
-    Catenary.dets_close(:reactions)
-  end
-
-  def index_timelines(stored_info, clump_id) do
-    {hash, logs} =
-      pick_logs(
-        stored_info,
-        Enum.reduce(Catenary.timeline_logs(), [], fn n, a -> a ++ QuaggaDef.logs_for_name(n) end)
-      )
-
-    Catenary.dets_open(:timelines)
-
-    case :dets.lookup(:timelines, :prev_hash) do
-      [{:prev_hash, ^hash}] ->
-        :ok
-
-      _ ->
-        index(logs, clump_id, :timelines)
-        :dets.insert(:timelines, {:prev_hash, hash})
-    end
-
-    Catenary.dets_close(:timelines)
+    Catenary.dets_close(which)
   end
 
   defp pick_logs(logs, matches) do
@@ -107,22 +49,31 @@ defmodule Catenary.Indices do
     {set |> :erlang.term_to_binary() |> Blake2.hash2b(), set}
   end
 
-  defp index([], _, which) do
-    Phoenix.PubSub.local_broadcast(
-      Catenary.PubSub,
-      "background",
-      {:completed, {:indexing, which, self()}}
-    )
+  defp index([], cid, which, inform) when is_pid(inform) do
+    # Sometimes we finish while the process is still in startup
+    # Process does an async send and does not ensure that it arrives in
+    # the mailbox.  We'll just make sure it's in its standard running state 
+    # before sending.  This can suck if it's busy, but these can usually wait
+    status = Process.info(inform)
 
-    :ok
+    case is_list(status) and Keyword.get(status, :current_function) do
+      {:gen_server, :loop, _} ->
+        Process.send(inform, {:completed, {:indexing, which, self()}}, [])
+
+      _ ->
+        Process.sleep(59)
+        index([], cid, which, inform)
+    end
   end
 
-  defp index([{a, l, _} | rest], clump_id, which) do
+  defp index([], _, _, _), do: :ok
+
+  defp index([{a, l, _} | rest], clump_id, which, inform) do
     entries_index(Baobab.full_log(a, log_id: l, clump_id: clump_id), clump_id, which)
-    index(rest, clump_id, which)
+    index(rest, clump_id, which, inform)
   end
 
-  # This could maybe give up on a CBOR failure, eventurally
+  # This could maybe give up on a CBOR failure, eventually
   # Right now we have a lot of mixed types
   defp entries_index([], _, _), do: :ok
 
@@ -208,13 +159,23 @@ defmodule Catenary.Indices do
     entries_index(rest, clump_id, :reactions)
   end
 
-  defp entries_index([entry | rest], clump_id, :aliases) do
-    try do
-      %Baobab.Entry{payload: payload} = entry
-      {:ok, data, ""} = CBOR.decode(payload)
-      :dets.insert(:aliases, {data["whom"], data["alias"]})
-    rescue
-      _ ->
+  defp entries_index([%Baobab.Entry{author: a} = entry | rest], clump_id, :aliases) do
+    # We map aliases for all of our identities, not just the
+    # one we care currently using.  Meh.
+    me = Baobab.Identity.list() |> Enum.map(fn {_n, k} -> k end)
+
+    case Baobab.Identity.as_base62(a) in me do
+      true ->
+        try do
+          %Baobab.Entry{payload: payload} = entry
+          {:ok, data, ""} = CBOR.decode(payload)
+          :dets.insert(:aliases, {data["whom"], data["alias"]})
+        rescue
+          _ ->
+            :ok
+        end
+
+      false ->
         :ok
     end
 

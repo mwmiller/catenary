@@ -33,6 +33,7 @@ defmodule Catenary do
 
     aliases =
       :dets.match(:aliases, :"$1")
+      |> Enum.reject(fn [{a, _}] -> is_atom(a) end)
       |> Enum.reduce(%{}, fn [{a, n}], acc -> Map.put(acc, a, n) end)
 
     Catenary.dets_close(:aliases)

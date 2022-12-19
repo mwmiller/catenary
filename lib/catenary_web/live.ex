@@ -8,7 +8,6 @@ defmodule CatenaryWeb.Live do
     # Making sure these exist, but also faux docs
     {:asc, :desc, :author, :logid, :seq}
     Phoenix.PubSub.subscribe(Catenary.PubSub, "ui")
-    Phoenix.PubSub.subscribe(Catenary.PubSub, "background")
 
     whoami = Catenary.Preferences.get(:identity)
     clumps = Application.get_env(:catenary, :clumps)
@@ -59,6 +58,7 @@ defmodule CatenaryWeb.Live do
          entry_back: [],
          connections: [],
          oases: [],
+         me: self(),
          clumps: clumps,
          clump_id: clump_id,
          identity: whoami,
@@ -163,7 +163,6 @@ defmodule CatenaryWeb.Live do
   end
 
   def handle_info({:completed, which}, %{assigns: assigns} = socket) do
-    # This is non-atomically incorrect.  FIXME
     thehash = Baobab.Persistence.current_hash(:content, assigns.clump_id)
 
     update =
@@ -468,28 +467,17 @@ defmodule CatenaryWeb.Live do
         false ->
           {:ok, pid} =
             case which do
-              :timelines ->
-                Task.start(Catenary.Indices, :index_timelines, [si, state.clump_id])
-
-              :aliases ->
-                Task.start(Catenary.Indices, :index_aliases, [state.identity, state.clump_id])
-
-              :tags ->
-                Task.start(Catenary.Indices, :index_tags, [si, state.clump_id])
-
-              :reactions ->
-                Task.start(Catenary.Indices, :index_reactions, [si, state.clump_id])
-
-              :references ->
-                Task.start(Catenary.Indices, :index_references, [si, state.clump_id])
-
               # This "index" is maintained in Baobab and is a heavy operation
               # it should perhaps be less often run
               :graph ->
                 Task.start(Catenary.SocialGraph, :update_from_logs, [
                   state.identity,
-                  state.clump_id
+                  state.clump_id,
+                  state.me
                 ])
+
+              which ->
+                Task.start(Catenary.Indices, :update_index, [which, si, state.clump_id, state.me])
             end
 
           pid
@@ -505,19 +493,11 @@ defmodule CatenaryWeb.Live do
     # This might seem like the same thing, but it's not sometimes
     #
     done = fn ->
-      Phoenix.PubSub.local_broadcast(
-        Catenary.PubSub,
-        "background",
-        {:completed, {:connection, {host, port}}}
-      )
+      Process.send(socket.assigns.me, {:completed, {:connection, {host, port}}}, [])
     end
 
     refresh = fn ->
-      Phoenix.PubSub.local_broadcast(
-        Catenary.PubSub,
-        "background",
-        {:refresh, :connection}
-      )
+      Process.send(socket.assigns.me, {:refresh, :connection}, [])
     end
 
     Task.start(fn ->
