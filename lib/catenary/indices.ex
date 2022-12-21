@@ -125,7 +125,9 @@ defmodule Catenary.Indices do
             [{^tag, val}] -> val
           end
 
-        insert = [{published(data), e} | old_val] |> Enum.sort() |> Enum.uniq()
+        insert =
+          [{published(data), e} | old_val] |> Enum.sort() |> Enum.uniq_by(fn {_p, e} -> e end)
+
         :dets.insert(:tags, {tag, insert})
       end
     rescue
