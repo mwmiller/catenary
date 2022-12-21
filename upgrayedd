@@ -1,0 +1,11 @@
+#!/usr/bin/env bash
+set -e
+git stash push -m "CatenaryUpdate"
+git clean -xdf
+git fetch --prune
+git reset --hard origin/main
+# We have set -e but we want to ignore
+# if there were no local changes to re-apply
+git stash apply stash^{/CatenaryUpdate} || true
+mix deps.get --all
+MIX_ENV=prod mix release
