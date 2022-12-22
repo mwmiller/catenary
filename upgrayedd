@@ -8,4 +8,5 @@ git reset --hard origin/main
 # if there were no local changes to re-apply
 git stash apply stash^{/CatenaryUpdate} || true
 mix deps.get --all
+mix assets.deploy
 MIX_ENV=prod mix release
