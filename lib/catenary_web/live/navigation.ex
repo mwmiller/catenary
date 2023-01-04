@@ -86,19 +86,6 @@ defmodule Catenary.Live.Navigation do
     """
   end
 
-  defp extra_nav(%{view: :unshown} = assigns) do
-    ~L"""
-          <h4>Hidden Unshowns</h4>
-      <form method="post" id="unshown-form" phx-change="filter-unshown">
-        <div class="mt-5 grid grid-cols-2">
-          <%= for {s, a} <- Catenary.all_pretty_log_pairs do
-            hidden_unshown_input(a, s, @hidden_us) |> Phoenix.HTML.raw
-          end %>
-    </div>
-      </form>
-    """
-  end
-
   defp extra_nav(%{:extra_nav => :journal} = assigns) do
     ~L"""
     <div id="posting" class="font-sans">
@@ -292,24 +279,5 @@ defmodule Catenary.Live.Navigation do
         qname <> " type=\"text\" size=\"16\" /><br/>"
       | acc
     ])
-  end
-
-  defp hidden_unshown_input(name, title, hidden_unshown) do
-    case Preferences.accept_log_name?(name) do
-      false ->
-        ""
-
-      true ->
-        checked =
-          case MapSet.member?(hidden_unshown, name) do
-            true -> " checked "
-            false -> ""
-          end
-
-        ln = Atom.to_string(name)
-
-        "<div><input class=\"bg-white dark:bg-black\" type=\"checkbox\"  name=\"log_name-" <>
-          ln <> "\" value=\"" <> ln <> "\"" <> checked <> "/>&nbsp;" <> title <> "</div>"
-    end
   end
 end
