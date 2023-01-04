@@ -41,10 +41,7 @@ defmodule Catenary.Live.Navigation do
          <button value="origin" phx-click="nav"><img src="<%= Catenary.identicon(@identity, 2) %>"></button>
          <button value="unshown" phx-click="toview">!⃣</button>
          <%= if @on_log_entry do %>
-           <button phx-click="toggle-block">⛒̟</button>
-          <%= if Preferences.accept_log_name?(:alias) do %>
-           <button phx-click="toggle-aliases">~̟</button>
-         <% end %>
+           <%= for post_type <- [:graph, :alias], do: post_button_for(post_type) %>
          <% end %>
         </div>
         <div class="flex-auto p-1 text-center">
@@ -55,19 +52,9 @@ defmodule Catenary.Live.Navigation do
          <button value="next-author" phx-click="nav">↧</button>
        </div>
        <div class="flex-auto p-1 text-center">
-         <%= if Preferences.accept_log_name?(:journal) do %>
-         <button phx-click="toggle-journal">✎̟</button>
-       <% end %>
+       <%= post_button_for(:journal) %>
        <%= if @on_log_entry do %>
-        <%= if Preferences.accept_log_name?(:reply) do %>
-        <button phx-click="toggle-reply">↩︎̟</button>
-        <% end %>
-        <%= if Preferences.accept_log_name?(:react) do %>
-        <button phx-click="toggle-reactions">⌘̟</button>
-        <% end %>
-        <%= if Preferences.accept_log_name?(:tag) do %>
-        <button phx-click="toggle-tags">#̟</button>
-        <% end %> 
+        <%= for post_type <- [:reply, :react, :tag],  do: post_button_for(post_type) %>
        <% end %>
        </div>
      </div>
@@ -94,9 +81,9 @@ defmodule Catenary.Live.Navigation do
     """
   end
 
-  defp extra_nav(%{:extra_nav => :aliases, :entry => {:tag, _}}), do: ""
+  defp extra_nav(%{:extra_nav => :alias, :entry => {:tag, _}}), do: ""
 
-  defp extra_nav(%{:extra_nav => :aliases} = assigns) do
+  defp extra_nav(%{:extra_nav => :alias} = assigns) do
     ~L"""
     <div id="aliases">
        <form method="post" id="alias-form" phx-submit="new-entry">
@@ -115,9 +102,9 @@ defmodule Catenary.Live.Navigation do
     """
   end
 
-  defp extra_nav(%{:extra_nav => :block, :entry => {:tag, _}}), do: ""
+  defp extra_nav(%{:extra_nav => :graph, :entry => {:tag, _}}), do: ""
 
-  defp extra_nav(%{:extra_nav => :block, :blocked => true} = assigns) do
+  defp extra_nav(%{:extra_nav => :graph, :blocked => true} = assigns) do
     ~L"""
     <div id="block">
     <p class="my-5">You may unblock by submitting this form.  It will publish a 
@@ -140,7 +127,7 @@ defmodule Catenary.Live.Navigation do
     """
   end
 
-  defp extra_nav(%{:extra_nav => :block} = assigns) do
+  defp extra_nav(%{:extra_nav => :graph} = assigns) do
     ~L"""
     <div id="block">
       <p class="my-5">Blocking will be published on a public log.
@@ -164,9 +151,9 @@ defmodule Catenary.Live.Navigation do
     """
   end
 
-  defp extra_nav(%{:extra_nav => :tags, :entry => {:tag, _}}), do: ""
+  defp extra_nav(%{:extra_nav => :tag, :entry => {:tag, _}}), do: ""
 
-  defp extra_nav(%{:extra_nav => :tags} = assigns) do
+  defp extra_nav(%{:extra_nav => :tag} = assigns) do
     ~L"""
     <div id="tags">
       <%= if @on_log_entry do %>
@@ -182,7 +169,7 @@ defmodule Catenary.Live.Navigation do
     """
   end
 
-  defp extra_nav(%{:extra_nav => :reactions} = assigns) do
+  defp extra_nav(%{:extra_nav => :react} = assigns) do
     ~L"""
     <div id="reactions-nav" class="flex flex-row 5 mt-20">
       <%= if @on_log_entry do %>
@@ -253,6 +240,7 @@ defmodule Catenary.Live.Navigation do
       <input type="hidden" name="ref" value="<%= Catenary.index_to_string(@entry) %>">
       <% end %>
       <br/>
+      <label for="title"><%= posting_icon(which) %>
       <input class="bg-white dark:bg-black" type="text" value="<%= suggested_title %>" name="title"/>
       <br/>
       <textarea class="bg-white dark:bg-black" name="body" rows="8" cols="35"></textarea>
@@ -262,6 +250,25 @@ defmodule Catenary.Live.Navigation do
     </form>
     """
   end
+
+  defp post_button_for(which) do
+    case Preferences.accept_log_name?(which) do
+      true ->
+        "<button phx-click=\"toggle-" <>
+          Atom.to_string(which) <> "\">" <> posting_icon(which) <> "</button>\n"
+
+      false ->
+        ""
+    end
+    |> Phoenix.HTML.raw()
+  end
+
+  defp posting_icon(:graph), do: "⛒̟"
+  defp posting_icon(:alias), do: "~̟"
+  defp posting_icon(:tag), do: "#̟"
+  defp posting_icon(:react), do: "⌘̟"
+  defp posting_icon(:reply), do: "↩︎̟"
+  defp posting_icon(:journal), do: "✎̟"
 
   defp tag_inputs(count), do: make_tag_inputs(count, [])
 
