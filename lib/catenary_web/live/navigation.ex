@@ -54,7 +54,7 @@ defmodule Catenary.Live.Navigation do
        <div class="flex-auto p-1 text-center">
        <%= post_button_for(:journal) %>
        <%= if @on_log_entry do %>
-        <%= for post_type <- [:reply, :react, :tag],  do: post_button_for(post_type) %>
+        <%= for post_type <- [:reply, :react, :tag, :mention],  do: post_button_for(post_type) %>
        <% end %>
        </div>
      </div>
@@ -123,6 +123,23 @@ defmodule Catenary.Live.Navigation do
      </div>
      <%= Catenary.log_submit_button %>
     </form>
+    </div>
+    """
+  end
+
+  defp extra_nav(%{:extra_nav => :mention} = assigns) do
+    ~L"""
+    <div id="mention">
+    <p class="my-5">You may only create mentions for those for whom you have set an alias</p>
+      <br>
+       <form method="post" id="mention-form" phx-submit="new-entry">
+         <input type="hidden" name="log_id" value="121">
+         <%= if @on_log_entry do %>
+         <input type="hidden" name="ref" value="<%= Catenary.index_to_string(@entry) %>" />
+         <% end %>
+         <%= mention_inputs(4) %>
+         <%= Catenary.log_submit_button %>
+       </form>
     </div>
     """
   end
@@ -266,6 +283,7 @@ defmodule Catenary.Live.Navigation do
   defp posting_icon(:graph), do: "⛒̟"
   defp posting_icon(:alias), do: "~̟"
   defp posting_icon(:tag), do: "#̟"
+  defp posting_icon(:mention), do: "∑̟"
   defp posting_icon(:react), do: "⌘̟"
   defp posting_icon(:reply), do: "↩︎̟"
   defp posting_icon(:journal), do: "✎̟"
@@ -282,6 +300,25 @@ defmodule Catenary.Live.Navigation do
       "<label for=" <>
         qname <>
         ">#</label>" <>
+        "<input class=\"bg-white dark:bg-black\" name=" <>
+        qname <> " type=\"text\" size=\"16\" /><br/>"
+      | acc
+    ])
+  end
+
+  defp mention_inputs(count), do: make_mention_inputs(count, [])
+
+  defp make_mention_inputs(0, acc),
+    do: acc |> Enum.reverse() |> Enum.join("") |> Phoenix.HTML.raw()
+
+  defp make_mention_inputs(n, acc) do
+    less = n - 1
+    qname = "\"mention" <> Integer.to_string(less) <> "\""
+
+    make_mention_inputs(less, [
+      "<label for=" <>
+        qname <>
+        ">~</label>" <>
         "<input class=\"bg-white dark:bg-black\" name=" <>
         qname <> " type=\"text\" size=\"16\" /><br/>"
       | acc

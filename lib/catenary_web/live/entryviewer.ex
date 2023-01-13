@@ -73,8 +73,8 @@ defmodule Catenary.Live.EntryViewer do
           <h1><%= @card["title"] %></h1>
           <p class="text-sm font-light"><%= Catenary.linked_author(@card["author"], @aliases) %> &mdash; <%= nice_time(@card["published"]) %></p>
           <p><%= icon_entries(@card["back-refs"]) %>&nbsp;↹&nbsp;<%= icon_entries(@card["fore-refs"]) %></p>
-          <p class="float-left text-xs font-light"><%= @card["mentions"] %></p>
-          <p class="float-right text-xs font-light"><%= @card["reactions"] %></p>
+          <p class="float-left"><%= @card["mentions"] %></p>
+          <p class="float-right text-s font-light"><%= @card["reactions"] %></p>
         <hr/>
         <br/>
         <div class="font-light">
@@ -198,7 +198,7 @@ defmodule Catenary.Live.EntryViewer do
           true -> from_dets(entry, :mentions)
           false -> []
         end
-        |> Enum.map(fn k -> Catenary.entry_icon_link({:profile, k}, 1) end)
+        |> Enum.map(fn k -> Catenary.entry_icon_link({:profile, k}, 2) end)
         |> Phoenix.HTML.raw()
 
       base =

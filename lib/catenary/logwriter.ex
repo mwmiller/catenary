@@ -135,6 +135,54 @@ defmodule Catenary.LogWriter do
 
   def new_entry(
         %{
+          "log_id" => "121",
+          "ref" => ref,
+          "mention0" => mention0,
+          "mention1" => mention1,
+          "mention2" => mention2,
+          "mention3" => mention3
+        },
+        socket
+      ) do
+    references = Catenary.string_to_index(ref)
+    {:ok, aliases} = socket.assigns.aliases
+    atok = Enum.reduce(aliases, %{}, fn {k, v}, a -> Map.put(a, v, k) end)
+
+    valids =
+      Enum.reduce([mention0, mention1, mention2, mention3], [], fn a, acc ->
+        case Map.get(atok, a) do
+          nil -> acc
+          k -> [k | acc]
+        end
+      end)
+
+    case valids do
+      [] ->
+        references
+
+      mentions ->
+        %Baobab.Entry{author: a, log_id: l, seqnum: e} =
+          %{
+            "references" => [references],
+            "mentions" => mentions,
+            "published" => Timex.now() |> DateTime.to_string()
+          }
+          |> CBOR.encode()
+          |> append_log_for_socket(121, socket)
+
+        b62author = Baobab.Identity.as_base62(a)
+        entry = {b62author, l, e}
+        Catenary.Preferences.mark_entry(:shown, entry)
+        Catenary.Indices.update_index(:mentions, [entry], socket.assigns.clump_id)
+        Catenary.Indices.update_index(:references, [entry], socket.assigns.clump_id)
+        # Here we send them back to the referenced post which should now have tags applied
+        # They can see the actual tagging post from the footer (or profile)
+        references
+    end
+  end
+
+  def new_entry(
+        %{
           "ref" => ref,
           "whom" => whom,
           "log_id" => "1337",
