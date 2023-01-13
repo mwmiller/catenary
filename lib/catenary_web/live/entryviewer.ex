@@ -73,6 +73,7 @@ defmodule Catenary.Live.EntryViewer do
           <h1><%= @card["title"] %></h1>
           <p class="text-sm font-light"><%= Catenary.linked_author(@card["author"], @aliases) %> &mdash; <%= nice_time(@card["published"]) %></p>
           <p><%= icon_entries(@card["back-refs"]) %>&nbsp;↹&nbsp;<%= icon_entries(@card["fore-refs"]) %></p>
+          <p class="float-left text-xs font-light"><%= @card["mentions"] %></p>
           <p class="float-right text-xs font-light"><%= @card["reactions"] %></p>
         <hr/>
         <br/>
@@ -140,13 +141,25 @@ defmodule Catenary.Live.EntryViewer do
           "<div class=\"mt-20 flex flex-row\">" <> Enum.join(items) <> "</div>"
       end
 
+    mentions =
+      case from_dets({"", a}, :mentions) do
+        [] ->
+          ""
+
+        entries ->
+          {:safe, icons} = icon_entries(entries)
+
+          "<h4 class=\"mt-10\">Mentioned in</h4><div class=\"p-2 flex flex-row\">" <>
+            icons <> "</div>"
+      end
+
     Map.merge(
       %{
         "author" => a,
         "title" => clump_id <> " Overview",
         "back-refs" => [],
         "tags" => [],
-        "body" => Phoenix.HTML.raw(timeline <> others),
+        "body" => Phoenix.HTML.raw(timeline <> others <> mentions),
         "published" => as_of
       },
       from_refs(entry)
@@ -180,12 +193,21 @@ defmodule Catenary.Live.EntryViewer do
           false -> []
         end
 
+      mentions =
+        case Preferences.accept_log_name?(:mention) do
+          true -> from_dets(entry, :mentions)
+          false -> []
+        end
+        |> Enum.map(fn k -> Catenary.entry_icon_link({:profile, k}, 1) end)
+        |> Phoenix.HTML.raw()
+
       base =
         Map.merge(
           %{
             "author" => a,
             "tags" => tags,
-            "reactions" => reactions
+            "reactions" => reactions,
+            "mentions" => mentions
           },
           from_refs(entry)
         )
@@ -232,6 +254,22 @@ defmodule Catenary.Live.EntryViewer do
       Map.merge(data, %{
         "title" => added_title("Alias: ~" <> data["alias"]),
         "body" => Phoenix.HTML.raw("Key: " <> data["whom"]),
+        "back-refs" => maybe_refs(data["references"])
+      })
+    rescue
+      e -> malformed(e, cbor)
+    end
+  end
+
+  defp extract_type(cbor, %{name: :mention}) do
+    try do
+      {:ok, data, ""} = CBOR.decode(cbor)
+
+      keys = data["mentions"] |> Enum.join(", ")
+
+      Map.merge(data, %{
+        "title" => added_title("Mention"),
+        "body" => Phoenix.HTML.raw("Keys: " <> keys),
         "back-refs" => maybe_refs(data["references"])
       })
     rescue

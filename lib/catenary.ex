@@ -122,6 +122,17 @@ defmodule Catenary do
     )
   end
 
+  def entry_icon_link({:profile, a} = entry, size) do
+    view_entry_button(
+      entry,
+      "<img " <>
+        maybe_border(entry) <>
+        " src=\"" <>
+        Catenary.identicon(a, size) <>
+        "\" title=\"profile\"\>"
+    )
+  end
+
   defp entry_title({_a, l, e}) do
     Enum.join(
       [
