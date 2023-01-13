@@ -12,7 +12,7 @@ defmodule Catenary.Indices do
   def clear_all() do
     # This information is all over the place. :(
     # One source of truth
-    for table <- [:references, :tags, :reactions, :aliases, :timelines] do
+    for table <- [:references, :tags, :reactions, :aliases, :timelines, :mentions] do
       Catenary.dets_open(table)
       :dets.delete_all_objects(table)
       Catenary.dets_close(table)
@@ -24,6 +24,7 @@ defmodule Catenary.Indices do
     aliases: QuaggaDef.logs_for_name(:alias),
     tags: QuaggaDef.logs_for_name(:tag),
     reactions: QuaggaDef.logs_for_name(:react),
+    mentions: QuaggaDef.logs_for_name(:mention),
     timelines:
       Enum.reduce(Catenary.timeline_logs(), [], fn n, a -> a ++ QuaggaDef.logs_for_name(n) end)
   }
@@ -135,6 +136,44 @@ defmodule Catenary.Indices do
     end
 
     entries_index(rest, clump_id, :tags)
+  end
+
+  defp entries_index([entry | rest], clump_id, :mentions) do
+    # This is a two-way index
+    try do
+      %Baobab.Entry{payload: payload} = entry
+      {:ok, data, ""} = CBOR.decode(payload)
+      mentions = data["mentions"] |> Enum.map(fn s -> {"", String.trim(s)} end)
+      [ent] = data["references"]
+      e = List.to_tuple(ent)
+      # Mentions for entry
+      old =
+        case :dets.lookup(:mentions, e) do
+          [] -> []
+          [{^e, val}] -> val
+        end
+
+      into = (old ++ mentions) |> Enum.sort() |> Enum.uniq()
+      :dets.insert(:mentions, {e, into})
+
+      # Entries for mentioned
+      for mention <- mentions do
+        old_val =
+          case :dets.lookup(:mentions, mention) do
+            [] -> []
+            [{^mention, val}] -> val
+          end
+
+        insert =
+          [{published(data), e} | old_val] |> Enum.sort() |> Enum.uniq_by(fn {_p, e} -> e end)
+
+        :dets.insert(:mentions, {mention, insert})
+      end
+    rescue
+      _ -> :ok
+    end
+
+    entries_index(rest, clump_id, :mentions)
   end
 
   defp entries_index([entry | rest], clump_id, :reactions) do

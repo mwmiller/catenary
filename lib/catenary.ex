@@ -8,10 +8,11 @@ defmodule Catenary do
   @dets_tables %{
     aliases: "aliases.dets",
     identicons: "identicons.dets",
-    references: "references.dets",
-    prefs: "preferences.dets",
     graph: "social_graph.dets",
+    mentions: "mentions.dets",
+    prefs: "preferences.dets",
     reactions: "reactions.dets",
+    references: "references.dets",
     tags: "tags.dets",
     timelines: "timelines.dets"
   }

@@ -2,7 +2,7 @@ defmodule CatenaryWeb.Live do
   use CatenaryWeb, :live_view
   alias Catenary.{Navigation, Oases, LogWriter}
 
-  @indices [:tags, :references, :timelines, :aliases, :graph, :reactions]
+  @indices [:tags, :references, :timelines, :aliases, :graph, :reactions, :mentions]
 
   def mount(_params, session, socket) do
     # Making sure these exist, but also faux docs
