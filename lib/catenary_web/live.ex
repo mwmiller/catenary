@@ -216,6 +216,19 @@ defmodule CatenaryWeb.Live do
     {:noreply, state_set(socket, %{})}
   end
 
+  def handle_event("prefs-change", %{"_target" => [target]} = vals, socket) do
+    # This idiom works for on change checkboxes.
+    # Might want to extract.  Also, be careful on how "pref-change" is used
+    set_to =
+      case vals do
+        %{^target => "on"} -> true
+        _ -> false
+      end
+
+    Catenary.Preferences.set(String.to_existing_atom(target), set_to)
+    {:noreply, socket}
+  end
+
   def handle_event("clump-change", %{"clump_id" => clump_id}, socket) do
     # This is a heavy operation
     # It's essentially a whole new instance.

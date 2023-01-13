@@ -50,10 +50,11 @@ defmodule Catenary.Live.PrefsManager do
     <input class="bg-white dark:bg-black m-5" phx-blur="facet-change" type="numeric" name="facet_id" size=3 value="<%= @facet_id %>">
     </form>
     </div>
-    <div class="flex flex-row min-w-full">
-      <div class="flex-auto"><button class="border opacity-61 p-2 m-10 bg-stone-200 dark:bg-stone-800" value="all" phx-disable-with="⌘⌘⌘" phx-click="shown">catch up</button></div>
-      <div class="flex-auto"><button class="border opacity-61 p-2 m-10 bg-stone-200 dark:bg-stone-800" value="none" phx-disable-with="⎚⎚⎚"  phx-click="shown">start fresh</button></div>
-      <div class="flex-auto"><button class="border opacity-61 p-2 m-10 bg-stone-200 dark:bg-stone-800" value="all" phx-disable-with="〆〆〆"  phx-click="compact">compact logs</button></div>
+      <div>Preferences
+      <form method="post" id="pref-form" phx-change="prefs-change">
+      <input class="bg-white dark:bg-black" type="checkbox"  name="automention" <%= if Catenary.Preferences.get(:automention), do: "checked" %> > Auto-mention
+      </form>
+      </div>
       <div class="flex-1 min-w-full">
           <div>Accept log types</div>
       <form method="post" id="accept-form" phx-submit="new-entry">
@@ -68,6 +69,10 @@ defmodule Catenary.Live.PrefsManager do
       </form>
     </div>
     </div>
+    <div class="flex flex-row min-w-full">
+      <div class="flex-auto"><button class="border opacity-61 p-2 m-10 bg-stone-200 dark:bg-stone-800" value="all" phx-disable-with="⌘⌘⌘" phx-click="shown">catch up</button></div>
+      <div class="flex-auto"><button class="border opacity-61 p-2 m-10 bg-stone-200 dark:bg-stone-800" value="none" phx-disable-with="⎚⎚⎚"  phx-click="shown">start fresh</button></div>
+      <div class="flex-auto"><button class="border opacity-61 p-2 m-10 bg-stone-200 dark:bg-stone-800" value="all" phx-disable-with="〆〆〆"  phx-click="compact">compact logs</button></div>
     """
   end
 
