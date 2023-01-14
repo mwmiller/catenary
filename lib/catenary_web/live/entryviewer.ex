@@ -75,8 +75,7 @@ defmodule Catenary.Live.EntryViewer do
           <p><%= icon_entries(@card["back-refs"]) %>&nbsp;↹&nbsp;<%= icon_entries(@card["fore-refs"]) %></p>
           <p class="float-left"><%= @card["mentions"] %></p>
           <p class="float-right text-s font-light"><%= @card["reactions"] %></p>
-        <hr/>
-        <br/>
+        <hr class="mb-11"/>
         <div class="font-light">
         <%= @card["body"] %>
         </div>
