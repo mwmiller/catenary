@@ -146,7 +146,7 @@ defmodule Catenary.Live.EntryViewer do
           ""
 
         entries ->
-          {:safe, icons} = icon_entries(entries)
+          {:safe, icons} = entries |> Enum.reverse() |> icon_entries
 
           "<h4 class=\"mt-10\">Mentioned in</h4><div class=\"p-2 flex flex-row\">" <>
             icons <> "</div>"
