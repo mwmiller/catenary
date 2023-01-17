@@ -426,14 +426,17 @@ defmodule Catenary.Live.EntryViewer do
   end
 
   defp metabox(data, which) do
-    ("""
-     <div class="flex-auto mt-11 p-3 border-y border-1 dark:border-zinc-50 border-gray-800 justify-center">
-     <p class="text-xs p-2">
-     """ <>
-       String.capitalize(which) <>
-       "</p>" <>
-       metafill(data[which], which, "") <>
-       "</div>")
+    case data[which] do
+      [] ->
+        ""
+
+      stuff ->
+        """
+        <div class="flex-auto mt-11 p-3 border-t border-1 dark:border-stone-500 border-grey-900 justify-center">
+        """ <>
+          metafill(stuff, which, "") <>
+          "</div>"
+    end
     |> Phoenix.HTML.raw()
   end
 
