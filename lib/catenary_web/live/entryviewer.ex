@@ -73,18 +73,18 @@ defmodule Catenary.Live.EntryViewer do
           <h1><%= @card["title"] %></h1>
           <p class="text-sm font-light"><%= Catenary.linked_author(@card["author"], @aliases) %> &mdash; <%= nice_time(@card["published"]) %></p>
           <p><%= icon_entries(@card["back-refs"]) %>&nbsp;↹&nbsp;<%= icon_entries(@card["fore-refs"]) %></p>
-          <p class="float-left"><%= @card["mentions"] %></p>
-          <p class="float-right text-s font-light"><%= @card["reactions"] %></p>
-        <hr class="mb-11"/>
+        <hr class="mb-3"/>
         <div class="font-light">
-        <%= @card["body"] %>
+          <%= @card["body"] %>
         </div>
-        <div class="grid grid-cols-4 mt-10 space-x-4" text-xs>
-          <%= for tname <- @card["tags"] do %>
-            <div class="auto text-xs text-orange-600 dark:text-amber-200"><button value="prev-tag-<%= tname %>" phx-click="nav">«</button> <button value="<%= tname %>" phx-click="view-tag"><%= tname %></button> <button value="next-tag-<%= tname %>" phx-click="nav">»</button></div>
-          <% end %>
-        </div>
-          <p class="float-left text-xs font-light"><%= icon_entries(@card["meta"]) %></p>
+        <%= if is_binary(elem(@entry,0)) do %>
+          <div class="flex flex-row">
+          <%= metabox(@card, "mentions") %>
+          <%= metabox(@card, "tags") %>
+          <%= metabox(@card, "reactions") %>
+          <%= metabox(@card, "refs") %>
+        <% end %>
+      </div>
       </div>
     </div>
     """
@@ -198,7 +198,6 @@ defmodule Catenary.Live.EntryViewer do
           false -> []
         end
         |> Enum.map(fn k -> Catenary.entry_icon_link({:profile, k}, 2) end)
-        |> Phoenix.HTML.raw()
 
       base =
         Map.merge(
@@ -418,13 +417,51 @@ defmodule Catenary.Live.EntryViewer do
 
   @reply_ref_ids QuaggaDef.logs_for_name(:reply)
   defp from_refs(entry) do
-    {replies, meta} =
+    {replies, refs} =
       entry
       |> from_dets(:references)
       |> Enum.split_with(fn {_, l, _} -> l in @reply_ref_ids end)
 
-    %{"meta" => meta, "fore-refs" => replies}
+    %{"refs" => refs, "fore-refs" => replies}
   end
+
+  defp metabox(data, which) do
+    ("""
+     <div class="flex-auto mt-11 p-3 border-y border-1 dark:border-zinc-50 border-gray-800 justify-center">
+     <p class="text-xs p-2">
+     """ <>
+       String.capitalize(which) <>
+       "</p>" <>
+       metafill(data[which], which, "") <>
+       "</div>")
+    |> Phoenix.HTML.raw()
+  end
+
+  defp metafill([], _, acc), do: acc
+  defp metafill([h | t], "mentions", acc), do: metafill(t, "mentions", acc <> h)
+
+  defp metafill([h | t], "tags", acc) do
+    metafill(
+      t,
+      "tags",
+      acc <>
+        "<div class=\"auto text-xs text-orange-600 dark:text-amber-200\"><button value=\"prev-tag-" <>
+        h <>
+        "\" phx-click=\"nav\">«</button> <button value=\"" <>
+        h <>
+        "\"  phx-click=\"view-tag\">" <>
+        h <> "</button> <button value=\"next-tag-" <> h <> "\" phx-click=\"nav\">»</button></div>"
+    )
+  end
+
+  defp metafill(reactions, "reactions", _), do: Enum.join(reactions, " ")
+
+  defp metafill(refs, "refs", _) do
+    {:safe, val} = icon_entries(refs)
+    val
+  end
+
+  defp metafill(_, _, _), do: ""
 
   defp icon_entries(list, acc \\ "")
   defp icon_entries([], acc), do: Phoenix.HTML.raw(acc)
