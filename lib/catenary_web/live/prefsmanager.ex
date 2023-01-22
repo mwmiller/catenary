@@ -60,7 +60,7 @@ defmodule Catenary.Live.PrefsManager do
       <form method="post" id="accept-form" phx-submit="new-entry">
         <input type="hidden" name="log_id" value="1337">
         <input type="hidden" name="listed" value="accept">
-        <div class="grid grid-cols-2">
+        <div class="grid grid-cols-3">
           <%= for {s, a} <- Catenary.all_pretty_log_pairs do %>
             <div><%= log_accept_input(a, @blocked) |> Phoenix.HTML.raw %>&nbsp;<%= s %> </div>
           <% end %>

@@ -77,15 +77,15 @@ defmodule Catenary.Live.EntryViewer do
         <div class="font-light">
           <%= @card["body"] %>
         </div>
+        </div>
         <%= if is_binary(elem(@entry,0)) do %>
           <div class="flex flex-row">
           <%= metabox(@card, "mentions") %>
           <%= metabox(@card, "tags") %>
           <%= metabox(@card, "reactions") %>
           <%= metabox(@card, "refs") %>
+          </div>
         <% end %>
-      </div>
-      </div>
     </div>
     """
   end

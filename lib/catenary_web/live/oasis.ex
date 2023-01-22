@@ -24,7 +24,7 @@ defmodule Catenary.Live.OasisBox do
 
   def render(assigns) do
     ~L"""
-    <div class="font-mono text-xs my-2">
+    <div class="font-mono text-xs py-2">
       <%= for {recent, index}  <- Enum.with_index(@nodes) do %>
         <div class="my-1 p-1 <%= case rem(index, 2)  do
         0 ->  "bg-zinc-200 dark:bg-stone-700"
