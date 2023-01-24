@@ -78,7 +78,7 @@ defmodule Catenary.Live.EntryViewer do
           <%= @card["body"] %>
         </div>
         </div>
-        <%= if is_binary(elem(@entry,0)) do %>
+        <%= if is_tuple(@entry) && tuple_size(@entry) == 3 do %>
           <div class="flex flex-row">
           <%= metabox(@card, "mentions") %>
           <%= metabox(@card, "tags") %>
