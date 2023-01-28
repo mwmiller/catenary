@@ -126,7 +126,7 @@ defmodule CatenaryWeb.Live do
   def render(%{view: :entries} = assigns) do
     ~L"""
     <div class="max-h-screen w-100 grid grid-cols-3 gap-2 justify-center">
-      <%= live_component(Catenary.Live.EntryViewer, id: :entry, store: @store, entry: @entry, clump_id: @clump_id, aliases: @aliases) %>
+      <%= live_component(Catenary.Live.EntryViewer, id: :entry, store: @store, identity: @identity, entry: @entry, clump_id: @clump_id, aliases: @aliases) %>
       <%= sidebar(assigns) %>
     </div>
     """

@@ -12,7 +12,10 @@ defmodule Catenary.Live.EntryViewer do
     {:ok, assign(socket, card: :none)}
   end
 
-  def update(%{store: store, entry: which, clump_id: clump_id} = assigns, socket)
+  def update(
+        %{store: store, entry: which, clump_id: clump_id, identity: identity} = assigns,
+        socket
+      )
       when is_atom(which) do
     targets = QuaggaDef.logs_for_name(which)
 
@@ -23,7 +26,7 @@ defmodule Catenary.Live.EntryViewer do
       entries ->
         entry = Enum.random(entries)
 
-        case extract(entry, clump_id, store) do
+        case extract(entry, clump_id: clump_id, store: store, identity: identity) do
           :error ->
             update(assigns, socket)
 
@@ -34,14 +37,17 @@ defmodule Catenary.Live.EntryViewer do
     end
   end
 
-  def update(%{store: store, entry: which, clump_id: clump_id} = assigns, socket) do
+  def update(
+        %{store: store, entry: which, clump_id: clump_id, identity: identity} = assigns,
+        socket
+      ) do
     way =
       case Catenary.blocked?(which, clump_id) do
         true ->
           %{card: :blocked}
 
         false ->
-          %{card: extract(which, clump_id, store)}
+          %{card: extract(which, clump_id: clump_id, store: store, identity: identity)}
       end
 
     {:ok, assign(socket, Map.merge(assigns, way))}
@@ -90,7 +96,9 @@ defmodule Catenary.Live.EntryViewer do
     """
   end
 
-  def extract({:profile, a} = entry, clump_id, si) do
+  def extract({:profile, a} = entry, settings) do
+    clump_id = Keyword.get(settings, :clump_id)
+
     Preferences.mark_entry(:shown, entry)
 
     {timeline, as_of} =
@@ -101,21 +109,22 @@ defmodule Catenary.Live.EntryViewer do
         activity ->
           rev_order = activity |> Enum.reverse()
           # We extract this one twice.  But maybe there is a filter later
-          %{"published" => as_of} = rev_order |> hd |> then(fn e -> extract(e, clump_id, si) end)
+          %{"published" => as_of} = rev_order |> hd |> then(fn e -> extract(e, settings) end)
 
           groups =
             activity
             |> Enum.reverse()
             |> Enum.take(11)
             |> Enum.group_by(fn {_, l, _} -> Catenary.pretty_log_name(l) end)
-            |> Enum.map(fn t -> group_list(t, clump_id, si) end)
+            |> Enum.map(fn t -> group_list(t, settings) end)
             |> Enum.join("")
 
           {"<div class=\"flex flex-rows-3\">" <> groups <> "</div>", as_of}
       end
 
     items =
-      si
+      settings
+      |> Keyword.get(:store)
       |> Enum.filter(fn {author, _, _} -> author == a end)
       |> Enum.group_by(fn {_, l, _} -> QuaggaDef.log_def(l) end)
       |> Enum.reject(fn {ldef, _} -> ldef == %{} end)
@@ -165,9 +174,10 @@ defmodule Catenary.Live.EntryViewer do
     )
   end
 
-  def extract({a, l, e} = entry, clump_id, _si) do
+  def extract({a, l, e} = entry, settings) do
     # We want failure to save here to fail loudly without any further work
     # But if it does fail later we don't mind having said it was shown
+    clump_id = Keyword.get(settings, :clump_id)
     Preferences.mark_entry(:shown, {a, l, e})
 
     try do
@@ -473,11 +483,11 @@ defmodule Catenary.Live.EntryViewer do
     icon_entries(rest, acc <> Catenary.entry_icon_link(entry, 2) <> "&nbsp;")
   end
 
-  defp group_list({ln, items}, clump_id, si) do
+  defp group_list({ln, items}, settings) do
     recents =
       items
       |> Enum.take(3)
-      |> Enum.map(fn e -> {e, extract(e, clump_id, si)} end)
+      |> Enum.map(fn e -> {e, extract(e, settings)} end)
       |> Enum.reduce("", fn {e, vals}, acc ->
         acc <>
           "<li><button " <>
