@@ -26,10 +26,8 @@ defmodule Catenary.Live.TagExplorer do
   end
 
   defp extract(:all) do
-    Catenary.dets_open(:tags)
-
     tags =
-      :dets.match(:tags, :"$1")
+      :ets.match(:tags, :"$1")
       |> Enum.reduce([], fn [{f, i} | _], a ->
         case f do
           {"", t} ->
@@ -45,7 +43,6 @@ defmodule Catenary.Live.TagExplorer do
       |> size_group
       |> link_groups([])
 
-    Catenary.dets_close(:tags)
     %{"tags" => tags}
   end
 

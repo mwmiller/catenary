@@ -32,7 +32,7 @@ defmodule Catenary.Live.TagViewer do
 
   defp extract(tag) do
     tag
-    |> from_dets(:tags)
+    |> from_ets(:tags)
     |> Enum.group_by(fn {_, {_, l, _}} -> QuaggaDef.base_log(l) end)
     |> Map.to_list()
     |> prettify([])
@@ -52,16 +52,10 @@ defmodule Catenary.Live.TagViewer do
     |> Phoenix.HTML.raw()
   end
 
-  defp from_dets(entry, table) do
-    Catenary.dets_open(table)
-
-    val =
-      case :dets.lookup(table, {"", entry}) do
-        [] -> []
-        [{_, v}] -> v
-      end
-
-    Catenary.dets_close(table)
-    val
+  defp from_ets(entry, table) do
+    case :ets.lookup(table, {"", entry}) do
+      [] -> []
+      [{_, v}] -> v
+    end
   end
 end

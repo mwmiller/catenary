@@ -32,7 +32,7 @@ defmodule Catenary.Application do
     # I need a better signal for when to do this
     # but the store is mutable by others
     # slower start up tradeoff for now
-    Catenary.Indices.clear_all()
+    Catenary.Indices.reset()
 
     children = [
       {Baby.Application, spool_dir: spool_dir(), clumps: clumps},

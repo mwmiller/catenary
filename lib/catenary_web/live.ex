@@ -233,7 +233,7 @@ defmodule CatenaryWeb.Live do
     # This is a heavy operation
     # It's essentially a whole new instance.
     # We need to drop a whole lot of state
-    Catenary.Indices.clear_all()
+    Catenary.Indices.reset()
 
     {:noreply,
      state_set(socket, %{

@@ -28,16 +28,11 @@ defmodule Catenary do
   end
 
   def alias_state() do
-    dets_open(:aliases)
-
-    Catenary.dets_open(:aliases)
-
     aliases =
-      :dets.match(:aliases, :"$1")
+      :ets.match(:aliases, :"$1")
       |> Enum.reject(fn [{a, _}] -> is_atom(a) end)
       |> Enum.reduce(%{}, fn [{a, n}], acc -> Map.put(acc, a, n) end)
 
-    Catenary.dets_close(:aliases)
     {:ok, aliases}
   end
 

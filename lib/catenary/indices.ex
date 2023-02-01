@@ -9,14 +9,24 @@ defmodule Catenary.Indices do
   for these.  We have no idea what to do if we fail.
   """
 
-  def clear_all() do
+  @tables [:references, :tags, :reactions, :aliases, :timelines, :mentions]
+  @table_options [:public, :named_table]
+
+  def reset() do
     # This information is all over the place. :(
     # One source of truth
-    for table <- [:references, :tags, :reactions, :aliases, :timelines, :mentions] do
-      Catenary.dets_open(table)
-      :dets.delete_all_objects(table)
-      Catenary.dets_close(table)
+    empty_tables(@tables)
+  end
+
+  defp empty_tables([]), do: :ok
+
+  defp empty_tables([curr | rest]) do
+    case curr in :ets.all() do
+      true -> :ets.delete_all_objects(curr)
+      false -> :ets.new(curr, @table_options)
     end
+
+    empty_tables(rest)
   end
 
   @logs_for_table %{
@@ -31,18 +41,15 @@ defmodule Catenary.Indices do
 
   def update_index(which, stored_info, clump_id, inform \\ nil) do
     {hash, logs} = pick_logs(stored_info, @logs_for_table[which])
-    Catenary.dets_open(which)
 
-    case :dets.lookup(which, :prev_hash) do
+    case :ets.lookup(which, :prev_hash) do
       [{:prev_hash, ^hash}] ->
         :ok
 
       _ ->
         index(logs, clump_id, which, inform)
-        :dets.insert(which, {:prev_hash, hash})
+        :ets.insert(which, {:prev_hash, hash})
     end
-
-    Catenary.dets_close(which)
   end
 
   defp pick_logs(logs, matches) do
@@ -85,14 +92,14 @@ defmodule Catenary.Indices do
       {:ok, data, ""} = CBOR.decode(payload)
 
       old =
-        case :dets.lookup(:timelines, ident) do
+        case :ets.lookup(:timelines, ident) do
           [] -> []
           [{^ident, val}] -> val
         end
 
       insert = [{published(data), {ident, l, s}} | old] |> Enum.sort() |> Enum.uniq()
 
-      :dets.insert(:timelines, {ident, insert})
+      :ets.insert(:timelines, {ident, insert})
     rescue
       _ -> :ok
     end
@@ -110,18 +117,18 @@ defmodule Catenary.Indices do
       e = List.to_tuple(ent)
       # Tags for entry
       old =
-        case :dets.lookup(:tags, e) do
+        case :ets.lookup(:tags, e) do
           [] -> []
           [{^e, val}] -> val
         end
 
       into = (old ++ tags) |> Enum.sort() |> Enum.uniq()
-      :dets.insert(:tags, {e, into})
+      :ets.insert(:tags, {e, into})
 
       # Entries for tag
       for tag <- tags do
         old_val =
-          case :dets.lookup(:tags, tag) do
+          case :ets.lookup(:tags, tag) do
             [] -> []
             [{^tag, val}] -> val
           end
@@ -129,7 +136,7 @@ defmodule Catenary.Indices do
         insert =
           [{published(data), e} | old_val] |> Enum.sort() |> Enum.uniq_by(fn {_p, e} -> e end)
 
-        :dets.insert(:tags, {tag, insert})
+        :ets.insert(:tags, {tag, insert})
       end
     rescue
       _ -> :ok
@@ -148,18 +155,18 @@ defmodule Catenary.Indices do
       e = List.to_tuple(ent)
       # Mentions for entry
       old =
-        case :dets.lookup(:mentions, e) do
+        case :ets.lookup(:mentions, e) do
           [] -> []
           [{^e, val}] -> val
         end
 
       into = (old ++ mentions) |> Enum.sort() |> Enum.uniq()
-      :dets.insert(:mentions, {e, into})
+      :ets.insert(:mentions, {e, into})
 
       # Entries for mentioned
       for mention <- mentions do
         old_val =
-          case :dets.lookup(:mentions, mention) do
+          case :ets.lookup(:mentions, mention) do
             [] -> []
             [{^mention, val}] -> val
           end
@@ -167,7 +174,7 @@ defmodule Catenary.Indices do
         insert =
           [{published(data), e} | old_val] |> Enum.sort() |> Enum.uniq_by(fn {_p, e} -> e end)
 
-        :dets.insert(:mentions, {mention, insert})
+        :ets.insert(:mentions, {mention, insert})
       end
     rescue
       _ -> :ok
@@ -185,14 +192,14 @@ defmodule Catenary.Indices do
       e = List.to_tuple(ent)
 
       old =
-        case :dets.lookup(:reactions, e) do
+        case :ets.lookup(:reactions, e) do
           [] -> []
           [{^e, val}] -> val
         end
 
       # This might eventually have log-scale counting
       into = (old ++ reacts) |> Enum.sort() |> Enum.uniq()
-      :dets.insert(:reactions, {e, into})
+      :ets.insert(:reactions, {e, into})
     rescue
       _ -> :ok
     end
@@ -210,8 +217,8 @@ defmodule Catenary.Indices do
         try do
           %Baobab.Entry{payload: payload} = entry
           {:ok, data, ""} = CBOR.decode(payload)
-          :dets.match_delete(:aliases, {:_, data["alias"]})
-          :dets.insert(:aliases, {data["whom"], data["alias"]})
+          :ets.match_delete(:aliases, {:_, data["alias"]})
+          :ets.insert(:aliases, {data["whom"], data["alias"]})
         rescue
           _ ->
             :ok
@@ -234,14 +241,14 @@ defmodule Catenary.Indices do
         tref = lref |> List.to_tuple()
 
         old_val =
-          case :dets.lookup(:references, tref) do
+          case :ets.lookup(:references, tref) do
             [] -> []
             [{^tref, val}] -> val
           end
 
         new_val = (old_val ++ [{published(data), index}]) |> Enum.sort() |> Enum.uniq()
 
-        :dets.insert(:references, {tref, new_val})
+        :ets.insert(:references, {tref, new_val})
       end
     rescue
       _ ->

@@ -102,7 +102,7 @@ defmodule Catenary.Live.EntryViewer do
     Preferences.mark_entry(:shown, entry)
 
     {timeline, as_of} =
-      case from_dets(a, :timelines) do
+      case from_ets(a, :timelines) do
         [] ->
           {"", :latest}
 
@@ -150,7 +150,7 @@ defmodule Catenary.Live.EntryViewer do
       end
 
     mentions =
-      case from_dets({"", a}, :mentions) do
+      case from_ets({"", a}, :mentions) do
         [] ->
           ""
 
@@ -192,19 +192,19 @@ defmodule Catenary.Live.EntryViewer do
 
       tags =
         case Preferences.accept_log_name?(:tag) do
-          true -> from_dets(entry, :tags)
+          true -> from_ets(entry, :tags)
           false -> []
         end
 
       reactions =
         case Preferences.accept_log_name?(:react) do
-          true -> from_dets(entry, :reactions)
+          true -> from_ets(entry, :reactions)
           false -> []
         end
 
       mentions =
         case Preferences.accept_log_name?(:mention) do
-          true -> from_dets(entry, :mentions)
+          true -> from_ets(entry, :mentions)
           false -> []
         end
         |> Enum.map(fn k -> Catenary.entry_icon_link({:profile, k}, 2) end)
@@ -411,25 +411,19 @@ defmodule Catenary.Live.EntryViewer do
     maybe_refs(rest, [List.to_tuple(r) | acc])
   end
 
-  defp from_dets(entry, table) do
-    Catenary.dets_open(table)
-
-    val =
-      case :dets.lookup(table, entry) do
-        [] -> []
-        [{^entry, v}] -> v
-      end
-      |> Enum.map(fn {_pub, v} -> v end)
-
-    Catenary.dets_close(table)
-    val
+  defp from_ets(entry, table) do
+    case :ets.lookup(table, entry) do
+      [] -> []
+      [{^entry, v}] -> v
+    end
+    |> Enum.map(fn {_pub, v} -> v end)
   end
 
   @reply_ref_ids QuaggaDef.logs_for_name(:reply)
   defp from_refs(entry) do
     {replies, refs} =
       entry
-      |> from_dets(:references)
+      |> from_ets(:references)
       |> Enum.split_with(fn {_, l, _} -> l in @reply_ref_ids end)
 
     %{"refs" => refs, "fore-refs" => replies}

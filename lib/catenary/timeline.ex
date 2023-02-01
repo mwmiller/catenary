@@ -25,15 +25,11 @@ defmodule Catenary.Timeline do
   defp move(%{view: :entries, entry: {:profile, _a}} = c, _), do: c
 
   defp move(%{view: :entries, entry: {a, l, e} = entry}, dir) when l in @timeline_ids do
-    Catenary.dets_open(:timelines)
-
     timeline =
-      case :dets.lookup(:timelines, a) do
+      case :ets.lookup(:timelines, a) do
         [] -> [{<<>>, {a, l, e}}]
         [{^a, tl}] -> tl
       end
-
-    Catenary.dets_close(:timelines)
 
     wherearewe =
       case Enum.find_index(timeline, fn {_, listed} -> listed == entry end) do

@@ -14,16 +14,13 @@ defmodule Catenary.Tagline do
   def prev(entry, tag), do: move(entry, tag, :prev)
 
   defp move(%{view: :entries, entry: {a, l, e} = entry}, tag, dir) do
-    Catenary.dets_open(:tags)
     ti = {"", tag}
 
     tagline =
-      case :dets.lookup(:tags, {"", tag}) do
+      case :ets.lookup(:tags, {"", tag}) do
         [] -> [{0, {a, l, e}}]
         [{^ti, tl}] -> tl
       end
-
-    Catenary.dets_close(:tags)
 
     wherearewe =
       case Enum.find_index(tagline, fn {_, listed} -> listed == entry end) do
