@@ -148,8 +148,17 @@ defmodule Catenary.Preferences do
     end)
   end
 
-  def shown?(entry),
-    do: get(:shown) |> Map.get(get(:clump_id), MapSet.new()) |> MapSet.member?(entry)
+  defp this_clump_shown_set(), do: get(:shown) |> Map.get(get(:clump_id), MapSet.new())
+  def shown?(entry), do: MapSet.member?(this_clump_shown_set(), entry)
+
+  def all_shown?(entries) when is_list(entries), do: all_shown?(MapSet.new(entries))
+
+  def all_shown?(entries) do
+    case entries |> MapSet.difference(this_clump_shown_set()) |> MapSet.size() do
+      0 -> true
+      _ -> false
+    end
+  end
 
   def reject_log_name_set(rejects) do
     set(:reject, Map.put(get(:reject), get(:clump_id), MapSet.new(rejects)))

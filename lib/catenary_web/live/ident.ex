@@ -12,7 +12,7 @@ defmodule Catenary.Live.Ident do
     <div class="flex flex-row align-top my-2 min-w-full font-sans">
       <div class="flex-auto"><button phx-click="to-im" phx-target="<%= @myself %>"><%= @clump_id %>:</button></div>
       <div class="flex-auto"><%= Catenary.linked_author(@identity, @aliases) %></div>
-      <div class="flex-1/2"><img src="<%= Catenary.identicon(@identity, 4) %>"></div>
+      <div class="flex-1/2"><%= profile_link(@identity, @profile_items, @entry) %></div>
       <br/>
     </div>
     """
@@ -23,5 +23,25 @@ defmodule Catenary.Live.Ident do
   def handle_event("to-im", _, socket) do
     Phoenix.PubSub.local_broadcast(Catenary.PubSub, "ui", %{view: :prefs, entry: :none})
     {:noreply, socket}
+  end
+
+  # Entry parameter is to force re-render even though apparently nothing is changing
+  defp profile_link(who, {:ok, items}, _entry) do
+    class =
+      case Catenary.Preferences.all_shown?(items) do
+        true -> ""
+        false -> "class=\"new-border\""
+      end
+
+    profile_button(who, class)
+  end
+
+  defp profile_link(who, _, _), do: profile_button(who, "")
+
+  defp profile_button(who, ec) do
+    Phoenix.HTML.raw(
+      "<button value=\"origin\" phx-click=\"nav\" " <>
+        ec <> "><img src=\"" <> Catenary.identicon(who, 4) <> "\"></button>"
+    )
   end
 end

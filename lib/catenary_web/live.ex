@@ -49,6 +49,7 @@ defmodule CatenaryWeb.Live do
          id_hash: <<>>,
          identities: [],
          aliases: Catenary.alias_state(),
+         profile_items: Catenary.profile_items_state(),
          view: view,
          extra_nav: :stack,
          indexing: Enum.reduce(@indices, %{}, fn i, a -> Map.merge(a, %{i => :not_running}) end),
@@ -135,7 +136,7 @@ defmodule CatenaryWeb.Live do
   defp sidebar(assigns) do
     ~L"""
     <div>
-      <%= live_component(Catenary.Live.Ident, id: :ident, identity: @identity, clump_id: @clump_id, aliases: @aliases) %>
+      <%= live_component(Catenary.Live.Ident, id: :ident, entry: @entry, profile_items: @profile_items, identity: @identity, clump_id: @clump_id, aliases: @aliases) %>
       <%= live_component(Catenary.Live.IndexStatus, id: :indices, indexing: @indexing) %>
       <%= live_component(Catenary.Live.OasisBox, id: :recents, connections: @connections, oases: @oases, aliases: @aliases) %>
       <%= live_component(Catenary.Live.Navigation, id: :nav, entry: @entry, extra_nav: @extra_nav, identity: @identity, view: @view, aliases: @aliases, entry_fore: @entry_fore, entry_back: @entry_back, clump_id: @clump_id) %>
@@ -170,6 +171,12 @@ defmodule CatenaryWeb.Live do
           %{
             aliases: Catenary.alias_state(),
             indexing: Map.merge(assigns.indexing, %{:aliases => thehash})
+          }
+
+        {:indexing, :mentions, _pid} ->
+          %{
+            profile_items: Catenary.profile_items_state(),
+            indexing: Map.merge(assigns.indexing, %{:mentions => thehash})
           }
 
         {:indexing, key, _pid} ->

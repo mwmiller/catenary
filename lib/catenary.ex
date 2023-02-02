@@ -36,6 +36,19 @@ defmodule Catenary do
     {:ok, aliases}
   end
 
+  def profile_items_state() do
+    # This might become more complicated and inclusive later
+    whoami = Catenary.Preferences.get(:identity)
+
+    profile_items =
+      case :ets.lookup(:mentions, {"", whoami}) do
+        [] -> []
+        [{{"", ^whoami}, items}] -> Enum.map(items, fn {_t, e} -> e end)
+      end
+
+    {:ok, MapSet.new(profile_items)}
+  end
+
   def id_for_key(key), do: find_id_for_key(Baobab.Identity.list(), key)
   defp find_id_for_key([], key), do: {:error, "No identity found for key " <> key}
   defp find_id_for_key([{ali, key} | _], key), do: ali
