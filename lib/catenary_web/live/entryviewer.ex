@@ -150,14 +150,14 @@ defmodule Catenary.Live.EntryViewer do
       end
 
     mentions =
-      case from_ets({"", a}, :mentions) do
+      case from_ets({"", a}, :mentions) |> Enum.reject(&Preferences.shown?/1) do
         [] ->
           ""
 
         entries ->
           {:safe, icons} = entries |> Enum.reverse() |> icon_entries
 
-          "<h4 class=\"mt-10\">Mentioned in</h4><div class=\"p-2 flex flex-row\">" <>
+          "<h4 class=\"mt-5\">Unshown mentions</h4><div class=\"p-2 flex flex-row\">" <>
             icons <> "</div>"
       end
 
@@ -167,7 +167,7 @@ defmodule Catenary.Live.EntryViewer do
         "title" => clump_id <> " Overview",
         "back-refs" => [],
         "tags" => [],
-        "body" => Phoenix.HTML.raw(timeline <> others <> mentions),
+        "body" => Phoenix.HTML.raw(mentions <> timeline <> others),
         "published" => as_of
       },
       from_refs(entry)
