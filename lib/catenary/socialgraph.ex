@@ -17,10 +17,20 @@ defmodule Catenary.SocialGraph do
   # Our best hope is that there are not conflicts in
   # the timing error bars.
   def update_from_logs(identity, clump_id, inform \\ nil) do
-    ops =
+    logs =
       :graph
       |> QuaggaDef.logs_for_name()
-      |> order_operations(identity, clump_id, [])
+
+    ops =
+      clump_id
+      |> Baobab.stored_info()
+      |> Enum.reduce([], fn {a, l, _}, acc ->
+        case a == identity and l in logs do
+          true -> [{a, l} | acc]
+          false -> acc
+        end
+      end)
+      |> order_operations(clump_id, [])
       |> reduce_operations()
       |> note_operations()
 
@@ -36,12 +46,11 @@ defmodule Catenary.SocialGraph do
     end)
   end
 
-  defp order_operations([], _, _, acc), do: acc |> Enum.sort()
+  defp order_operations([], _, acc), do: acc |> Enum.sort()
 
-  defp order_operations([log_id | rest], who, clump_id, acc) do
+  defp order_operations([{who, log_id} | rest], clump_id, acc) do
     order_operations(
       rest,
-      who,
       clump_id,
       acc ++ process_entries(Baobab.full_log(who, log_id: log_id, clump_id: clump_id), [])
     )
