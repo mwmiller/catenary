@@ -384,7 +384,7 @@ defmodule Catenary.Live.EntryViewer do
     end
   end
 
-  defp nice_time(:unknown), do: "unknown"
+  defp nice_time(:unknown), do: "timeless"
   defp nice_time(:latest), do: "latest known"
 
   defp nice_time(t) do
