@@ -296,6 +296,14 @@ defmodule Catenary.LogWriter do
     to
   end
 
+  # Raw data handling, this should come from the definitions as well
+  def new_entry(%{"log_id" => li, "data" => data}, socket)
+      when li in ["8008", "8009", "8010"] do
+    lid = String.to_integer(li)
+    %Baobab.Entry{author: a, log_id: l, seqnum: e} = append_log_for_socket(data, lid, socket)
+    {Baobab.Identity.as_base62(a), l, e}
+  end
+
   # Punt
   def new_entry(assigns, socket) do
     # This is a debug line I keep creating, so I am

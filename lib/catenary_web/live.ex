@@ -40,9 +40,18 @@ defmodule CatenaryWeb.Live do
     |> Desktop.Window.webview()
     |> :wxWebView.enableContextMenu()
 
+    # At present this only happens in the profile page
+    # It might be better to have this and the associate logic there
+    # But my previous factorings have evertyhign here, so this one is too for now
+
+    upsock =
+      socket
+      |> assign(:uploaded_files, [])
+      |> allow_upload(:avatar, accept: ~w(.jpg .jpeg .png .gif), max_entries: 1)
+
     {:ok,
      state_set(
-       socket,
+       upsock,
        %{
          store_hash: <<>>,
          store: [],
@@ -127,7 +136,7 @@ defmodule CatenaryWeb.Live do
   def render(%{view: :entries} = assigns) do
     ~L"""
     <div class="max-h-screen w-100 grid grid-cols-3 gap-2 justify-center">
-      <%= live_component(Catenary.Live.EntryViewer, id: :entry, store: @store, identity: @identity, entry: @entry, clump_id: @clump_id, aliases: @aliases) %>
+      <%= live_component(Catenary.Live.EntryViewer, id: :entry, uploads: @uploads, store: @store, identity: @identity, entry: @entry, clump_id: @clump_id, aliases: @aliases) %>
       <%= sidebar(assigns) %>
     </div>
     """
@@ -187,6 +196,23 @@ defmodule CatenaryWeb.Live do
       end
 
     {:noreply, state_set(socket, update)}
+  end
+
+  def handle_event("avatar-validate", _params, socket) do
+    {:noreply, socket}
+  end
+
+  def handle_event("avatar-save", _params, socket) do
+    # It's limited to a single entry.. so I hope this matches
+    [avatar_entry] =
+      consume_uploaded_entries(socket, :avatar, fn %{path: path}, %{client_type: mime} = _entry ->
+        %{
+          "log_id" => QuaggaDef.base_log(mime) |> Integer.to_string(),
+          "data" => File.read!(path)
+        }
+      end)
+
+    handle_event("new-entry", avatar_entry, socket)
   end
 
   def handle_event("shown-set", %{"value" => entries_string}, socket) do

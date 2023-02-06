@@ -111,7 +111,11 @@ defmodule Catenary.Application do
          %{label: "Aliases", command: "alias", action: %{view: :aliases, entry: :all}},
          %{label: "Mentions", command: "mention", action: %{view: :entries, entry: :mention}},
          %{label: "Oases", command: "oasis", action: %{view: :entries, entry: :oasis}},
-         %{label: "Test posts", command: "test", action: %{view: :entries, entry: :test}}
+         :rule,
+         %{label: "Test posts", command: "test", action: %{view: :entries, entry: :test}},
+         %{label: "GIF images", command: "gif", action: %{view: :entries, entry: :gif}},
+         %{label: "JPEG images", command: "jpeg", action: %{view: :entries, entry: :jpeg}},
+         %{label: "PNG images", command: "png", action: %{view: :entries, entry: :png}}
        ]}
     ]
   end
