@@ -52,7 +52,7 @@ defmodule Catenary.Live.Navigation do
          <button value="next-author" phx-click="nav">↧</button>
        </div>
        <div class="flex-auto p-1 text-center">
-       <%= post_button_for(:journal) %>
+        <%= for post_type <- [:journal, :image],  do: post_button_for(post_type) %>
        <%= if @on_log_entry do %>
         <%= for post_type <- [:reply, :react, :tag, :mention],  do: post_button_for(post_type) %>
        <% end %>
@@ -204,6 +204,19 @@ defmodule Catenary.Live.Navigation do
     """
   end
 
+  defp extra_nav(%{:extra_nav => :image} = assigns) do
+    ~L"""
+    <div id="images-nav" class="mt-10">
+      <h4>Publish an image</h4>
+      <p class="py-10">Please respectful of your felow users' storage space.  Log entries are forever.</p>
+      <form id="imageupload-form" phx-submit="image-save" phx-change="image-validate">
+        <%= live_file_input(@uploads.image) %>
+        <%= Catenary.log_submit_button %>
+      </form>
+    </div>
+    """
+  end
+
   defp extra_nav(%{:extra_nav => :stack} = assigns) do
     ~L"""
     <div id="stack-nav" class="flex flex-row 5 mt-20">
@@ -287,6 +300,7 @@ defmodule Catenary.Live.Navigation do
   defp posting_icon(:react), do: "⌘̟"
   defp posting_icon(:reply), do: "↩︎̟"
   defp posting_icon(:journal), do: "✎̟"
+  defp posting_icon(:image), do: "̟҂"
 
   defp tag_inputs(count), do: make_tag_inputs(count, [])
 

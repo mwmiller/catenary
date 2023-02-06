@@ -92,16 +92,6 @@ defmodule Catenary.Live.EntryViewer do
           <%= metabox(@card, "refs") %>
           </div>
         <% end %>
-        <%= if @card["my_profile"] do %>
-          <div class="mt-10">
-          <h4>Avatar Share</h4>
-          <p>This is actually just a generic image uploader.  It will not be tied to or displayed with your identity at present</p>
-            <form id="upload-form" phx-submit="avatar-save" phx-change="avatar-validate">
-    <%= live_file_input(@uploads.avatar) %>
-    <button class="border opacity-61 p-2 m-10 bg-stone-200 dark:bg-stone-800" type="submit">Share</button>
-    </form>
-    </div>
-    <% end %>
     </div>
     """
   end

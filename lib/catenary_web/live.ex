@@ -47,7 +47,7 @@ defmodule CatenaryWeb.Live do
     upsock =
       socket
       |> assign(:uploaded_files, [])
-      |> allow_upload(:avatar, accept: ~w(.jpg .jpeg .png .gif), max_entries: 1)
+      |> allow_upload(:image, accept: ~w(.jpg .jpeg .png .gif), max_entries: 1)
 
     {:ok,
      state_set(
@@ -136,7 +136,7 @@ defmodule CatenaryWeb.Live do
   def render(%{view: :entries} = assigns) do
     ~L"""
     <div class="max-h-screen w-100 grid grid-cols-3 gap-2 justify-center">
-      <%= live_component(Catenary.Live.EntryViewer, id: :entry, uploads: @uploads, store: @store, identity: @identity, entry: @entry, clump_id: @clump_id, aliases: @aliases) %>
+      <%= live_component(Catenary.Live.EntryViewer, id: :entry, store: @store, identity: @identity, entry: @entry, clump_id: @clump_id, aliases: @aliases) %>
       <%= sidebar(assigns) %>
     </div>
     """
@@ -148,7 +148,7 @@ defmodule CatenaryWeb.Live do
       <%= live_component(Catenary.Live.Ident, id: :ident, entry: @entry, profile_items: @profile_items, identity: @identity, clump_id: @clump_id, aliases: @aliases) %>
       <%= live_component(Catenary.Live.IndexStatus, id: :indices, indexing: @indexing) %>
       <%= live_component(Catenary.Live.OasisBox, id: :recents, connections: @connections, oases: @oases, aliases: @aliases) %>
-      <%= live_component(Catenary.Live.Navigation, id: :nav, entry: @entry, extra_nav: @extra_nav, identity: @identity, view: @view, aliases: @aliases, entry_fore: @entry_fore, entry_back: @entry_back, clump_id: @clump_id) %>
+      <%= live_component(Catenary.Live.Navigation, id: :nav, uploads: @uploads, entry: @entry, extra_nav: @extra_nav, identity: @identity, view: @view, aliases: @aliases, entry_fore: @entry_fore, entry_back: @entry_back, clump_id: @clump_id) %>
     </div>
     """
   end
@@ -198,21 +198,21 @@ defmodule CatenaryWeb.Live do
     {:noreply, state_set(socket, update)}
   end
 
-  def handle_event("avatar-validate", _params, socket) do
+  def handle_event("image-validate", _params, socket) do
     {:noreply, socket}
   end
 
-  def handle_event("avatar-save", _params, socket) do
+  def handle_event("image-save", _params, socket) do
     # It's limited to a single entry.. so I hope this matches
-    [avatar_entry] =
-      consume_uploaded_entries(socket, :avatar, fn %{path: path}, %{client_type: mime} = _entry ->
+    [image_entry] =
+      consume_uploaded_entries(socket, :image, fn %{path: path}, %{client_type: mime} = _entry ->
         %{
           "log_id" => QuaggaDef.base_log(mime) |> Integer.to_string(),
           "data" => File.read!(path)
         }
       end)
 
-    handle_event("new-entry", avatar_entry, socket)
+    handle_event("new-entry", image_entry, socket)
   end
 
   def handle_event("shown-set", %{"value" => entries_string}, socket) do
