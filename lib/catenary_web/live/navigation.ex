@@ -217,12 +217,21 @@ defmodule Catenary.Live.Navigation do
   defp extra_nav(%{:extra_nav => :image} = assigns) do
     ~L"""
     <div id="images-nav" class="mt-10">
-      <h4>Publish an image</h4>
-      <p class="py-10">Please respectful of your felow users' storage space.  Log entries are forever.</p>
+      <%= if @displayed_log_name in [:png, :jpeg, :gif] do %>
+        <form id="set-avatar-form" phx-submit="new-entry">
+          <input type="hidden" name="log_id" value="360" />
+          <input type="hidden" name="avatar" value="<%= Catenary.index_to_string(@entry) %>" />
+          <h4> Set this image as your avatar</h4>
+          <%= Catenary.log_submit_button %>
+       </form>
+       <br/><br/>
+      <% end %>
       <form id="imageupload-form" phx-submit="image-save" phx-change="image-validate">
+        <h4>Publish a new image</h4>
         <%= live_file_input(@uploads.image) %>
         <%= Catenary.log_submit_button %>
       </form>
+      <p class="py-5">Please be considerate with file sizes.</p>
     </div>
     """
   end

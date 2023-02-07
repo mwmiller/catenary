@@ -296,6 +296,36 @@ defmodule Catenary.LogWriter do
     to
   end
 
+  def new_entry(%{"log_id" => "360"} = values, socket) do
+    # Shh, they can put any nonsense in any fields in here
+    # We just mostly let it go. I don't dictate how other apps
+    # might use this log... too much
+    maybe_avatar =
+      case Map.get(values, "avatar") do
+        nil ->
+          %{}
+
+        istr ->
+          case Catenary.string_to_index(istr) do
+            :error -> %{}
+            val -> %{"avatar" => val}
+          end
+      end
+
+    # There is surely a better way to do this
+    %Baobab.Entry{author: a, log_id: l, seqnum: e} =
+      values
+      |> Map.drop(["log_id", "avatar"])
+      |> Map.merge(maybe_avatar)
+      |> Map.merge(%{"published" => Timex.now() |> DateTime.to_string()})
+      |> CBOR.encode()
+      |> append_log_for_socket(360, socket)
+
+    # Index updating to go here
+
+    {Baobab.Identity.as_base62(a), l, e}
+  end
+
   # Raw data handling, this should come from the definitions as well
   def new_entry(%{"log_id" => li, "data" => data}, socket)
       when li in ["8008", "8009", "8010"] do

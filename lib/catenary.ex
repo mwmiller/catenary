@@ -99,6 +99,7 @@ defmodule Catenary do
     case String.split(string, "⋀") do
       [a, l, e] -> {a, String.to_integer(l), String.to_integer(e)}
       [t, w] -> {String.to_existing_atom(t), w}
+      _ -> :error
     end
   end
 

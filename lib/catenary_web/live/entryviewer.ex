@@ -281,6 +281,23 @@ defmodule Catenary.Live.EntryViewer do
     end
   end
 
+  defp extract_type(cbor, %{name: :about}) do
+    try do
+      {:ok, data, ""} = CBOR.decode(cbor)
+
+      Map.merge(data, %{
+        "title" => added_title("Profile Update"),
+        "body" =>
+          Phoenix.HTML.raw(
+            "Visit profile for latest view.  Maybe this will show the update someday."
+          ),
+        "back-refs" => maybe_refs(data["references"])
+      })
+    rescue
+      e -> malformed(e, cbor)
+    end
+  end
+
   defp extract_type(cbor, %{name: :mention}) do
     try do
       {:ok, data, ""} = CBOR.decode(cbor)
