@@ -9,13 +9,23 @@ defmodule Catenary.Live.Navigation do
         socket
       ) do
     {whom, ali} = alias_info(entry, clump_id)
-    on_log_entry = view == :entries && is_tuple(entry) && tuple_size(entry) == 3
+
+    displayed_log_name =
+      case {view, entry} do
+        {:entries, {_a, l, _e}} ->
+          %{name: n} = QuaggaDef.log_def(l)
+          n
+
+        _ ->
+          :meta
+      end
+
     blocked = Catenary.blocked?(entry, clump_id)
 
     na =
       Map.merge(assigns, %{
         view: view,
-        on_log_entry: on_log_entry,
+        displayed_log_name: displayed_log_name,
         whom: whom,
         ali: ali,
         blocked: blocked
@@ -26,7 +36,7 @@ defmodule Catenary.Live.Navigation do
        view: view,
        entry: entry,
        clump_id: clump_id,
-       on_log_entry: on_log_entry,
+       displayed_log_name: displayed_log_name,
        identity: identity,
        lower_nav: extra_nav(na)
      )}
@@ -40,7 +50,7 @@ defmodule Catenary.Live.Navigation do
         <div class="flex-auto p-1 text-center">
          <button value="origin" phx-click="nav"><img src="<%= Catenary.identicon(@identity, 2) %>"></button>
          <button value="unshown" phx-click="toview">!⃣</button>
-         <%= if @on_log_entry do %>
+         <%= if @displayed_log_name != :meta do %>
            <%= for post_type <- [:graph, :alias], do: post_button_for(post_type) %>
          <% end %>
         </div>
@@ -53,7 +63,7 @@ defmodule Catenary.Live.Navigation do
        </div>
        <div class="flex-auto p-1 text-center">
         <%= for post_type <- [:journal, :image],  do: post_button_for(post_type) %>
-       <%= if @on_log_entry do %>
+       <%= if @displayed_log_name != :meta do %>
         <%= for post_type <- [:reply, :react, :tag, :mention],  do: post_button_for(post_type) %>
        <% end %>
        </div>
@@ -66,7 +76,7 @@ defmodule Catenary.Live.Navigation do
   defp extra_nav(%{:extra_nav => :reply} = assigns) do
     ~L"""
     <div id="posting" class="font-sans">
-      <%= if @on_log_entry do %>
+      <%= if @displayed_log_name != :meta do %>
         <%= log_posting_form(assigns, :reply, source_title(@entry, @clump_id)) %>
       <% end %>
     </div>
@@ -88,7 +98,7 @@ defmodule Catenary.Live.Navigation do
     <div id="aliases">
        <form method="post" id="alias-form" phx-submit="new-entry">
          <input type="hidden" name="log_id" value="53">
-         <%= if @on_log_entry do %>
+         <%= if @displayed_log_name != :meta do %>
          <input type="hidden" name="ref" value="<%= Catenary.index_to_string(@entry) %>" />
          <% end %>
          <input type="hidden" name="whom" value="<%= @whom %>" />
@@ -113,7 +123,7 @@ defmodule Catenary.Live.Navigation do
     <form method="post" id="block-form" phx-submit="new-entry">
      <input type="hidden" name="log_id" value="1337">
      <input type="hidden" name="action" value="unblock">
-     <%= if @on_log_entry do %>
+     <%= if @displayed_log_name != :meta do %>
      <input type="hidden" name="ref" value="<%= Catenary.index_to_string(@entry) %>" />
      <% end %>
      <input type="hidden" name="whom" value="<%= @whom %>" />
@@ -134,7 +144,7 @@ defmodule Catenary.Live.Navigation do
       <br>
        <form method="post" id="mention-form" phx-submit="new-entry">
          <input type="hidden" name="log_id" value="121">
-         <%= if @on_log_entry do %>
+         <%= if @displayed_log_name != :meta do %>
          <input type="hidden" name="ref" value="<%= Catenary.index_to_string(@entry) %>" />
          <% end %>
          <%= mention_inputs(4) %>
@@ -154,7 +164,7 @@ defmodule Catenary.Live.Navigation do
        <form method="post" id="block-form" phx-submit="new-entry">
          <input type="hidden" name="log_id" value="1337">
          <input type="hidden" name="action" value="block">
-         <%= if @on_log_entry do %>
+         <%= if @displayed_log_name != :meta do %>
          <input type="hidden" name="ref" value="<%= Catenary.index_to_string(@entry) %>" />
          <% end %>
          <input type="hidden" name="whom" value="<%= @whom %>" />
@@ -173,7 +183,7 @@ defmodule Catenary.Live.Navigation do
   defp extra_nav(%{:extra_nav => :tag} = assigns) do
     ~L"""
     <div id="tags">
-      <%= if @on_log_entry do %>
+      <%= if @displayed_log_name != :meta do %>
        <form method="post" id="tag-form" phx-submit="new-entry">
          <input type="hidden" name="log_id" value="749">
          <input type="hidden" name="ref" value="<%= Catenary.index_to_string(@entry) %>">
@@ -189,7 +199,7 @@ defmodule Catenary.Live.Navigation do
   defp extra_nav(%{:extra_nav => :react} = assigns) do
     ~L"""
     <div id="reactions-nav" class="flex flex-row 5 mt-20">
-      <%= if @on_log_entry do %>
+      <%= if @displayed_log_name != :meta do %>
        <form method="post" id="reaction-form" phx-submit="new-entry">
          <input type="hidden" name="log_id" value="101">
          <input type="hidden" name="ref" value="<%= Catenary.index_to_string(@entry) %>">
