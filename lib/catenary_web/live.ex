@@ -2,7 +2,7 @@ defmodule CatenaryWeb.Live do
   use CatenaryWeb, :live_view
   alias Catenary.{Navigation, Oases, LogWriter}
 
-  @indices [:tags, :references, :timelines, :aliases, :graph, :reactions, :mentions]
+  @indices [:tags, :references, :timelines, :aliases, :graph, :reactions, :mentions, :about]
 
   def mount(_params, session, socket) do
     # Making sure these exist, but also faux docs
@@ -508,6 +508,13 @@ defmodule CatenaryWeb.Live do
               :graph ->
                 Task.start(Catenary.SocialGraph, :update_from_logs, [
                   state.identity,
+                  state.clump_id,
+                  state.me
+                ])
+
+              # This one actually is an index, but it requires the log format to work correctly
+              :about ->
+                Task.start(Catenary.ProfileMerge, :update_from_logs, [
                   state.clump_id,
                   state.me
                 ])

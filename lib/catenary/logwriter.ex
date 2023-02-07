@@ -321,7 +321,8 @@ defmodule Catenary.LogWriter do
       |> CBOR.encode()
       |> append_log_for_socket(360, socket)
 
-    # Index updating to go here
+    # This kinda sucks.. especially for a low-optimised item
+    Catenary.ProfileMerge.update_from_logs(socket.assigns.clump_id)
 
     {Baobab.Identity.as_base62(a), l, e}
   end

@@ -9,7 +9,8 @@ defmodule Catenary.Indices do
   for these.  We have no idea what to do if we fail.
   """
 
-  @tables [:references, :tags, :reactions, :aliases, :timelines, :mentions]
+  # about is in another castle.  sigh
+  @tables [:references, :tags, :reactions, :aliases, :timelines, :mentions, :about]
   @table_options [:public, :named_table]
 
   def reset() do
