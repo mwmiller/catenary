@@ -48,7 +48,7 @@ defmodule Catenary.Live.Navigation do
     <div class="align-top min-w-full">
       <div class="flex flex-row-3 text-xl">
         <div class="flex-auto p-1 text-center">
-         <button value="origin" phx-click="nav"><img src="<%= Catenary.identicon(@identity, 2) %>"></button>
+          <button value="origin" phx-click="nav"><%= Catenary.scaled_avatar(@identity, 2) |> Phoenix.HTML.raw %></button>
          <button value="unshown" phx-click="toview">!⃣</button>
          <%= if @displayed_log_name != :meta do %>
            <%= for post_type <- [:graph, :alias], do: post_button_for(post_type) %>
@@ -102,7 +102,7 @@ defmodule Catenary.Live.Navigation do
          <input type="hidden" name="ref" value="<%= Catenary.index_to_string(@entry) %>" />
          <% end %>
          <input type="hidden" name="whom" value="<%= @whom %>" />
-         <img class="mx-auto" src="<%= Catenary.identicon(@whom, 4) %>">
+         <%= Catenary.scaled_avatar(@whom, 4, ["mx-auto"]) |> Phoenix.HTML.raw %>
            <h3><%= Catenary.short_id(@whom, @aliases) %></h3>
          <label for="alias">～</label>
          <input class="bg-white dark:bg-black" name="alias" value="<%= @ali %>" type="text" size="16" />
@@ -128,7 +128,7 @@ defmodule Catenary.Live.Navigation do
      <% end %>
      <input type="hidden" name="whom" value="<%= @whom %>" />
      <div class="w-100 grid grid-cols-3">
-       <div>Unblock:</div><div><img src="<%= Catenary.identicon(@whom, 2) %>"></div><div><%= Catenary.short_id(@whom, @aliases) %></div>
+       <div>Unblock:</div><div><%= Catenary.scaled_avatar(@whom, 2) %></div><div><%= Catenary.short_id(@whom, @aliases) %></div>
        <div>Reason:</div><div class="grid-cols=2"><textarea class="bg-white dark:bg-black" name="reason" rows="4" cols="20"></textarea></div>
      </div>
      <%= Catenary.log_submit_button %>
@@ -169,7 +169,8 @@ defmodule Catenary.Live.Navigation do
          <% end %>
          <input type="hidden" name="whom" value="<%= @whom %>" />
          <div class="w-100 grid grid-cols-3">
-           <div>Block:</div><div><img src="<%= Catenary.identicon(@whom, 2) %>"></div><div><%= Catenary.short_id(@whom, @aliases) %></div>
+    <div>Block:</div><div><%= Catenary.scaled_avatar(@whom, 2) |> Phoenix.HTML.raw %></div><div><%= Catenary.short_id(@whom, @aliases) %></div>
+         |
            <div>Reason:</div><div class="grid-cols=2"><textarea class="bg-white dark:bg-black" name="reason" rows="4" cols="20"></textarea></div>
          </div>
          <%= Catenary.log_submit_button %>

@@ -11,7 +11,7 @@ defmodule Catenary.Live.PrefsManager do
   def render(assigns) do
     ~L"""
      <div id="identview-wrap" class="col-span-full overflow-y-auto max-h-screen m-2 p-x-2">
-       <div class="my-5 text-center min-w-full"><a href="/authors/<%= @identity %>"><img class="mx-auto" src="<%= Catenary.identicon(@identity, 8) %>"></a></div>
+       <div class="my-5 text-center min-w-full"><a href="/authors/<%= @identity %>"><%= Catenary.scaled_avatar(@identity, 8, ["mx-auto"])  %></a></div>
       <form method="post" id="clump-form" phx-change="clump-change">
         <label for"clump_id">🎋</label>
         <select name="clump_id" class="m-10 bg-white dark:bg-black">
@@ -23,14 +23,14 @@ defmodule Catenary.Live.PrefsManager do
       <form method="post" id="identity-form" phx-change="identity-change">
       <table class="min-w-full"><thead>
         <thead>
-          <tr class="border border-slate-200 dark:border-slate-800"><th>Select</th><th>Name</th><th>Identicon</th><th>AKA</th><th>Activity</th><th class="text-amber-900">DROP</th></tr>
+          <tr class="border border-slate-200 dark:border-slate-800"><th>Select</th><th>Name</th><th>Avatar</th><th>AKA</th><th>Activity</th><th class="text-amber-900">DROP</th></tr>
       </thead>
       <tbody class="text-center">
         <%= for {n, k} <- @identities do %>
           <tr class="my-10 border <%= if k == @identity, do: "bg-slate-300 border-stone-400 dark:bg-stone-600 dark:border-slate-900", else: "border-slate-200 dark:border-slate-800" %>">
             <td class="py-5"><input type="radio" name="selection" value="<%= n %>" <%= if k == @identity, do: "checked" %>></td>
             <td><input class="bg-white dark:bg-black" type="text" size=16 id="<%= n %>" value="<%= n %>" phx-blur="rename-id-<%= n %>" /></td>
-            <td><img class="mx-auto" src="<%= Catenary.identicon(k, 4) %>"></td>
+            <td><%= Catenary.scaled_avatar(k, 4, ["mx-auto"])  %></td>
             <td><%= Catenary.linked_author(k, @aliases, :href) %></td>
             <td><%= log_info_string(@store, k) %></td>
             <td> <%= if k == @identity do %>⛒<% else %><input type="radio" name="drop" value="<%= n %>"><% end %></td>

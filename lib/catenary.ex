@@ -7,7 +7,6 @@ defmodule Catenary do
   """
   @dets_tables %{
     aliases: "aliases.dets",
-    identicons: "identicons.dets",
     graph: "social_graph.dets",
     mentions: "mentions.dets",
     prefs: "preferences.dets",
@@ -54,27 +53,32 @@ defmodule Catenary do
   defp find_id_for_key([{ali, key} | _], key), do: ali
   defp find_id_for_key([_ | rest], key), do: find_id_for_key(rest, key)
 
-  def identicon(id, mag \\ 4) do
-    dets_open(:identicons)
-    k = {id, mag}
+  def scaled_avatar(id, mag, classes \\ []) do
+    ss = Integer.to_string(mag * 8)
 
-    idi =
-      case :dets.lookup(:identicons, k) do
-        [{^k, v}] ->
+    datauri =
+      case :ets.lookup(:avatars, id) do
+        [{^id, v}] ->
           v
 
         [] ->
-          val =
-            "data:image/svg+xml;base64," <>
-              Excon.ident(id, base64: true, type: :svg, magnification: mag)
+          val = svg_identicon(id, mag)
 
-          :dets.insert(:identicons, {k, val})
+          :ets.insert(:avatars, {id, val})
           val
       end
 
-    dets_close(:identicons)
-    idi
+    Phoenix.HTML.raw(
+      "<img class=\"" <>
+        Enum.join(classes, " ") <>
+        "\"  width=" <> ss <> " height=" <> ss <> " src=\"" <> datauri <> "\">"
+    )
   end
+
+  defp svg_identicon(id, mag),
+    do:
+      "data:image/svg+xml;base64," <>
+        Excon.ident(id, base64: true, type: :svg, magnification: mag)
 
   @list_sep "‑"
   def index_list_to_string(indices) when is_list(indices) do
@@ -114,44 +118,19 @@ defmodule Catenary do
     Phoenix.HTML.raw("<a href=\"/authors/" <> a <> "\">" <> short_id(a, aliases) <> "</a>")
   end
 
+  defp view_entry_button(entry, {:safe, contents}), do: view_entry_button(entry, contents)
+
   defp view_entry_button(entry, contents) do
     "<button value=\"" <>
       Catenary.index_to_string(entry) <>
       "\" phx-click=\"view-entry\">" <> contents <> "</button>"
   end
 
-  def entry_icon_link({a, _, _} = entry, size) do
-    view_entry_button(
-      entry,
-      "<img " <>
-        maybe_border(entry) <>
-        " src=\"" <>
-        Catenary.identicon(a, size) <>
-        "\" title=\"" <> entry_title(entry) <> "\"\>"
-    )
-  end
+  def entry_icon_link({a, _, _} = entry, size),
+    do: view_entry_button(entry, scaled_avatar(a, size))
 
-  def entry_icon_link({:profile, a} = entry, size) do
-    view_entry_button(
-      entry,
-      "<img " <>
-        maybe_border(entry) <>
-        " src=\"" <>
-        Catenary.identicon(a, size) <>
-        "\" title=\"profile\"\>"
-    )
-  end
-
-  defp entry_title({_a, l, e}) do
-    Enum.join(
-      [
-        pretty_log_name(l),
-        "entry",
-        Integer.to_string(e)
-      ],
-      " "
-    )
-  end
+  def entry_icon_link({:profile, a} = entry, size),
+    do: view_entry_button(entry, scaled_avatar(a, size))
 
   def maybe_border(entry) do
     case Catenary.Preferences.shown?(entry) do

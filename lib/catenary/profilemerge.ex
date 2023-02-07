@@ -18,7 +18,7 @@ defmodule Catenary.ProfileMerge do
     end)
     |> gather_updates(clump_id, %{})
     |> Map.to_list()
-    |> build_index
+    |> build_index(clump_id)
 
     ppid = self()
 
@@ -54,15 +54,35 @@ defmodule Catenary.ProfileMerge do
     end
   end
 
-  defp build_index([]), do: :ok
+  defp build_index([], _cid), do: :ok
 
-  defp build_index([{ident, updates} | rest]) do
+  defp build_index([{ident, updates} | rest], clump_id) do
     final_form =
       updates
       |> Enum.sort()
       |> Enum.reduce(%{}, fn {_when, what}, acc -> Map.merge(acc, what) end)
 
+    # Jesu Cristo
+    case final_form do
+      %{"avatar" => [a, l, e]} ->
+        case Baobab.log_entry(a, e, log_id: l, clump_id: clump_id) do
+          %Baobab.Entry{payload: data} ->
+            %{name: mime} = QuaggaDef.log_def(l)
+
+            :ets.insert(
+              :avatars,
+              {ident, "data:image/" <> Atom.to_string(mime) <> ";base64," <> Base.encode64(data)}
+            )
+
+          _ ->
+            :ok
+        end
+
+      _ ->
+        :ok
+    end
+
     :ets.insert(:about, {ident, final_form})
-    build_index(rest)
+    build_index(rest, clump_id)
   end
 end

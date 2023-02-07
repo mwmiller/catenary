@@ -74,8 +74,7 @@ defmodule Catenary.Live.EntryViewer do
     ~L"""
       <div id="entryview-wrap" class="col-span-2 overflow-y-auto max-h-screen m-2 p-x-2">
         <div class="min-w-full font-sans row-span-full">
-        <img class = "float-left m-3" src="<%= Catenary.identicon(@card["author"], 8) %>">
-
+          <%= Catenary.scaled_avatar(@card["author"], 8, ["float-left",  "m-3"]) %>
           <h1><%= @card["title"] %></h1>
           <p class="text-sm font-light"><%= Catenary.linked_author(@card["author"], @aliases) %> &mdash; <%= nice_time(@card["published"]) %></p>
           <p><%= icon_entries(@card["back-refs"]) %>&nbsp;↹&nbsp;<%= icon_entries(@card["fore-refs"]) %></p>

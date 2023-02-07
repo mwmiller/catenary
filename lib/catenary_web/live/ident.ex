@@ -39,9 +39,11 @@ defmodule Catenary.Live.Ident do
   defp profile_link(who, _, _), do: profile_button(who, "")
 
   defp profile_button(who, ec) do
+    {:safe, ava} = Catenary.scaled_avatar(who, 4)
+
     Phoenix.HTML.raw(
       "<button value=\"origin\" phx-click=\"nav\" " <>
-        ec <> "><img src=\"" <> Catenary.identicon(who, 4) <> "\"></button>"
+        ec <> ">" <> ava <> "</button>"
     )
   end
 end
