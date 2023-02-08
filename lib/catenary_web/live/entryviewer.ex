@@ -101,9 +101,15 @@ defmodule Catenary.Live.EntryViewer do
     about =
       case :ets.lookup(:about, a) do
         [{^a, aboot}] ->
-          "<div class=\"p-3 m-5 border border-dashed\"><h1>" <>
-            Map.get(aboot, "name", "") <>
-            "</h1><p>" <> Map.get(aboot, "description", "") <> "</p></div>"
+          name = "<h1>" <> Map.get(aboot, "name", "") <> "</h1>"
+
+          desc =
+            case aboot |> Map.get("description", "") |> Earmark.as_html() do
+              {:ok, html, _} -> html
+              _ -> ""
+            end
+
+          "<div class=\"p-3 m-5 border border-dashed\">" <> name <> desc <> "</div>"
 
         _ ->
           ""
