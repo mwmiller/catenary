@@ -72,6 +72,7 @@ defmodule Catenary.Navigation do
         sent |> Tagline.next(tag) |> new_path(assigns)
 
       "origin" ->
+        Phoenix.PubSub.local_broadcast(Catenary.PubSub, "ui", "toggle-profile")
         new_path(%{view: :entries, entry: {:profile, id}}, assigns)
 
       _ ->

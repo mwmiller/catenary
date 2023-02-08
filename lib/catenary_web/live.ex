@@ -153,6 +153,8 @@ defmodule CatenaryWeb.Live do
     """
   end
 
+  def handle_info(<<"toggle-", _::binary>> = event, socket), do: handle_event(event, nil, socket)
+
   def handle_info(%{view: :dashboard}, socket) do
     {:noreply, push_redirect(socket, to: Routes.live_dashboard_path(socket, :home))}
   end
@@ -196,6 +198,18 @@ defmodule CatenaryWeb.Live do
       end
 
     {:noreply, state_set(socket, update)}
+  end
+
+  def handle_event("profile-update", values, socket) do
+    # A bit of munging
+    vals =
+      case Map.pop(values, "keep-avatar") do
+        {"on", map} -> map
+        {_, map} -> Map.put(map, "avatar", "")
+      end
+      |> Map.put("log_id", "360")
+
+    handle_event("new-entry", vals, socket)
   end
 
   def handle_event("image-validate", _params, socket) do

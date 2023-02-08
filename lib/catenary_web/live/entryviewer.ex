@@ -98,6 +98,17 @@ defmodule Catenary.Live.EntryViewer do
   def extract({:profile, a} = entry, settings) do
     clump_id = Keyword.get(settings, :clump_id)
 
+    about =
+      case :ets.lookup(:about, a) do
+        [{^a, aboot}] ->
+          "<div class=\"p-3 m-5 border border-dashed\"><h1>" <>
+            Map.get(aboot, "name", "") <>
+            "</h1><p>" <> Map.get(aboot, "description", "") <> "</p></div>"
+
+        _ ->
+          ""
+      end
+
     Preferences.mark_entry(:shown, entry)
 
     {timeline, as_of} =
@@ -167,7 +178,7 @@ defmodule Catenary.Live.EntryViewer do
         "title" => clump_id <> " Overview",
         "back-refs" => [],
         "tags" => [],
-        "body" => Phoenix.HTML.raw(mentions <> timeline <> others),
+        "body" => Phoenix.HTML.raw(about <> mentions <> timeline <> others),
         "published" => as_of
       },
       from_refs(entry)

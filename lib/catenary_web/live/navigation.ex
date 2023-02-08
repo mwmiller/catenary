@@ -26,6 +26,7 @@ defmodule Catenary.Live.Navigation do
       Map.merge(assigns, %{
         view: view,
         displayed_log_name: displayed_log_name,
+        identity: identity,
         whom: whom,
         ali: ali,
         blocked: blocked
@@ -132,6 +133,27 @@ defmodule Catenary.Live.Navigation do
        <div>Reason:</div><div class="grid-cols=2"><textarea class="bg-white dark:bg-black" name="reason" rows="4" cols="20"></textarea></div>
      </div>
      <%= Catenary.log_submit_button %>
+    </form>
+    </div>
+    """
+  end
+
+  defp extra_nav(%{:extra_nav => :profile} = assigns) do
+    pv =
+      case :ets.lookup(:about, assigns.identity) do
+        [{_, vals}] -> vals
+        _ -> %{}
+      end
+
+    ~L"""
+    <div id="profile-nav">
+    <form method="post" id="profile-form" phx-submit="profile-update">
+    <table>
+    <tr><td>Name:</td><td><input type="text" class="bg-white dark:bg-black" name="name" value="<%= pv["name"] %>"></td></tr>
+    <tr><td>About:</td><td><textarea class="bg-white dark:bg-black" rows=11 cols=31 name="description"><%= pv["description"] %></textarea></td></tr>
+    <tr><td>Avatar:</td><td><input type="checkbox" class="bg-white dark:bg-black" name="keep-avatar" checked> keep</td></tr>
+    </table>
+    <%= Catenary.log_submit_button %>
     </form>
     </div>
     """
