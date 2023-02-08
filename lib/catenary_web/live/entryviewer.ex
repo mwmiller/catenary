@@ -512,9 +512,9 @@ defmodule Catenary.Live.EntryViewer do
       |> Enum.map(fn e -> {e, extract(e, settings)} end)
       |> Enum.reduce("", fn {e, vals}, acc ->
         acc <>
-          "<li><button " <>
-          Catenary.maybe_border(e) <>
-          " phx-click=\"view-entry\" value=\"" <>
+          "<li><button class=\"" <>
+          Enum.join(Catenary.maybe_border(e), " ") <>
+          "\" phx-click=\"view-entry\" value=\"" <>
           Catenary.index_to_string(e) <>
           "\">" <> vals["title"] <> "</button></li>"
       end)

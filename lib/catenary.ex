@@ -127,18 +127,15 @@ defmodule Catenary do
   end
 
   def entry_icon_link({a, _, _} = entry, size),
-    do: view_entry_button(entry, scaled_avatar(a, size))
+    do: view_entry_button(entry, scaled_avatar(a, size, maybe_border(entry)))
 
   def entry_icon_link({:profile, a} = entry, size),
-    do: view_entry_button(entry, scaled_avatar(a, size))
+    do: view_entry_button(entry, scaled_avatar(a, size, maybe_border(entry)))
 
   def maybe_border(entry) do
     case Catenary.Preferences.shown?(entry) do
-      true ->
-        "class=\"mx-auto\""
-
-      false ->
-        "class=\"mx-auto new-border rounded \""
+      true -> ["mx-auto"]
+      false -> ["mx-auto", "new-border", "rounded"]
     end
   end
 
