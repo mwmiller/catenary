@@ -95,13 +95,26 @@ defmodule Catenary.Live.EntryViewer do
     """
   end
 
+  defp inna_box(bits, bobs \\ "")
+  defp inna_box([], ""), do: ""
+
+  defp inna_box([], acc),
+    do: "<div class=\"p-3 m-5 border border-dashed\">" <> IO.inspect(acc) <> "</div>"
+
+  defp inna_box(["" | rest], acc), do: inna_box(rest, acc)
+  defp inna_box([jabba | rest], acc), do: inna_box(rest, acc <> jabba)
+
   def extract({:profile, a} = entry, settings) do
     clump_id = Keyword.get(settings, :clump_id)
 
     about =
       case :ets.lookup(:about, a) do
         [{^a, aboot}] ->
-          name = "<h1>" <> Map.get(aboot, "name", "") <> "</h1>"
+          name =
+            case aboot |> Map.get("name") do
+              nil -> ""
+              n -> "<h1>" <> n <> "</h1>"
+            end
 
           desc =
             case aboot |> Map.get("description", "") |> Earmark.as_html() do
@@ -109,11 +122,12 @@ defmodule Catenary.Live.EntryViewer do
               _ -> ""
             end
 
-          "<div class=\"p-3 m-5 border border-dashed\">" <> name <> desc <> "</div>"
+          [name, desc]
 
         _ ->
-          ""
+          []
       end
+      |> inna_box
 
     Preferences.mark_entry(:shown, entry)
 
