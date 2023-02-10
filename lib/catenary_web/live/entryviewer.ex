@@ -95,13 +95,14 @@ defmodule Catenary.Live.EntryViewer do
     """
   end
 
-  defp inna_box(bits, bobs \\ "")
-  defp inna_box([], ""), do: ""
+  defp inna_box(bits, border, bobs \\ "")
+  defp inna_box([], border, ""), do: ""
 
-  defp inna_box([], acc), do: "<div class=\"p-3 m-5 border border-dashed\">" <> acc <> "</div>"
+  defp inna_box([], border, acc),
+    do: "<div class=\"p-3 m-5 border border-" <> border <> "\">" <> acc <> "</div>"
 
-  defp inna_box(["" | rest], acc), do: inna_box(rest, acc)
-  defp inna_box([jabba | rest], acc), do: inna_box(rest, acc <> jabba)
+  defp inna_box(["" | rest], border, acc), do: inna_box(rest, border, acc)
+  defp inna_box([jabba | rest], border, acc), do: inna_box(rest, border, acc <> jabba)
 
   def extract({:profile, a} = entry, settings) do
     clump_id = Keyword.get(settings, :clump_id)
@@ -126,7 +127,7 @@ defmodule Catenary.Live.EntryViewer do
         _ ->
           []
       end
-      |> inna_box
+      |> inna_box("dashed")
 
     Preferences.mark_entry(:shown, entry)
 
@@ -146,9 +147,9 @@ defmodule Catenary.Live.EntryViewer do
             |> Enum.take(11)
             |> Enum.group_by(fn {_, l, _} -> Catenary.pretty_log_name(l) end)
             |> Enum.map(fn t -> group_list(t, settings) end)
-            |> Enum.join("")
+            |> inna_box("dotted")
 
-          {"<div class=\"flex flex-rows-3\">" <> groups <> "</div>", as_of}
+          {groups, as_of}
       end
 
     items =
@@ -175,7 +176,7 @@ defmodule Catenary.Live.EntryViewer do
           ""
 
         _ ->
-          "<div class=\"mt-20 flex flex-row\">" <> Enum.join(items) <> "</div>"
+          "<div class=\"mt-13 flex flex-row\">" <> Enum.join(items) <> "</div>"
       end
 
     mentions =
@@ -549,7 +550,7 @@ defmodule Catenary.Live.EntryViewer do
           "\">" <> vals["title"] <> "</button></li>"
       end)
 
-    "<div class=\"flex-auto\"><h4>" <> ln <> "</h4><ul>" <> recents <> "</ul></div>"
+    "<div class=\"mx-3\"><h4>" <> ln <> "</h4><ul>" <> recents <> "</ul></div>"
   end
 
   defp added_title(title), do: "⸤" <> title <> "⸣"
