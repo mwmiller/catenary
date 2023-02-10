@@ -98,8 +98,7 @@ defmodule Catenary.Live.EntryViewer do
   defp inna_box(bits, bobs \\ "")
   defp inna_box([], ""), do: ""
 
-  defp inna_box([], acc),
-    do: "<div class=\"p-3 m-5 border border-dashed\">" <> IO.inspect(acc) <> "</div>"
+  defp inna_box([], acc), do: "<div class=\"p-3 m-5 border border-dashed\">" <> acc <> "</div>"
 
   defp inna_box(["" | rest], acc), do: inna_box(rest, acc)
   defp inna_box([jabba | rest], acc), do: inna_box(rest, acc <> jabba)
