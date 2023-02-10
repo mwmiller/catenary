@@ -99,50 +99,65 @@ defmodule CatenaryWeb.Live do
 
   def render(%{view: :entries, entry: {:tag, tag}} = assigns) do
     ~L"""
+     <%= explorebar(assigns) %>
      <div class="max-h-screen w-100 grid grid-cols-3 gap-2 justify-center">
        <%= live_component(Catenary.Live.TagViewer, id: :tags, entry: tag ) %>
-       <%= sidebar(assigns) %>
+       <%= activitybar(assigns) %>
      </div>
     """
   end
 
   def render(%{view: :tags} = assigns) do
     ~L"""
+     <%= explorebar(assigns) %>
      <div class="max-h-screen w-100 grid grid-cols-3 gap-2 justify-center">
        <%= live_component(Catenary.Live.TagExplorer, id: :tags, entry: @entry) %>
-       <%= sidebar(assigns) %>
+       <%= activitybar(assigns) %>
      </div>
     """
   end
 
   def render(%{view: :unshown} = assigns) do
     ~L"""
+     <%= explorebar(assigns) %>
      <div class="max-h-screen w-100 grid grid-cols-3 gap-2 justify-center">
        <%= live_component(Catenary.Live.UnshownExplorer, id: :unshown, which: @entry, clump_id: @clump_id, store_hash: @store_hash) %>
-       <%= sidebar(assigns) %>
+       <%= activitybar(assigns) %>
      </div>
     """
   end
 
   def render(%{view: :aliases} = assigns) do
     ~L"""
+       <%= explorebar(assigns) %>
      <div class="max-h-screen w-100 grid grid-cols-3 gap-2 justify-center">
        <%= live_component(Catenary.Live.AliasExplorer, id: :aliases, alias: :all, aliases: @aliases) %>
-       <%= sidebar(assigns) %>
+       <%= activitybar(assigns) %>
      </div>
     """
   end
 
   def render(%{view: :entries} = assigns) do
     ~L"""
+       <%= explorebar(assigns) %>
     <div class="max-h-screen w-100 grid grid-cols-3 gap-2 justify-center">
       <%= live_component(Catenary.Live.EntryViewer, id: :entry, store: @store, identity: @identity, entry: @entry, clump_id: @clump_id, aliases: @aliases) %>
-      <%= sidebar(assigns) %>
+      <%= activitybar(assigns) %>
     </div>
     """
   end
 
-  defp sidebar(assigns) do
+  defp explorebar(assigns) do
+    ~L"""
+        <div class="w-max explore grid grid-cols-12">
+        <button value="unshown" phx-click="toview">◎</button>
+        <button value="tags" phx-click="toview">#</button>
+        <button value="aliases" phx-click="toview">~</button>
+        </div>
+    """
+  end
+
+  defp activitybar(assigns) do
     ~L"""
     <div>
       <%= live_component(Catenary.Live.Ident, id: :ident, entry: @entry, profile_items: @profile_items, identity: @identity, clump_id: @clump_id, aliases: @aliases) %>

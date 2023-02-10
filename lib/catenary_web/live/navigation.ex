@@ -56,7 +56,6 @@ defmodule Catenary.Live.Navigation do
       <div class="flex flex-row-3 text-xl">
         <div class="flex-auto p-1 text-center">
           <button value="origin" phx-click="nav"><%= Catenary.scaled_avatar(@identity, 2) |> Phoenix.HTML.raw %></button>
-         <button value="unshown" phx-click="toview">!⃣</button>
          <%= if displayed_matches([:log], @displayed_info), do: post_button_for(:graph) %>
          <%= if displayed_matches([:log, :profile], @displayed_info), do: post_button_for(:alias) %>
         </div>

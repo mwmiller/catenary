@@ -52,7 +52,9 @@ defmodule Catenary.Live.UnshownExplorer do
   defp prettify([{k, v} | rest], acc),
     do:
       prettify(rest, [
-        {Catenary.pretty_log_name(k), icon_entries(Enum.take(v, 31)), Catenary.index_list_to_string(v)} | acc
+        {Catenary.pretty_log_name(k), icon_entries(Enum.take(v, 17)),
+         Catenary.index_list_to_string(v)}
+        | acc
       ])
 
   defp icon_entries(entries) do

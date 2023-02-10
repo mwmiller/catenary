@@ -47,6 +47,9 @@
     @apply opacity-50;
     @apply mb-2;
   }
+  .explore {
+    @apply bg-slate-500 dark:bg-slate-600;
+  }
   .new-border {
     @apply border border-dotted border-orange-600 dark:border-amber-200;
   }
