@@ -95,14 +95,21 @@ defmodule Catenary.Live.EntryViewer do
     """
   end
 
-  defp inna_box(bits, border, bobs \\ "")
-  defp inna_box([], border, ""), do: ""
+  defp inna_box(bits, config, bobs \\ "")
+  defp inna_box([], _config, ""), do: ""
 
-  defp inna_box([], border, acc),
-    do: "<div class=\"p-3 m-5 border border-" <> border <> "\">" <> acc <> "</div>"
+  # This comment is for the tailwind preprocessor
+  # border-dashed border-dotted border-hidden border-double border-none border-solid
 
-  defp inna_box(["" | rest], border, acc), do: inna_box(rest, border, acc)
-  defp inna_box([jabba | rest], border, acc), do: inna_box(rest, border, acc <> jabba)
+  # Yeah, we use integer strings, what of it?
+  defp inna_box([], config, acc) do
+    "<div class=\"p-3 m-5 border border-" <>
+      Keyword.get(config, :border, "solid") <>
+      " grid " <> "grid-cols-" <> Keyword.get(config, :cols, "1") <> "\">" <> acc <> "</div>"
+  end
+
+  defp inna_box(["" | rest], config, acc), do: inna_box(rest, config, acc)
+  defp inna_box([jabba | rest], config, acc), do: inna_box(rest, config, acc <> jabba)
 
   def extract({:profile, a} = entry, settings) do
     clump_id = Keyword.get(settings, :clump_id)
@@ -127,7 +134,7 @@ defmodule Catenary.Live.EntryViewer do
         _ ->
           []
       end
-      |> inna_box("dashed")
+      |> inna_box(cols: "1", border: "dashed")
 
     Preferences.mark_entry(:shown, entry)
 
@@ -147,7 +154,7 @@ defmodule Catenary.Live.EntryViewer do
             |> Enum.take(11)
             |> Enum.group_by(fn {_, l, _} -> Catenary.pretty_log_name(l) end)
             |> Enum.map(fn t -> group_list(t, settings) end)
-            |> inna_box("dotted")
+            |> inna_box(cols: "3", border: "dotted")
 
           {groups, as_of}
       end
@@ -161,7 +168,7 @@ defmodule Catenary.Live.EntryViewer do
       |> Enum.filter(fn {%{name: name}, _} -> Preferences.accept_log_name?(name) end)
       |> Enum.reduce([], fn {%{name: name}, [entry | _]}, a ->
         [
-          "<div class=\"border-y row-auto m-2 p-1 \"><button class=\"text-xs\" value=\"" <>
+          "<div class=\"p-1\"><button class=\"text-xs\" value=\"" <>
             Catenary.index_to_string(entry) <>
             "\" phx-click=\"view-entry\">" <>
             String.capitalize(Atom.to_string(name)) <> "</button></div>"
@@ -172,11 +179,8 @@ defmodule Catenary.Live.EntryViewer do
 
     others =
       case length(items) do
-        0 ->
-          ""
-
-        _ ->
-          "<div class=\"mt-13 flex flex-row\">" <> Enum.join(items) <> "</div>"
+        0 -> ""
+        _ -> inna_box(items, cols: "5", border: "double")
       end
 
     mentions =
@@ -550,7 +554,7 @@ defmodule Catenary.Live.EntryViewer do
           "\">" <> vals["title"] <> "</button></li>"
       end)
 
-    "<div class=\"mx-3\"><h4>" <> ln <> "</h4><ul>" <> recents <> "</ul></div>"
+    "<div class=\"row-auto mx-3\"><h4>" <> ln <> "</h4><ul>" <> recents <> "</ul></div>"
   end
 
   defp added_title(title), do: "⸤" <> title <> "⸣"
