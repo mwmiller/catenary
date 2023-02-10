@@ -192,6 +192,13 @@ defmodule Catenary do
   def blocked?({a, _, _}, clump_id), do: Baobab.ClumpMeta.blocked?(a, clump_id)
   def blocked?(_, _), do: false
 
+  def about_key(dude, key) do
+    case :ets.lookup(:about, dude) do
+      [{_, vals}] -> Map.get(vals, key, "")
+      _ -> ""
+    end
+  end
+
   def checkbox_expander(boxes, name) do
     # Phoenix must be able to combine fieldsets and
     # yet here we are

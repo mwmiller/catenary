@@ -10,14 +10,20 @@ defmodule Catenary.Live.Navigation do
       ) do
     {whom, ali} = alias_info(entry, clump_id)
 
-    displayed_log_name =
+    displayed_info =
       case {view, entry} do
         {:entries, {_a, l, _e}} ->
           %{name: n} = QuaggaDef.log_def(l)
-          n
+          {:log, n}
+
+        {:entries, {pseudo, _}} when is_atom(pseudo) ->
+          {:pseudo, pseudo}
+
+        {:view, view} when is_atom(view) ->
+          {:view, view}
 
         _ ->
-          :meta
+          {:unknown, :unknown}
       end
 
     blocked = Catenary.blocked?(entry, clump_id)
@@ -25,7 +31,7 @@ defmodule Catenary.Live.Navigation do
     na =
       Map.merge(assigns, %{
         view: view,
-        displayed_log_name: displayed_log_name,
+        displayed_info: displayed_info,
         identity: identity,
         whom: whom,
         ali: ali,
@@ -37,7 +43,7 @@ defmodule Catenary.Live.Navigation do
        view: view,
        entry: entry,
        clump_id: clump_id,
-       displayed_log_name: displayed_log_name,
+       displayed_info: displayed_info,
        identity: identity,
        lower_nav: extra_nav(na)
      )}
@@ -51,9 +57,8 @@ defmodule Catenary.Live.Navigation do
         <div class="flex-auto p-1 text-center">
           <button value="origin" phx-click="nav"><%= Catenary.scaled_avatar(@identity, 2) |> Phoenix.HTML.raw %></button>
          <button value="unshown" phx-click="toview">!⃣</button>
-         <%= if @displayed_log_name != :meta do %>
-           <%= for post_type <- [:graph, :alias], do: post_button_for(post_type) %>
-         <% end %>
+         <%= if displayed_matches([:log], @displayed_info), do: post_button_for(:graph) %>
+         <%= if displayed_matches([:log, :profile], @displayed_info), do: post_button_for(:alias) %>
         </div>
         <div class="flex-auto p-1 text-center">
          <button value="prev-author" phx-click="nav">↥</button>
@@ -64,7 +69,7 @@ defmodule Catenary.Live.Navigation do
        </div>
        <div class="flex-auto p-1 text-center">
         <%= for post_type <- [:journal, :image],  do: post_button_for(post_type) %>
-       <%= if @displayed_log_name != :meta do %>
+       <%= if displayed_matches([:log], @displayed_info) do %>
         <%= for post_type <- [:reply, :react, :tag, :mention],  do: post_button_for(post_type) %>
        <% end %>
        </div>
@@ -77,7 +82,7 @@ defmodule Catenary.Live.Navigation do
   defp extra_nav(%{:extra_nav => :reply} = assigns) do
     ~L"""
     <div id="posting" class="font-sans">
-      <%= if @displayed_log_name != :meta do %>
+      <%= if displayed_matches([:log], @displayed_info) do %>
         <%= log_posting_form(assigns, :reply, source_title(@entry, @clump_id)) %>
       <% end %>
     </div>
@@ -99,7 +104,7 @@ defmodule Catenary.Live.Navigation do
     <div id="aliases">
        <form method="post" id="alias-form" phx-submit="new-entry">
          <input type="hidden" name="log_id" value="53">
-         <%= if @displayed_log_name != :meta do %>
+         <%= if displayed_matches([:log], @displayed_info) do %>
          <input type="hidden" name="ref" value="<%= Catenary.index_to_string(@entry) %>" />
          <% end %>
          <input type="hidden" name="whom" value="<%= @whom %>" />
@@ -124,7 +129,7 @@ defmodule Catenary.Live.Navigation do
     <form method="post" id="block-form" phx-submit="new-entry">
      <input type="hidden" name="log_id" value="1337">
      <input type="hidden" name="action" value="unblock">
-     <%= if @displayed_log_name != :meta do %>
+     <%= if displayed_matches([:log], @displayed_info) do %>
      <input type="hidden" name="ref" value="<%= Catenary.index_to_string(@entry) %>" />
      <% end %>
      <input type="hidden" name="whom" value="<%= @whom %>" />
@@ -139,18 +144,12 @@ defmodule Catenary.Live.Navigation do
   end
 
   defp extra_nav(%{:extra_nav => :profile} = assigns) do
-    pv =
-      case :ets.lookup(:about, assigns.identity) do
-        [{_, vals}] -> vals
-        _ -> %{}
-      end
-
     ~L"""
     <div id="profile-nav">
     <form method="post" id="profile-form" phx-submit="profile-update">
     <table>
-    <tr><td>Name:</td><td><input type="text" class="bg-white dark:bg-black" name="name" value="<%= pv["name"] %>"></td></tr>
-    <tr><td>About:</td><td><textarea class="bg-white dark:bg-black" rows=11 cols=31 name="description"><%= pv["description"] %></textarea></td></tr>
+    <tr><td>Name:</td><td><input type="text" class="bg-white dark:bg-black" name="name" value="<%= Catenary.about_key(@identity, "name") %>"></td></tr>
+    <tr><td>About:</td><td><textarea class="bg-white dark:bg-black" rows=11 cols=31 name="description"><%= Catenary.about_key(@identity,"description") %></textarea></td></tr>
     <tr><td>Avatar:</td><td><input type="checkbox" class="bg-white dark:bg-black" name="keep-avatar" checked> keep</td></tr>
     </table>
     <%= Catenary.log_submit_button %>
@@ -166,7 +165,7 @@ defmodule Catenary.Live.Navigation do
       <br>
        <form method="post" id="mention-form" phx-submit="new-entry">
          <input type="hidden" name="log_id" value="121">
-         <%= if @displayed_log_name != :meta do %>
+         <%= if displayed_matches([:log], @displayed_info) do %>
          <input type="hidden" name="ref" value="<%= Catenary.index_to_string(@entry) %>" />
          <% end %>
          <%= mention_inputs(4) %>
@@ -186,7 +185,7 @@ defmodule Catenary.Live.Navigation do
        <form method="post" id="block-form" phx-submit="new-entry">
          <input type="hidden" name="log_id" value="1337">
          <input type="hidden" name="action" value="block">
-         <%= if @displayed_log_name != :meta do %>
+         <%= if displayed_matches([:log], @displayed_info) do %>
          <input type="hidden" name="ref" value="<%= Catenary.index_to_string(@entry) %>" />
          <% end %>
          <input type="hidden" name="whom" value="<%= @whom %>" />
@@ -206,7 +205,7 @@ defmodule Catenary.Live.Navigation do
   defp extra_nav(%{:extra_nav => :tag} = assigns) do
     ~L"""
     <div id="tags">
-      <%= if @displayed_log_name != :meta do %>
+      <%= if displayed_matches([:log], @displayed_info) do %>
        <form method="post" id="tag-form" phx-submit="new-entry">
          <input type="hidden" name="log_id" value="749">
          <input type="hidden" name="ref" value="<%= Catenary.index_to_string(@entry) %>">
@@ -222,7 +221,7 @@ defmodule Catenary.Live.Navigation do
   defp extra_nav(%{:extra_nav => :react} = assigns) do
     ~L"""
     <div id="reactions-nav" class="flex flex-row 5 mt-20">
-      <%= if @displayed_log_name != :meta do %>
+      <%= if displayed_matches([:log], @displayed_info) do %>
        <form method="post" id="reaction-form" phx-submit="new-entry">
          <input type="hidden" name="log_id" value="101">
          <input type="hidden" name="ref" value="<%= Catenary.index_to_string(@entry) %>">
@@ -240,7 +239,7 @@ defmodule Catenary.Live.Navigation do
   defp extra_nav(%{:extra_nav => :image} = assigns) do
     ~L"""
     <div id="images-nav" class="mt-10">
-      <%= if @displayed_log_name in [:png, :jpeg, :gif] do %>
+      <%= if displayed_matches([:png, :jpeg, :gif], @displayed_info) do %>
         <form id="set-avatar-form" phx-submit="new-entry">
           <input type="hidden" name="log_id" value="360" />
           <input type="hidden" name="avatar" value="<%= Catenary.index_to_string(@entry) %>" />
@@ -286,7 +285,7 @@ defmodule Catenary.Live.Navigation do
     end
   end
 
-  defp alias_info({:profile, a}, _), do: {a, ""}
+  defp alias_info({:profile, a}, _), do: {a, Catenary.about_key(a, "name")}
   defp alias_info({a, _, _}, _), do: {a, ""}
   defp alias_info(_, _), do: {"", ""}
 
@@ -343,6 +342,36 @@ defmodule Catenary.Live.Navigation do
   defp posting_icon(:reply), do: "↩︎̟"
   defp posting_icon(:journal), do: "✎̟"
   defp posting_icon(:image), do: "̟҂"
+
+  defp displayed_matches(list, displayed), do: displayed_matches(list, displayed, false)
+
+  defp displayed_matches([], _, false), do: false
+  defp displayed_matches(_, _, true), do: true
+
+  defp displayed_matches([this | rest], displayed, acc),
+    do: displayed_matches(rest, displayed, acc or displayed_match(this, displayed))
+
+  defp displayed_match(desired, displayed) do
+    # This is intended to simplify checks elsewhere
+    # It also might introduce some ambiguity when
+    # the :view looks like an :entries type
+    # If this bit you, feel free to curse at me.
+    # You might resolve it by using a fully explicit check
+    # Or you can improve the logic or naming
+    case {desired, displayed} do
+      {^desired, ^desired} -> true
+      {:log, {:log, _}} -> true
+      {:log, _} -> false
+      {:pseudo, {:pseudo, _}} -> true
+      {:pseudo, _} -> false
+      {:view, {:view, _}} -> true
+      {:view, _} -> false
+      {^desired, {:log, ^desired}} -> true
+      {^desired, {:pseudo, ^desired}} -> true
+      {^desired, {:view, ^desired}} -> true
+      _ -> false
+    end
+  end
 
   defp tag_inputs(count), do: make_tag_inputs(count, [])
 
