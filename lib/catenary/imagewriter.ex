@@ -11,7 +11,7 @@ defmodule Catenary.ImageWriter do
     img_root =
       Path.join([
         Application.get_env(:catenary, :application_dir),
-        "images",
+        "images"
       ])
       |> Path.expand()
 
@@ -19,7 +19,7 @@ defmodule Catenary.ImageWriter do
     # I could unlink first... meh.
     # The net effect here is that we can serve from Phoenix, but
     # maintain the files in the expected place.
-    File.ln_s(img_root, "priv/static/cat_images")
+    File.ln_s(img_root, Path.join([Application.app_dir(:catenary), "priv/static/cat_images"]))
 
     ppid = self()
 
