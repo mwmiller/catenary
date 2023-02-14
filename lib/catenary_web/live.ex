@@ -2,7 +2,17 @@ defmodule CatenaryWeb.Live do
   use CatenaryWeb, :live_view
   alias Catenary.{Navigation, Oases, LogWriter}
 
-  @indices [:tags, :references, :timelines, :aliases, :graph, :reactions, :mentions, :about]
+  @indices [
+    :tags,
+    :references,
+    :timelines,
+    :aliases,
+    :graph,
+    :reactions,
+    :mentions,
+    :about,
+    :images
+  ]
 
   def mount(_params, session, socket) do
     # Making sure these exist, but also faux docs
@@ -547,6 +557,9 @@ defmodule CatenaryWeb.Live do
                   state.clump_id,
                   state.me
                 ])
+
+              :images ->
+                Task.start(Catenary.ImageWriter, :update_from_logs, [state.clump_id, state.me])
 
               which ->
                 Task.start(Catenary.Indices, :update_index, [which, si, state.clump_id, state.me])
