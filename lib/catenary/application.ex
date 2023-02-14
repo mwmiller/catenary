@@ -34,6 +34,17 @@ defmodule Catenary.Application do
     # slower start up tradeoff for now
     Catenary.Indices.reset()
 
+    img_root =
+      Path.join([
+        Application.get_env(:catenary, :application_dir),
+        "images"
+      ])
+      |> Path.expand()
+
+    File.mkdir_p([img_root, "identicons"])
+    File.rm_rf("priv/static/cat_images")
+    File.ln_s(img_root, Path.join([Application.app_dir(:catenary), "priv/static/cat_images"]))
+
     children = [
       {Baby.Application, spool_dir: spool_dir(), clumps: clumps},
       # Start the Telemetry supervisor
@@ -117,7 +128,7 @@ defmodule Catenary.Application do
          %{label: "JPEG images", command: "jpeg", action: %{view: :entries, entry: :jpeg}},
          %{label: "PNG images", command: "png", action: %{view: :entries, entry: :png}},
          :rule,
-         %{label: "Oases", command: "oasis", action: %{view: :entries, entry: :oasis}},
+         %{label: "Oases", command: "oasis", action: %{view: :entries, entry: :oasis}}
        ]}
     ]
   end
