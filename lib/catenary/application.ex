@@ -41,9 +41,20 @@ defmodule Catenary.Application do
       ])
       |> Path.expand()
 
-    File.mkdir_p([img_root, "identicons"])
-    File.rm_rf("priv/static/cat_images")
-    File.ln_s(img_root, Path.join([Application.app_dir(:catenary), "priv/static/cat_images"]))
+    local_root =
+      Path.join([Application.app_dir(:catenary), "priv/static/cat_images"])
+      |> Path.expand()
+
+    case File.read_link(local_root) do
+      {:ok, ^img_root} ->
+        :ok
+
+      _ ->
+        File.rm_rf(local_root)
+        File.ln_s(img_root, local_root)
+    end
+
+    File.mkdir_p(Path.join([img_root, "identicons"]))
 
     children = [
       {Baby.Application, spool_dir: spool_dir(), clumps: clumps},

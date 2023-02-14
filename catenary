@@ -1,2 +1,2 @@
 #!/usr/bin/env bash
-_build/prod/rel/catenary/bin/catenary start &> /dev/null &
+_build/prod/rel/catenary/bin/catenary start #&> /dev/null &
