@@ -105,17 +105,19 @@ defmodule Catenary.Application do
        [
          %{label: "Unshown", command: "unshown", action: %{view: :unshown, entry: :all}},
          %{label: "Tags", command: "tag", action: %{view: :tags, entry: :all}},
+         %{label: "Aliases", command: "alias", action: %{view: :aliases, entry: :all}},
+         :rule,
          %{label: "Journals", command: "journal", action: %{view: :entries, entry: :journal}},
          %{label: "Replies", command: "reply", action: %{view: :entries, entry: :reply}},
          %{label: "Reactions", command: "react", action: %{view: :entries, entry: :react}},
-         %{label: "Aliases", command: "alias", action: %{view: :aliases, entry: :all}},
          %{label: "Mentions", command: "mention", action: %{view: :entries, entry: :mention}},
-         %{label: "Oases", command: "oasis", action: %{view: :entries, entry: :oasis}},
          :rule,
          %{label: "Test posts", command: "test", action: %{view: :entries, entry: :test}},
          %{label: "GIF images", command: "gif", action: %{view: :entries, entry: :gif}},
          %{label: "JPEG images", command: "jpeg", action: %{view: :entries, entry: :jpeg}},
-         %{label: "PNG images", command: "png", action: %{view: :entries, entry: :png}}
+         %{label: "PNG images", command: "png", action: %{view: :entries, entry: :png}},
+         :rule,
+         %{label: "Oases", command: "oasis", action: %{view: :entries, entry: :oasis}},
        ]}
     ]
   end
