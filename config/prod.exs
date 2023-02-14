@@ -7,5 +7,8 @@ config :catenary, CatenaryWeb.Endpoint,
   check_origin: false,
   secret_key_base: "5FLVVS9UwaB5UWAnrPIXBTk9eEJGr+vTvqOp742c1utBPSQxJUs6rFsmIklpCMT0"
 
+config :catenary,
+  application_dir: "~/.catenary"
+
 # Do not print debug messages in production
 config :logger, level: :error

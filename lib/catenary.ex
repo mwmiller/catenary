@@ -16,6 +16,15 @@ defmodule Catenary do
     timelines: "timelines.dets"
   }
 
+  @img_root Path.join([
+              Application.compile_env(:catenary, :application_dir),
+              "images"
+            ])
+            |> Path.expand()
+
+  File.mkdir_p(Path.join([@img_root, "identicons"]))
+  File.ln_s(@img_root, Path.join([Application.app_dir(:catenary), "priv/static/cat_images"]))
+
   @image_logs QuaggaDef.log_defs()
               |> Enum.reduce([], fn {_lid, %{type: t, name: n}}, a ->
                 case is_binary(t) do
@@ -96,7 +105,7 @@ defmodule Catenary do
           v
 
         [] ->
-          val = svg_identicon(id, mag)
+          val = write_svg_identicon(id, mag)
 
           :ets.insert(:avatars, {id, val})
           val
@@ -109,10 +118,12 @@ defmodule Catenary do
     )
   end
 
-  defp svg_identicon(id, mag),
-    do:
-      "data:image/svg+xml;base64," <>
-        Excon.ident(id, base64: true, type: :svg, magnification: mag)
+  defp write_svg_identicon(id, mag) do
+    srv = Path.join(["/cat_images/identicons", id])
+    file = Path.join(["priv/static", srv])
+    Excon.ident(id, type: :svg, magnification: mag, filename: file)
+    srv <> ".svg"
+  end
 
   @list_sep "‑"
   def index_list_to_string(indices) when is_list(indices) do

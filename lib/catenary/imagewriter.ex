@@ -8,19 +8,6 @@ defmodule Catenary.ImageWriter do
   def update_from_logs(clump_id, inform \\ nil) do
     logs = Enum.reduce(Catenary.image_logs(), [], fn n, a -> a ++ QuaggaDef.logs_for_name(n) end)
 
-    img_root =
-      Path.join([
-        Application.get_env(:catenary, :application_dir),
-        "images"
-      ])
-      |> Path.expand()
-
-    # I reckon I should check for errors here, but {:error, :eexist} is expected
-    # I could unlink first... meh.
-    # The net effect here is that we can serve from Phoenix, but
-    # maintain the files in the expected place.
-    File.ln_s(img_root, Path.join([Application.app_dir(:catenary), "priv/static/cat_images"]))
-
     ppid = self()
 
     Task.start(fn ->
@@ -32,7 +19,7 @@ defmodule Catenary.ImageWriter do
           true -> [{a, l} | acc]
         end
       end)
-      |> write_if_missing(clump_id, Path.join(img_root, clump_id))
+      |> write_if_missing(clump_id, Path.join(["priv/static/cat_images", clump_id]))
 
       case inform do
         nil -> :ok
