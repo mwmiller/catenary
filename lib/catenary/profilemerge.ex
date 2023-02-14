@@ -64,21 +64,9 @@ defmodule Catenary.ProfileMerge do
       |> Enum.sort()
       |> Enum.reduce(%{}, fn {_when, what}, acc -> Map.merge(acc, what) end)
 
-    # Jesu Cristo
     case final_form do
       %{"avatar" => [a, l, e]} ->
-        case Baobab.log_entry(a, e, log_id: l, clump_id: clump_id) do
-          %Baobab.Entry{payload: data} ->
-            %{name: mime} = QuaggaDef.log_def(l)
-
-            :ets.insert(
-              :avatars,
-              {ident, "data:image/" <> Atom.to_string(mime) <> ";base64," <> Base.encode64(data)}
-            )
-
-          _ ->
-            :ok
-        end
+        :ets.insert(:avatars, {ident, {a, l, e, clump_id}})
 
       _ ->
         :ok

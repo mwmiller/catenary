@@ -3,6 +3,7 @@ defmodule Catenary.Live.EntryViewer do
   use Phoenix.LiveComponent
   alias Catenary.Preferences
 
+  @image_logs Catenary.image_logs()
   @impl true
   def update(%{entry: :random} = assigns, socket) do
     update(Map.merge(assigns, %{entry: Catenary.random_timeline_log()}), socket)
@@ -26,7 +27,7 @@ defmodule Catenary.Live.EntryViewer do
       entries ->
         entry = Enum.random(entries)
 
-        case extract(entry, clump_id: clump_id, store: store, identity: identity) do
+        case extract(entry, clump_id: clump_id, store: store, identity: identity, socket: socket) do
           :error ->
             update(assigns, socket)
 
@@ -47,7 +48,10 @@ defmodule Catenary.Live.EntryViewer do
           %{card: :blocked}
 
         false ->
-          %{card: extract(which, clump_id: clump_id, store: store, identity: identity)}
+          %{
+            card:
+              extract(which, clump_id: clump_id, store: store, identity: identity, socket: socket)
+          }
       end
 
     {:ok, assign(socket, Map.merge(assigns, way))}
@@ -213,16 +217,24 @@ defmodule Catenary.Live.EntryViewer do
     # We want failure to save here to fail loudly without any further work
     # But if it does fail later we don't mind having said it was shown
     clump_id = Keyword.get(settings, :clump_id)
+    ldef = l |> QuaggaDef.base_log() |> QuaggaDef.log_def()
     Preferences.mark_entry(:shown, {a, l, e})
+    lname = ldef.name
 
     try do
       payload =
-        case Baobab.log_entry(a, e, log_id: l, clump_id: clump_id) do
-          %Baobab.Entry{payload: pl} ->
-            pl
+        case lname in @image_logs do
+          true ->
+            Catenary.image_src_for_entry(entry, clump_id)
 
-          _ ->
-            :missing
+          false ->
+            case Baobab.log_entry(a, e, log_id: l, clump_id: clump_id) do
+              %Baobab.Entry{payload: pl} ->
+                pl
+
+              _ ->
+                :missing
+            end
         end
 
       tags =
@@ -255,7 +267,7 @@ defmodule Catenary.Live.EntryViewer do
           from_refs(entry)
         )
 
-      Map.merge(extract_type(payload, QuaggaDef.log_def(l)), base)
+      Map.merge(extract_type(payload, ldef), base)
     rescue
       e ->
         Logger.warn(e)
@@ -290,14 +302,11 @@ defmodule Catenary.Live.EntryViewer do
     }
   end
 
-  @image_logs Catenary.image_logs()
-  defp extract_type(raw, %{name: mime}) when mime in @image_logs do
-    b64d = "data:image/" <> Atom.to_string(mime) <> ";base64," <> Base.encode64(raw)
-
+  defp extract_type(src_uri, %{name: mime}) when mime in @image_logs do
     %{
       "title" => added_title("Image Added"),
       "back-refs" => [],
-      "body" => Phoenix.HTML.raw("<img src=\"" <> b64d <> "\" />"),
+      "body" => Phoenix.HTML.raw("<img src=\"" <> src_uri <> "\">"),
       "published" => :unknown
     }
   end

@@ -12,9 +12,14 @@ defmodule Catenary.ImageWriter do
       Path.join([
         Application.get_env(:catenary, :application_dir),
         "images",
-        clump_id
       ])
       |> Path.expand()
+
+    # I reckon I should check for errors here, but {:error, :eexist} is expected
+    # I could unlink first... meh.
+    # The net effect here is that we can serve from Phoenix, but
+    # maintain the files in the expected place.
+    File.ln_s(img_root, "priv/static/cat_images")
 
     ppid = self()
 
@@ -27,7 +32,7 @@ defmodule Catenary.ImageWriter do
           true -> [{a, l} | acc]
         end
       end)
-      |> write_if_missing(clump_id, img_root)
+      |> write_if_missing(clump_id, Path.join(img_root, clump_id))
 
       case inform do
         nil -> :ok
@@ -51,6 +56,7 @@ defmodule Catenary.ImageWriter do
         :ok
 
       todo ->
+        # Extra work here, but should be cheap.
         File.mkdir_p(img_dir)
         fill_missing(todo, who, log_id, clump_id, img_dir)
     end
@@ -73,6 +79,8 @@ defmodule Catenary.ImageWriter do
       %Baobab.Entry{payload: data} ->
         %{name: mime} = log_id |> QuaggaDef.base_log() |> QuaggaDef.log_def()
 
+        # I don't much care if this fails.  I mean I do, but I don't
+        # have a solution.. and it might work next time
         File.write(
           Path.join([img_dir, Integer.to_string(e) <> "." <> Atom.to_string(mime)]),
           data,

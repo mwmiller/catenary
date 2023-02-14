@@ -32,6 +32,19 @@ defmodule Catenary do
 
   def image_logs, do: @image_logs
 
+  def image_src_for_entry({a, l, e}, clump_id) do
+    %{name: mime} = l |> QuaggaDef.base_log() |> QuaggaDef.log_def()
+
+    Path.join([
+      "/cat_images",
+      clump_id,
+      a,
+      Integer.to_string(l),
+      Integer.to_string(e) <>
+        "." <> Atom.to_string(mime)
+    ])
+  end
+
   def short_id(id, {_, aliases}) do
     string =
       case Map.get(aliases, id) do
@@ -72,8 +85,13 @@ defmodule Catenary do
   def scaled_avatar(id, mag, classes \\ []) do
     ss = Integer.to_string(mag * 8)
 
-    datauri =
+    uri =
       case :ets.lookup(:avatars, id) do
+        [{^id, {a, l, e, cid}}] ->
+          p = image_src_for_entry({a, l, e}, cid)
+          :ets.insert(:avatars, {id, p})
+          p
+
         [{^id, v}] ->
           v
 
@@ -87,7 +105,7 @@ defmodule Catenary do
     Phoenix.HTML.raw(
       "<img class=\"" <>
         Enum.join(classes, " ") <>
-        "\"  width=" <> ss <> " height=" <> ss <> " src=\"" <> datauri <> "\">"
+        "\"  width=" <> ss <> " height=" <> ss <> " src=\"" <> uri <> "\">"
     )
   end
 
