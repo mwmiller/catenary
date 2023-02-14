@@ -16,6 +16,22 @@ defmodule Catenary do
     timelines: "timelines.dets"
   }
 
+  @image_logs QuaggaDef.log_defs()
+              |> Enum.reduce([], fn {_lid, %{type: t, name: n}}, a ->
+                case is_binary(t) do
+                  true ->
+                    case String.starts_with?(t, "image/") do
+                      true -> [n | a]
+                      false -> a
+                    end
+
+                  false ->
+                    a
+                end
+              end)
+
+  def image_logs, do: @image_logs
+
   def short_id(id, {_, aliases}) do
     string =
       case Map.get(aliases, id) do

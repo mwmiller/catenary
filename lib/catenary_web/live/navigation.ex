@@ -238,7 +238,7 @@ defmodule Catenary.Live.Navigation do
   defp extra_nav(%{:extra_nav => :image} = assigns) do
     ~L"""
     <div id="images-nav" class="mt-10">
-      <%= if displayed_matches([:png, :jpeg, :gif], @displayed_info) do %>
+      <%= if displayed_matches(Catenary.image_logs(), @displayed_info) do %>
         <form id="set-avatar-form" phx-submit="new-entry">
           <input type="hidden" name="log_id" value="360" />
           <input type="hidden" name="avatar" value="<%= Catenary.index_to_string(@entry) %>" />

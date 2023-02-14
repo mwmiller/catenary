@@ -290,7 +290,8 @@ defmodule Catenary.Live.EntryViewer do
     }
   end
 
-  defp extract_type(raw, %{name: mime}) when mime in [:jpeg, :gif, :png] do
+  @image_logs Catenary.image_logs()
+  defp extract_type(raw, %{name: mime}) when mime in @image_logs do
     b64d = "data:image/" <> Atom.to_string(mime) <> ";base64," <> Base.encode64(raw)
 
     %{
