@@ -23,19 +23,10 @@ defmodule CatenaryWeb.Live do
     clumps = Application.get_env(:catenary, :clumps)
     clump_id = Catenary.Preferences.get(:clump_id)
 
-    view =
+    {view, entry} =
       case session do
-        %{"view" => v} -> v
-        _ -> Catenary.Preferences.get(:view)
-      end
-
-    entry =
-      case session do
-        %{"entry" => e} ->
-          e
-
-        _ ->
-          Catenary.Preferences.get(:entry)
+        %{"view" => v, "entry" => e} -> {v, e}
+        _ -> {Catenary.Preferences.get(:view), Catenary.Preferences.get(:entry)}
       end
 
     facet_id = Catenary.Preferences.get(:facet_id)
