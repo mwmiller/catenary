@@ -111,7 +111,7 @@ defmodule Catenary do
 
   defp write_svg_identicon(id, mag) do
     fs = Path.join([Application.app_dir(:catenary), "priv", "static"])
-    idd = Path.join(["cat_images", "identicons"])
+    idd = Path.join(["/cat_images", "identicons"])
     srv = Path.join([idd, id])
     file = Path.join([fs, srv])
     Excon.ident(id, type: :svg, magnification: mag, filename: file)
