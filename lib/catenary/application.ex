@@ -70,7 +70,7 @@ defmodule Catenary.Application do
        [
          app: :catenary,
          title: "Catenary",
-         size: {1193, 761},
+         size: {1193, 787},
          id: CatenaryWindow,
          menubar: prepare_menubar("MenuBar", menu_structure()),
          url: &CatenaryWeb.Endpoint.url/0
