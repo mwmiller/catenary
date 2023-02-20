@@ -13,21 +13,11 @@ defmodule Catenary.Application do
     Application.put_env(:baobab, :spool_dir, spool_dir())
 
     whoami = Catenary.Preferences.get(:identity) |> Catenary.id_for_key()
-    clump_id = Catenary.Preferences.get(:clump_id)
 
     clumps =
       for {c, k} <- Application.get_env(:catenary, :clumps) do
         [controlling_identity: whoami, id: c, port: Keyword.get(k, :port)]
       end
-
-    # Short-term pre-clump switching legacy conversion
-    # Added 2022-10-16, remove in 2023
-    shown = Catenary.Preferences.get(:shown)
-
-    case shown do
-      %MapSet{} -> Catenary.Preferences.set(:shown, %{clump_id => shown})
-      _ -> :ok
-    end
 
     # I need a better signal for when to do this
     # but the store is mutable by others
