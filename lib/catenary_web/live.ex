@@ -25,7 +25,7 @@ defmodule CatenaryWeb.Live do
     {view, entry} =
       case session do
         %{"view" => v, "entry" => e} -> {v, e}
-        _ -> {:prefs, :none}
+        _ -> {Catenary.Preferences.get(:view), Catenary.Preferences.get(:entry)}
       end
 
     facet_id = Catenary.Preferences.get(:facet_id)
