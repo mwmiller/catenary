@@ -14,14 +14,14 @@ defmodule Catenary.IndexWorker.SocialGraph do
     me = self()
     {:ok, running} = Task.start(fn -> update_from_logs(me) end)
 
-    {:ok, %{running: {:ok, running}, me: me, full_queue: false}}
+    {:ok, %{running: {:ok, running}, me: me, queued: false}}
   end
 
   @impl true
   def handle_info({:completed, pid}, state) do
     case state do
-      %{running: ^pid, queued: true} ->
-        Logger.debug("SocialGraph queued happypath")
+      %{running: {:ok, ^pid}, queued: true} ->
+        Logger.debug("graph queued happypath")
 
         {:ok, running} =
           Task.start(fn ->
@@ -31,12 +31,13 @@ defmodule Catenary.IndexWorker.SocialGraph do
 
         {:noreply, %{state | running: running}}
 
-      %{running: ^pid, queued: true} ->
-        Logger.debug("SocialGraph clear happypath")
+      %{running: {:ok, ^pid}, queued: false} ->
+        Logger.debug("graph clear happypath")
         {:noreply, %{state | running: :idle}}
 
-      _ ->
-        Logger.debug("SocialGraph process mismatch")
+      lump ->
+        Logger.debug("graph process mismatch")
+        IO.inspect({pid, lump})
         {:noreply, %{state | running: :idle}}
     end
   end

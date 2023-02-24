@@ -335,7 +335,6 @@ defmodule Catenary.LogWriter do
       when li in ["8008", "8009", "8010"] do
     lid = String.to_integer(li)
     %Baobab.Entry{author: a, log_id: l, seqnum: e} = append_log_for_socket(data, lid, socket)
-    Catenary.ImageWriter.update_from_logs(socket.assigns.clump_id)
     {Baobab.Identity.as_base62(a), l, e}
   end
 

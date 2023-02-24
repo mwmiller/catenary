@@ -9,8 +9,7 @@ defmodule CatenaryWeb.Live do
     :aliases,
     :reactions,
     :mentions,
-    :about,
-    :images
+    :about
   ]
 
   def mount(_params, session, socket) do
@@ -538,9 +537,6 @@ defmodule CatenaryWeb.Live do
                   state.clump_id,
                   state.me
                 ])
-
-              :images ->
-                Task.start(Catenary.ImageWriter, :update_from_logs, [state.clump_id, state.me])
 
               which ->
                 Task.start(Catenary.Indices, :update_index, [which, si, state.clump_id, state.me])

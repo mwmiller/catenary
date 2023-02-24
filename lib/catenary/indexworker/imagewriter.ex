@@ -1,31 +1,81 @@
-defmodule Catenary.ImageWriter do
+defmodule Catenary.IndexWorker.Images do
+  use GenServer
   require Logger
+  alias Catenary.Preferences
 
   @moduledoc """
   Write clump logs to the file system
   """
 
-  def update_from_logs(clump_id, inform \\ nil) do
+  def start_link(state) do
+    GenServer.start_link(__MODULE__, state, name: __MODULE__)
+  end
+
+  ## Callbacks
+
+  @impl true
+  def init(_arg) do
+    me = self()
+    {:ok, %{running: Task.start(fn -> update_from_logs(me) end), me: me, queued: false}}
+  end
+
+  @impl true
+  def handle_info({:completed, pid}, state) do
+    case state do
+      %{running: {:ok, ^pid}, queued: true} ->
+        Logger.debug("images queued happypath")
+
+        {:ok, running} =
+          Task.start(fn ->
+            Process.sleep(2017)
+            update_from_logs(state.me)
+          end)
+
+        {:noreply, %{state | running: running}}
+
+      %{running: {:ok, ^pid}, queued: false} ->
+        Logger.debug("images clear happypath")
+        {:noreply, %{state | running: :idle}}
+
+      lump ->
+        Logger.debug("images process mismatch")
+        IO.inspect({pid, lump})
+        {:noreply, %{state | running: :idle}}
+    end
+  end
+
+  @impl true
+  def handle_cast({:update, _args}, %{running: runstate} = state) do
+    case runstate do
+      :idle ->
+        {:ok, running} = Task.start(fn -> update_from_logs(self()) end)
+        {:noreply, %{state | running: running, queued: false}}
+
+      {:ok, _pid} ->
+        {:noreply, %{state | queued: true}}
+    end
+  end
+
+  def update_from_logs(inform \\ nil) do
+    clump_id = Preferences.get(:clump_id)
     logs = Enum.reduce(Catenary.image_logs(), [], fn n, a -> a ++ QuaggaDef.logs_for_name(n) end)
 
     ppid = self()
 
-    Task.start(fn ->
-      clump_id
-      |> Baobab.stored_info()
-      |> Enum.reduce([], fn {a, l, _}, acc ->
-        case l in logs do
-          false -> acc
-          true -> [{a, l} | acc]
-        end
-      end)
-      |> write_if_missing(clump_id, Path.join(["priv/static/cat_images", clump_id]))
-
-      case inform do
-        nil -> :ok
-        pid -> Process.send(pid, {:completed, {:indexing, :images, ppid}}, [])
+    clump_id
+    |> Baobab.stored_info()
+    |> Enum.reduce([], fn {a, l, _}, acc ->
+      case l in logs do
+        false -> acc
+        true -> [{a, l} | acc]
       end
     end)
+    |> write_if_missing(clump_id, Path.join(["priv/static/cat_images", clump_id]))
+
+    case inform do
+      nil -> :ok
+      pid -> Process.send(pid, {:completed, ppid}, [])
+    end
   end
 
   defp write_if_missing([], _, _), do: :ok
