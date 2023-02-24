@@ -1,5 +1,57 @@
-defmodule Catenary.SocialGraph do
+defmodule Catenary.IndexWorker.SocialGraph do
+  use GenServer
   require Logger
+  alias Catenary.Preferences
+
+  def start_link(state) do
+    GenServer.start_link(__MODULE__, state, name: __MODULE__)
+  end
+
+  ## Callbacks
+
+  @impl true
+  def init(_arg) do
+    me = self()
+    {:ok, running} = Task.start(fn -> update_from_logs(me) end)
+
+    {:ok, %{running: {:ok, running}, me: me, full_queue: false}}
+  end
+
+  @impl true
+  def handle_info({:completed, pid}, state) do
+    case state do
+      %{running: ^pid, queued: true} ->
+        Logger.debug("SocialGraph queued happypath")
+
+        {:ok, running} =
+          Task.start(fn ->
+            Process.sleep(2017)
+            update_from_logs(state.me)
+          end)
+
+        {:noreply, %{state | running: running}}
+
+      %{running: ^pid, queued: true} ->
+        Logger.debug("SocialGraph clear happypath")
+        {:noreply, %{state | running: :idle}}
+
+      _ ->
+        Logger.debug("SocialGraph process mismatch")
+        {:noreply, %{state | running: :idle}}
+    end
+  end
+
+  @impl true
+  def handle_cast({:update, _args}, %{running: runstate} = state) do
+    case runstate do
+      :idle ->
+        {:ok, running} = Task.start(fn -> update_from_logs(self()) end)
+        {:noreply, %{state | running: running, queued: false}}
+
+      {:ok, _pid} ->
+        {:noreply, %{state | queued: true}}
+    end
+  end
 
   @moduledoc """
   Functions to maintain the social graph
@@ -16,7 +68,9 @@ defmodule Catenary.SocialGraph do
   # synchronised clocks between all facet providers.
   # Our best hope is that there are not conflicts in
   # the timing error bars.
-  def update_from_logs(identity, clump_id, inform \\ nil) do
+  def update_from_logs(inform \\ nil) do
+    {identity, clump_id} = {Preferences.get(:identity), Preferences.get(:clump_id)}
+
     logs =
       :graph
       |> QuaggaDef.logs_for_name()
@@ -36,14 +90,12 @@ defmodule Catenary.SocialGraph do
 
     ppid = self()
 
-    Task.start(fn ->
-      apply_operations(ops, clump_id)
+    apply_operations(ops, clump_id)
 
-      case inform do
-        nil -> :ok
-        pid -> Process.send(pid, {:completed, {:indexing, :graph, ppid}}, [])
-      end
-    end)
+    case inform do
+      nil -> :ok
+      pid -> Process.send(pid, {:completed, ppid}, [])
+    end
   end
 
   defp order_operations([], _, acc), do: acc |> Enum.sort()

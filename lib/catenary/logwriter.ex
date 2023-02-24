@@ -78,11 +78,11 @@ defmodule Catenary.LogWriter do
   end
 
   def new_entry(%{"log_id" => "53", "alias" => ali, "whom" => whom} = entry, socket) do
-
-    references = case Map.get(entry, "ref") do
-      nil -> []
-      ref -> [Catenary.string_to_index(ref)]
-    end
+    references =
+      case Map.get(entry, "ref") do
+        nil -> []
+        ref -> [Catenary.string_to_index(ref)]
+      end
 
     %Baobab.Entry{author: a, log_id: l, seqnum: e} =
       %{
@@ -210,7 +210,6 @@ defmodule Catenary.LogWriter do
 
     b62author = Baobab.Identity.as_base62(a)
     entry = {b62author, l, e}
-    Catenary.SocialGraph.update_from_logs(b62author, socket.assigns.clump_id)
     Catenary.Indices.update_index(:references, [entry], socket.assigns.clump_id)
     entry
   end
@@ -249,9 +248,7 @@ defmodule Catenary.LogWriter do
       |> append_log_for_socket(1337, socket)
 
     b62author = Baobab.Identity.as_base62(a)
-    entry = {b62author, l, e}
-    Catenary.SocialGraph.update_from_logs(b62author, socket.assigns.clump_id)
-    entry
+    {b62author, l, e}
   end
 
   def new_entry(

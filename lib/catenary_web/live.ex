@@ -7,7 +7,6 @@ defmodule CatenaryWeb.Live do
     :references,
     :timelines,
     :aliases,
-    :graph,
     :reactions,
     :mentions,
     :about,
@@ -533,15 +532,6 @@ defmodule CatenaryWeb.Live do
         false ->
           {:ok, pid} =
             case which do
-              # This "index" is maintained in Baobab and is a heavy operation
-              # it should perhaps be less often run
-              :graph ->
-                Task.start(Catenary.SocialGraph, :update_from_logs, [
-                  state.identity,
-                  state.clump_id,
-                  state.me
-                ])
-
               # This one actually is an index, but it requires the log format to work correctly
               :about ->
                 Task.start(Catenary.ProfileMerge, :update_from_logs, [
