@@ -1,6 +1,6 @@
 defmodule Catenary.IndexSup do
   use Supervisor
-  alias Catenary.IndexWorker.{SocialGraph, Images}
+  alias Catenary.IndexWorker.{SocialGraph}
 
   def start_link(init_arg) do
     Supervisor.start_link(__MODULE__, init_arg, name: __MODULE__)
@@ -8,7 +8,7 @@ defmodule Catenary.IndexSup do
 
   @impl true
   def init(_init_arg) do
-    children = [SocialGraph, Images]
+    children = [SocialGraph]
 
     Supervisor.init(children, strategy: :one_for_one)
   end

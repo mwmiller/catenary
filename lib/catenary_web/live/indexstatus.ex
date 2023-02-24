@@ -23,11 +23,9 @@ defmodule Catenary.Live.IndexStatus do
     {:aliases, "⍲", "⍱"},
     {:tags, "⸘", "‽"},
     {:timelines, "⫝̸", "⫝"},
-    {:graph, "∌", "∋"},
     {:reactions, "☽", "☾"},
     {:mentions, "⎒", "⎑"},
-    {:about, "⧞", "∞"},
-    {:images, "≒", "≓"}
+    {:about, "⧞", "∞"}
   ]
 
   for {index, running, idle} <- @status_indica do

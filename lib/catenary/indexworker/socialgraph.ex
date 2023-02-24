@@ -54,6 +54,10 @@ defmodule Catenary.IndexWorker.SocialGraph do
     end
   end
 
+  @impl true
+  def handle_call(:status, _, %{running: {:ok, _}} = _state), do: "∌"
+  def handle_call(:status, _, %{running: :idle} = _state), do: "∋"
+
   @moduledoc """
   Functions to maintain the social graph
   """

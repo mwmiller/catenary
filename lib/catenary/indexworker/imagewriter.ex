@@ -56,6 +56,10 @@ defmodule Catenary.IndexWorker.Images do
     end
   end
 
+  @impl true
+  def handle_call(:status, _, %{running: {:ok, _}} = _state), do: "≒"
+  def handle_call(:status, _, %{running: :idle} = _state), do: "≓"
+
   def update_from_logs(inform \\ nil) do
     clump_id = Preferences.get(:clump_id)
     logs = Enum.reduce(Catenary.image_logs(), [], fn n, a -> a ++ QuaggaDef.logs_for_name(n) end)
