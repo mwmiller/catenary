@@ -21,7 +21,6 @@ defmodule Catenary.Live.IndexStatus do
   @status_indica [
     {:references, "🜪", "🜚"},
     {:aliases, "⍲", "⍱"},
-    {:tags, "⸘", "‽"},
     {:timelines, "⫝̸", "⫝"},
     {:reactions, "☽", "☾"},
     {:mentions, "⎒", "⎑"},
