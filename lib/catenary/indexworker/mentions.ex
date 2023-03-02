@@ -1,24 +1,27 @@
 defmodule Catenary.IndexWorker.Mentions do
   use GenServer
-  alias Catenary.Preferences
+  alias Catenary.{Preferences, Indices}
   require Logger
 
   @moduledoc """
-  Tag Indices
+  Mention Indices
   """
 
+  @name_atom :mentions
+
   def start_link(state) do
-    GenServer.start_link(__MODULE__, state, name: __MODULE__)
+    GenServer.start_link(__MODULE__, state, name: @name_atom)
   end
 
   ## Callbacks
 
   @impl true
   def init(_arg) do
+    Indices.empty_table(@name_atom)
     me = self()
-    {:ok, running} = Task.start(fn -> update_from_logs(me) end)
+    running = Task.start(fn -> update_from_logs(me) end)
 
-    {:ok, %{running: {:ok, running}, me: me, queued: false}}
+    {:ok, %{running: running, me: me, queued: false}}
   end
 
   @impl true
@@ -27,13 +30,13 @@ defmodule Catenary.IndexWorker.Mentions do
       %{running: {:ok, ^pid}, queued: true} ->
         Logger.debug("mentions queued happypath")
 
-        {:ok, running} =
+        running =
           Task.start(fn ->
             Process.sleep(2017)
             update_from_logs(state.me)
           end)
 
-        {:noreply, %{state | running: running}}
+        {:noreply, %{state | running: running, queued: false}}
 
       %{running: {:ok, ^pid}, queued: false} ->
         Logger.debug("mentions clear happypath")
@@ -47,20 +50,20 @@ defmodule Catenary.IndexWorker.Mentions do
   end
 
   @impl true
-  def handle_cast({:update, _args}, %{running: runstate} = state) do
+  def handle_call({:update, _args}, _them, %{running: runstate} = state) do
     case runstate do
       :idle ->
-        {:ok, running} = Task.start(fn -> update_from_logs(self()) end)
-        {:noreply, %{state | running: running, queued: false}}
+        running = Task.start(fn -> update_from_logs(self()) end)
+        {:reply, :started, %{state | running: running, queued: false}}
 
       {:ok, _pid} ->
-        {:noreply, %{state | queued: true}}
+        {:reply, :queued, %{state | queued: true}}
     end
   end
 
   @impl true
-  def handle_call(:status, _, %{running: {:ok, _}} = _state), do: "⎒"
-  def handle_call(:status, _, %{running: :idle} = _state), do: "⎑"
+  def handle_call(:status, _, %{running: {:ok, _}} = state), do: {:reply, "⎒", state}
+  def handle_call(:status, _, %{running: :idle} = state), do: {:reply, "⎑", state}
 
   def update_from_logs(inform \\ nil) do
     clump_id = Preferences.get(:clump_id)
@@ -106,26 +109,28 @@ defmodule Catenary.IndexWorker.Mentions do
       e = List.to_tuple(ent)
       # Mentions for entry
       old =
-        case :ets.lookup(:mentions, e) do
+        case :ets.lookup(@name_atom, e) do
           [] -> []
           [{^e, val}] -> val
         end
 
       into = (old ++ mentions) |> Enum.sort() |> Enum.uniq()
-      :ets.insert(:mentions, {e, into})
+      :ets.insert(@name_atom, {e, into})
 
       # Entries for mentioned
       for mention <- mentions do
         old_val =
-          case :ets.lookup(:mentions, mention) do
+          case :ets.lookup(@name_atom, mention) do
             [] -> []
             [{^mention, val}] -> val
           end
 
         insert =
-          [{published(data), e} | old_val] |> Enum.sort() |> Enum.uniq_by(fn {_p, e} -> e end)
+          [{Indices.published_date(data), e} | old_val]
+          |> Enum.sort()
+          |> Enum.uniq_by(fn {_p, e} -> e end)
 
-        :ets.insert(:mentions, {mention, insert})
+        :ets.insert(@name_atom, {mention, insert})
       end
     rescue
       _ -> :ok
@@ -133,18 +138,4 @@ defmodule Catenary.IndexWorker.Mentions do
 
     entries_index(rest, clump_id)
   end
-
-  defp published(data) when is_map(data) do
-    case data["published"] do
-      nil ->
-        ""
-
-      t ->
-        t
-        |> Timex.parse!("{ISO:Extended}")
-        |> Timex.to_unix()
-    end
-  end
-
-  defp published(_), do: ""
 end

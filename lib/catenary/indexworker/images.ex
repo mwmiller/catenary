@@ -7,8 +7,10 @@ defmodule Catenary.IndexWorker.Images do
   Write clump logs to the file system
   """
 
+  @name_atom :images
+
   def start_link(state) do
-    GenServer.start_link(__MODULE__, state, name: __MODULE__)
+    GenServer.start_link(__MODULE__, state, name: @name_atom)
   end
 
   ## Callbacks
@@ -25,13 +27,13 @@ defmodule Catenary.IndexWorker.Images do
       %{running: {:ok, ^pid}, queued: true} ->
         Logger.debug("images queued happypath")
 
-        {:ok, running} =
+        running =
           Task.start(fn ->
             Process.sleep(2017)
             update_from_logs(state.me)
           end)
 
-        {:noreply, %{state | running: running}}
+        {:noreply, %{state | running: running, queued: false}}
 
       %{running: {:ok, ^pid}, queued: false} ->
         Logger.debug("images clear happypath")
@@ -45,20 +47,20 @@ defmodule Catenary.IndexWorker.Images do
   end
 
   @impl true
-  def handle_cast({:update, _args}, %{running: runstate} = state) do
+  def handle_call({:update, _args}, _them, %{running: runstate} = state) do
     case runstate do
       :idle ->
-        {:ok, running} = Task.start(fn -> update_from_logs(self()) end)
-        {:noreply, %{state | running: running, queued: false}}
+        running = Task.start(fn -> update_from_logs(self()) end)
+        {:reply, :started, %{state | running: running, queued: false}}
 
       {:ok, _pid} ->
-        {:noreply, %{state | queued: true}}
+        {:reply, :queued, %{state | queued: true}}
     end
   end
 
   @impl true
-  def handle_call(:status, _, %{running: {:ok, _}} = _state), do: "≒"
-  def handle_call(:status, _, %{running: :idle} = _state), do: "≓"
+  def handle_call(:status, _, %{running: {:ok, _}} = state), do: {:reply, "≒", state}
+  def handle_call(:status, _, %{running: :idle} = state), do: {:reply, "≓", state}
 
   def update_from_logs(inform \\ nil) do
     clump_id = Preferences.get(:clump_id)

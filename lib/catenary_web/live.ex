@@ -2,8 +2,6 @@ defmodule CatenaryWeb.Live do
   use CatenaryWeb, :live_view
   alias Catenary.{Navigation, Oases, LogWriter}
 
-  @indices []
-
   def mount(_params, session, socket) do
     # Making sure these exist, but also faux docs
     {:asc, :desc, :author, :logid, :seq}
@@ -180,8 +178,6 @@ defmodule CatenaryWeb.Live do
   end
 
   def handle_info({:completed, which}, %{assigns: assigns} = socket) do
-    thehash = Baobab.Persistence.current_hash(:content, assigns.clump_id)
-
     update =
       case which do
         {:indexing, key, _pid} ->
@@ -458,10 +454,15 @@ defmodule CatenaryWeb.Live do
     clump_id = state.clump_id
     shash = Baobab.Persistence.current_hash(:content, clump_id)
 
+    # The index update here is excessive.  
     si =
       case state.store_hash do
-        ^shash -> state.store
-        _ -> Baobab.stored_info(clump_id)
+        ^shash ->
+          state.store
+
+        _ ->
+          Catenary.Indices.update()
+          Baobab.stored_info(clump_id)
       end
 
     ihash = Baobab.Persistence.current_hash(:identity, clump_id)
@@ -482,30 +483,6 @@ defmodule CatenaryWeb.Live do
       store: si,
       oases: Oases.recents(si, clump_id, 4)
     )
-  end
-
-  defp check_indices(state, shash, si) do
-    Enum.reduce(@indices, %{}, fn w, a -> Map.merge(a, check_index(w, state, shash, si)) end)
-  end
-
-  # We have to match on literals, so we macro this.
-  # I expected something different
-  for index <- @indices do
-    defp check_index(unquote(index), %{indexing: %{unquote(index) => pid}} = state, shash, si)
-         when is_pid(pid) do
-      case Process.alive?(pid) do
-        true ->
-          %{unquote(index) => pid}
-
-        false ->
-          idx = Map.merge(state.indexing, %{unquote(index) => shash})
-          check_index(unquote(index), Map.merge(state, %{indexing: idx}), shash, si)
-      end
-    end
-  end
-
-  defp check_index(which, state, shash, si) do
-    %{which => state}
   end
 
   defp connector_wrap(host, port, socket) do

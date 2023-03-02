@@ -2,7 +2,7 @@ defmodule Catenary.IndexSup do
   use Supervisor
 
   alias Catenary.IndexWorker.{
-    SocialGraph,
+    Graph,
     Images,
     Tags,
     Mentions,
@@ -21,7 +21,7 @@ defmodule Catenary.IndexSup do
   def init(_init_arg) do
     # These indices are in conversion order.  Feel free to rearrange
     children = [
-      SocialGraph,
+      Graph,
       Images,
       Tags,
       Mentions,

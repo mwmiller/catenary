@@ -19,11 +19,6 @@ defmodule Catenary.Application do
         [controlling_identity: whoami, id: c, port: Keyword.get(k, :port)]
       end
 
-    # I need a better signal for when to do this
-    # but the store is mutable by others
-    # slower start up tradeoff for now
-    Catenary.Indices.reset()
-
     img_root =
       Path.join([
         Application.get_env(:catenary, :application_dir),

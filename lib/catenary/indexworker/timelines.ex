@@ -1,24 +1,27 @@
 defmodule Catenary.IndexWorker.Timelines do
   use GenServer
-  alias Catenary.Preferences
+  alias Catenary.{Preferences, Indices}
   require Logger
 
   @moduledoc """
   Timeline Indices
   """
 
+  @name_atom :timelines
+
   def start_link(state) do
-    GenServer.start_link(__MODULE__, state, name: __MODULE__)
+    GenServer.start_link(__MODULE__, state, name: @name_atom)
   end
 
   ## Callbacks
 
   @impl true
   def init(_arg) do
+    Indices.empty_table(@name_atom)
     me = self()
-    {:ok, running} = Task.start(fn -> update_from_logs(me) end)
+    running = Task.start(fn -> update_from_logs(me) end)
 
-    {:ok, %{running: {:ok, running}, me: me, queued: false}}
+    {:ok, %{running: running, me: me, queued: false}}
   end
 
   @impl true
@@ -27,13 +30,13 @@ defmodule Catenary.IndexWorker.Timelines do
       %{running: {:ok, ^pid}, queued: true} ->
         Logger.debug("timelines queued happypath")
 
-        {:ok, running} =
+        running =
           Task.start(fn ->
             Process.sleep(2017)
             update_from_logs(state.me)
           end)
 
-        {:noreply, %{state | running: running}}
+        {:noreply, %{state | running: running, queued: false}}
 
       %{running: {:ok, ^pid}, queued: false} ->
         Logger.debug("timelines clear happypath")
@@ -47,20 +50,20 @@ defmodule Catenary.IndexWorker.Timelines do
   end
 
   @impl true
-  def handle_cast({:update, _args}, %{running: runstate} = state) do
+  def handle_call({:update, _args}, _them, %{running: runstate} = state) do
     case runstate do
       :idle ->
-        {:ok, running} = Task.start(fn -> update_from_logs(self()) end)
-        {:noreply, %{state | running: running, queued: false}}
+        running = Task.start(fn -> update_from_logs(self()) end)
+        {:reply, :started, %{state | running: running, queued: false}}
 
       {:ok, _pid} ->
-        {:noreply, %{state | queued: true}}
+        {:reply, :queued, %{state | queued: true}}
     end
   end
 
   @impl true
-  def handle_call(:status, _, %{running: {:ok, _}} = _state), do: "⫝̸"
-  def handle_call(:status, _, %{running: :idle} = _state), do: "⫝"
+  def handle_call(:status, _, %{running: {:ok, _}} = state), do: {:reply, "⫝̸", state}
+  def handle_call(:status, _, %{running: :idle} = state), do: {:reply, "⫝", state}
 
   def update_from_logs(inform \\ nil) do
     clump_id = Preferences.get(:clump_id)
@@ -102,32 +105,18 @@ defmodule Catenary.IndexWorker.Timelines do
       {:ok, data, ""} = CBOR.decode(payload)
 
       old =
-        case :ets.lookup(:timelines, ident) do
+        case :ets.lookup(@name_atom, ident) do
           [] -> []
           [{^ident, val}] -> val
         end
 
-      insert = [{published(data), {ident, l, s}} | old] |> Enum.sort() |> Enum.uniq()
+      insert = [{Indices.published_date(data), {ident, l, s}} | old] |> Enum.sort() |> Enum.uniq()
 
-      :ets.insert(:timelines, {ident, insert})
+      :ets.insert(@name_atom, {ident, insert})
     rescue
       _ -> :ok
     end
 
     entries_index(rest, clump_id)
   end
-
-  defp published(data) when is_map(data) do
-    case data["published"] do
-      nil ->
-        ""
-
-      t ->
-        t
-        |> Timex.parse!("{ISO:Extended}")
-        |> Timex.to_unix()
-    end
-  end
-
-  defp published(_), do: ""
 end

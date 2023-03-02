@@ -1,24 +1,27 @@
 defmodule Catenary.IndexWorker.Aliases do
   use GenServer
-  alias Catenary.Preferences
+  alias Catenary.{Preferences, Indices}
   require Logger
 
   @moduledoc """
-  Tag Indices
+  Alias Indices
   """
 
+  @name_atom :aliases
+
   def start_link(state) do
-    GenServer.start_link(__MODULE__, state, name: __MODULE__)
+    GenServer.start_link(__MODULE__, state, name: @name_atom)
   end
 
   ## Callbacks
 
   @impl true
   def init(_arg) do
+    Indices.empty_table(@name_atom)
     me = self()
-    {:ok, running} = Task.start(fn -> update_from_logs(me) end)
+    running = Task.start(fn -> update_from_logs(me) end)
 
-    {:ok, %{running: {:ok, running}, me: me, queued: false}}
+    {:ok, %{running: running, me: me, queued: false}}
   end
 
   @impl true
@@ -27,13 +30,13 @@ defmodule Catenary.IndexWorker.Aliases do
       %{running: {:ok, ^pid}, queued: true} ->
         Logger.debug("aliases queued happypath")
 
-        {:ok, running} =
+        running =
           Task.start(fn ->
             Process.sleep(2017)
             update_from_logs(state.me)
           end)
 
-        {:noreply, %{state | running: running}}
+        {:noreply, %{state | running: running, queued: false}}
 
       %{running: {:ok, ^pid}, queued: false} ->
         Logger.debug("aliases clear happypath")
@@ -47,20 +50,20 @@ defmodule Catenary.IndexWorker.Aliases do
   end
 
   @impl true
-  def handle_cast({:update, _args}, %{running: runstate} = state) do
+  def handle_call({:update, _args}, _them, %{running: runstate} = state) do
     case runstate do
       :idle ->
-        {:ok, running} = Task.start(fn -> update_from_logs(self()) end)
-        {:noreply, %{state | running: running, queued: false}}
+        running = Task.start(fn -> update_from_logs(self()) end)
+        {:reply, :started, %{state | running: running, queued: false}}
 
       {:ok, _pid} ->
-        {:noreply, %{state | queued: true}}
+        {:reply, :queued, %{state | queued: true}}
     end
   end
 
   @impl true
-  def handle_call(:status, _, %{running: {:ok, _}} = _state), do: "⍲"
-  def handle_call(:status, _, %{running: :idle} = _state), do: "⍱"
+  def handle_call(:status, _, %{running: {:ok, _}} = state), do: {:reply, "⍲", state}
+  def handle_call(:status, _, %{running: :idle} = state), do: {:reply, "⍱", state}
 
   def update_from_logs(inform \\ nil) do
     {identity, clump_id} = {Preferences.get(:identity), Preferences.get(:clump_id)}
@@ -100,8 +103,8 @@ defmodule Catenary.IndexWorker.Aliases do
     try do
       %Baobab.Entry{payload: payload} = entry
       {:ok, data, ""} = CBOR.decode(payload)
-      :ets.match_delete(:aliases, {:_, data["alias"]})
-      :ets.insert(:aliases, {data["whom"], data["alias"]})
+      :ets.match_delete(@name_atom, {:_, data["alias"]})
+      :ets.insert(@name_atom, {data["whom"], data["alias"]})
     rescue
       _ ->
         :ok

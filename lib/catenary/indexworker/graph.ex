@@ -1,20 +1,23 @@
-defmodule Catenary.IndexWorker.SocialGraph do
+defmodule Catenary.IndexWorker.Graph do
   use GenServer
   require Logger
-  alias Catenary.Preferences
+  alias Catenary.{Preferences, Indices}
+
+  @name_atom :graph
 
   def start_link(state) do
-    GenServer.start_link(__MODULE__, state, name: __MODULE__)
+    GenServer.start_link(__MODULE__, state, name: @name_atom)
   end
 
   ## Callbacks
 
   @impl true
   def init(_arg) do
+    Indices.empty_table(@name_atom)
     me = self()
-    {:ok, running} = Task.start(fn -> update_from_logs(me) end)
+    running = Task.start(fn -> update_from_logs(me) end)
 
-    {:ok, %{running: {:ok, running}, me: me, queued: false}}
+    {:ok, %{running: running, me: me, queued: false}}
   end
 
   @impl true
@@ -23,13 +26,13 @@ defmodule Catenary.IndexWorker.SocialGraph do
       %{running: {:ok, ^pid}, queued: true} ->
         Logger.debug("graph queued happypath")
 
-        {:ok, running} =
+        running =
           Task.start(fn ->
             Process.sleep(2017)
             update_from_logs(state.me)
           end)
 
-        {:noreply, %{state | running: running}}
+        {:noreply, %{state | running: running, queued: false}}
 
       %{running: {:ok, ^pid}, queued: false} ->
         Logger.debug("graph clear happypath")
@@ -43,20 +46,20 @@ defmodule Catenary.IndexWorker.SocialGraph do
   end
 
   @impl true
-  def handle_cast({:update, _args}, %{running: runstate} = state) do
+  def handle_call({:update, _args}, _them, %{running: runstate} = state) do
     case runstate do
       :idle ->
-        {:ok, running} = Task.start(fn -> update_from_logs(self()) end)
-        {:noreply, %{state | running: running, queued: false}}
+        running = Task.start(fn -> update_from_logs(self()) end)
+        {:reply, :started, %{state | running: running, queued: false}}
 
       {:ok, _pid} ->
-        {:noreply, %{state | queued: true}}
+        {:reply, :queued, %{state | queued: true}}
     end
   end
 
   @impl true
-  def handle_call(:status, _, %{running: {:ok, _}} = _state), do: "∌"
-  def handle_call(:status, _, %{running: :idle} = _state), do: "∋"
+  def handle_call(:status, _, %{running: {:ok, _}} = state), do: {:reply, "∌", state}
+  def handle_call(:status, _, %{running: :idle} = state), do: {:reply, "∋", state}
 
   @moduledoc """
   Functions to maintain the social graph
@@ -77,7 +80,7 @@ defmodule Catenary.IndexWorker.SocialGraph do
     {identity, clump_id} = {Preferences.get(:identity), Preferences.get(:clump_id)}
 
     logs =
-      :graph
+      @name_atom
       |> QuaggaDef.logs_for_name()
 
     ops =
