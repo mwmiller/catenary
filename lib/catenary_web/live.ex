@@ -42,10 +42,10 @@ defmodule CatenaryWeb.Live do
      state_set(
        upsock,
        %{
-         store_hash: <<>>,
-         store: [],
-         id_hash: <<>>,
-         identities: [],
+         store_hash: Baobab.Persistence.current_hash(:content, clump_id),
+         store: Baobab.stored_info(clump_id),
+         id_hash: Baobab.Persistence.current_hash(:identity, clump_id),
+         identities: Baobab.Identity.list(),
          aliases: Catenary.alias_state(),
          profile_items: Catenary.profile_items_state(),
          view: view,
@@ -218,7 +218,7 @@ defmodule CatenaryWeb.Live do
 
   def handle_event("shown-set", %{"value" => entries_string}, socket) do
     Catenary.Preferences.mark_entries(:shown, Catenary.string_to_index_list(entries_string))
-    {:noreply, state_set(socket, %{store_hash: ""})}
+    {:noreply, state_set(socket, %{})}
   end
 
   def handle_event("toview", %{"value" => sview}, socket) do
