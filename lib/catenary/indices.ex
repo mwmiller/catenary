@@ -33,7 +33,6 @@ defmodule Catenary.Indices do
 
   @logs_for_table %{
     references: QuaggaDef.logs_for_encoding(:cbor),
-    aliases: QuaggaDef.logs_for_name(:alias),
     tags: QuaggaDef.logs_for_name(:tag),
     reactions: QuaggaDef.logs_for_name(:react),
     timelines:

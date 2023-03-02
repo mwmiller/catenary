@@ -5,7 +5,6 @@ defmodule CatenaryWeb.Live do
   @indices [
     :references,
     :timelines,
-    :aliases,
     :reactions,
     :about
   ]
@@ -190,18 +189,6 @@ defmodule CatenaryWeb.Live do
 
     update =
       case which do
-        {:indexing, :aliases, _pid} ->
-          %{
-            aliases: Catenary.alias_state(),
-            indexing: Map.merge(assigns.indexing, %{:aliases => thehash})
-          }
-
-        {:indexing, :mentions, _pid} ->
-          %{
-            profile_items: Catenary.profile_items_state(),
-            indexing: Map.merge(assigns.indexing, %{:mentions => thehash})
-          }
-
         {:indexing, key, _pid} ->
           %{indexing: Map.merge(assigns.indexing, %{key => thehash})}
 
@@ -491,6 +478,8 @@ defmodule CatenaryWeb.Live do
       end
 
     assign(full_socket,
+      aliases: Catenary.alias_state(),
+      profile_items: Catenary.profile_items_state(),
       identities: ids,
       id_hash: ihash,
       indexing: check_indices(state, shash, si),
