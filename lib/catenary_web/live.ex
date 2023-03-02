@@ -5,7 +5,6 @@ defmodule CatenaryWeb.Live do
   @indices [
     :references,
     :timelines,
-    :reactions,
     :about
   ]
 

@@ -34,7 +34,6 @@ defmodule Catenary.Indices do
   @logs_for_table %{
     references: QuaggaDef.logs_for_encoding(:cbor),
     tags: QuaggaDef.logs_for_name(:tag),
-    reactions: QuaggaDef.logs_for_name(:react),
     timelines:
       Enum.reduce(Catenary.timeline_logs(), [], fn n, a -> a ++ QuaggaDef.logs_for_name(n) end)
   }

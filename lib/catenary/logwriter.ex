@@ -269,7 +269,6 @@ defmodule Catenary.LogWriter do
     b62author = Baobab.Identity.as_base62(a)
     entry = {b62author, l, e}
     Catenary.Preferences.mark_entry(:shown, entry)
-    Catenary.Indices.update_index(:reactions, [entry], socket.assigns.clump_id)
     Catenary.Indices.update_index(:references, [entry], socket.assigns.clump_id)
 
     to
