@@ -9,7 +9,8 @@ defmodule Catenary.IndexSup do
     Aliases,
     Reactions,
     References,
-    Timelines
+    Timelines,
+    About
   }
 
   def start_link(init_arg) do
@@ -18,7 +19,18 @@ defmodule Catenary.IndexSup do
 
   @impl true
   def init(_init_arg) do
-    children = [SocialGraph, Images, Tags, Mentions, Aliases, Reactions, References, Timelines]
+    # These indices are in conversion order.  Feel free to rearrange
+    children = [
+      SocialGraph,
+      Images,
+      Tags,
+      Mentions,
+      Aliases,
+      Reactions,
+      References,
+      Timelines,
+      About
+    ]
 
     Supervisor.init(children, strategy: :one_for_one)
   end

@@ -18,9 +18,7 @@ defmodule Catenary.Live.IndexStatus do
 
   defp istatus([], chars), do: Enum.join(chars, " ")
 
-  @status_indica [
-    {:about, "⧞", "∞"}
-  ]
+  @status_indica []
 
   for {index, running, idle} <- @status_indica do
     defp istatus([{unquote(index), pid} | rest], chars) when is_pid(pid),

@@ -2,9 +2,7 @@ defmodule CatenaryWeb.Live do
   use CatenaryWeb, :live_view
   alias Catenary.{Navigation, Oases, LogWriter}
 
-  @indices [
-    :about
-  ]
+  @indices []
 
   def mount(_params, session, socket) do
     # Making sure these exist, but also faux docs
@@ -507,29 +505,7 @@ defmodule CatenaryWeb.Live do
   end
 
   defp check_index(which, state, shash, si) do
-    new_state =
-      case state.store_hash == shash do
-        true ->
-          shash
-
-        false ->
-          {:ok, pid} =
-            case which do
-              # This one actually is an index, but it requires the log format to work correctly
-              :about ->
-                Task.start(Catenary.ProfileMerge, :update_from_logs, [
-                  state.clump_id,
-                  state.me
-                ])
-
-              which ->
-                Task.start(Catenary.Indices, :update_index, [which, si, state.clump_id, state.me])
-            end
-
-          pid
-      end
-
-    %{which => new_state}
+    %{which => state}
   end
 
   defp connector_wrap(host, port, socket) do
