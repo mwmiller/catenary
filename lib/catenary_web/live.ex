@@ -3,7 +3,6 @@ defmodule CatenaryWeb.Live do
   alias Catenary.{Navigation, Oases, LogWriter}
 
   @indices [
-    :references,
     :timelines,
     :about
   ]
