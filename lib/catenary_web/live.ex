@@ -7,7 +7,6 @@ defmodule CatenaryWeb.Live do
     :timelines,
     :aliases,
     :reactions,
-    :mentions,
     :about
   ]
 

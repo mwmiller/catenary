@@ -23,7 +23,6 @@ defmodule Catenary.Live.IndexStatus do
     {:aliases, "⍲", "⍱"},
     {:timelines, "⫝̸", "⫝"},
     {:reactions, "☽", "☾"},
-    {:mentions, "⎒", "⎑"},
     {:about, "⧞", "∞"}
   ]
 

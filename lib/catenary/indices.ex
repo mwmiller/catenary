@@ -36,7 +36,6 @@ defmodule Catenary.Indices do
     aliases: QuaggaDef.logs_for_name(:alias),
     tags: QuaggaDef.logs_for_name(:tag),
     reactions: QuaggaDef.logs_for_name(:react),
-    mentions: QuaggaDef.logs_for_name(:mention),
     timelines:
       Enum.reduce(Catenary.timeline_logs(), [], fn n, a -> a ++ QuaggaDef.logs_for_name(n) end)
   }

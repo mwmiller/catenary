@@ -178,7 +178,6 @@ defmodule Catenary.LogWriter do
         b62author = Baobab.Identity.as_base62(a)
         entry = {b62author, l, e}
         Catenary.Preferences.mark_entry(:shown, entry)
-        Catenary.Indices.update_index(:mentions, [entry], socket.assigns.clump_id)
         Catenary.Indices.update_index(:references, [entry], socket.assigns.clump_id)
         # Here we send them back to the referenced post which should now have tags applied
         # They can see the actual tagging post from the footer (or profile)
@@ -292,7 +291,6 @@ defmodule Catenary.LogWriter do
     b62author = Baobab.Identity.as_base62(a)
     entry = {b62author, l, e}
     Catenary.Preferences.mark_entry(:shown, entry)
-    Catenary.Indices.update_index(:mentions, [entry], socket.assigns.clump_id)
     Catenary.Indices.update_index(:references, [entry], socket.assigns.clump_id)
 
     to
