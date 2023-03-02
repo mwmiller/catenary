@@ -50,7 +50,7 @@ defmodule CatenaryWeb.Live do
          profile_items: Catenary.profile_items_state(),
          view: view,
          extra_nav: :stack,
-         indexing: Enum.reduce(@indices, %{}, fn i, a -> Map.merge(a, %{i => :not_running}) end),
+         indexing: Catenary.Indices.status(),
          entry: entry,
          entry_fore: [],
          entry_back: [],
@@ -180,9 +180,6 @@ defmodule CatenaryWeb.Live do
   def handle_info({:completed, which}, %{assigns: assigns} = socket) do
     update =
       case which do
-        {:indexing, key, _pid} ->
-          %{indexing: Map.merge(assigns.indexing, %{key => thehash})}
-
         {:connection, ident} ->
           %{connections: Enum.reject(assigns.connections, fn {i, _map} -> i == ident end)}
       end
@@ -478,7 +475,7 @@ defmodule CatenaryWeb.Live do
       profile_items: Catenary.profile_items_state(),
       identities: ids,
       id_hash: ihash,
-      indexing: check_indices(state, shash, si),
+      indexing: Catenary.Indices.status(),
       store_hash: shash,
       store: si,
       oases: Oases.recents(si, clump_id, 4)
