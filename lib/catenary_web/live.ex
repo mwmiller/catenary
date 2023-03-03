@@ -1,23 +1,23 @@
 defmodule CatenaryWeb.Live do
   use CatenaryWeb, :live_view
-  alias Catenary.{Navigation, Oases, LogWriter}
+  alias Catenary.{Navigation, Oases, LogWriter, Preferences}
 
   def mount(_params, session, socket) do
     # Making sure these exist, but also faux docs
     {:asc, :desc, :author, :logid, :seq}
     Phoenix.PubSub.subscribe(Catenary.PubSub, "ui")
 
-    whoami = Catenary.Preferences.get(:identity)
+    whoami = Preferences.get(:identity)
     clumps = Application.get_env(:catenary, :clumps)
-    clump_id = Catenary.Preferences.get(:clump_id)
+    clump_id = Preferences.get(:clump_id)
 
     {view, entry} =
       case session do
         %{"view" => v, "entry" => e} -> {v, e}
-        _ -> {Catenary.Preferences.get(:view), Catenary.Preferences.get(:entry)}
+        _ -> {Preferences.get(:view), Preferences.get(:entry)}
       end
 
-    facet_id = Catenary.Preferences.get(:facet_id)
+    facet_id = Preferences.get(:facet_id)
 
     # Enable context menu in webview
     # Its nice enough I guess, but mostly here as a reminder
@@ -46,6 +46,7 @@ defmodule CatenaryWeb.Live do
          store: Baobab.stored_info(clump_id),
          id_hash: Baobab.Persistence.current_hash(:identity, clump_id),
          identities: Baobab.Identity.list(),
+         shown_hash: Preferences.shown_hash(),
          aliases: Catenary.alias_state(),
          profile_items: Catenary.profile_items_state(),
          view: view,
@@ -106,11 +107,13 @@ defmodule CatenaryWeb.Live do
     """
   end
 
+  # store_hash makes it so it recognises new incoming
+  # shown_hash lets type-marking be reactive in the page
   def render(%{view: :unshown} = assigns) do
     ~L"""
      <%= explorebar(assigns) %>
      <div class="max-h-screen w-100 grid grid-cols-3 gap-2 justify-center">
-       <%= live_component(Catenary.Live.UnshownExplorer, id: :unshown, which: @entry, clump_id: @clump_id, store_hash: @store_hash) %>
+       <%= live_component(Catenary.Live.UnshownExplorer, id: :unshown, which: @entry, clump_id: @clump_id, store_hash: @store_hash, shown_hash: @shown_hash) %>
        <%= activitybar(assigns) %>
      </div>
     """
@@ -217,7 +220,8 @@ defmodule CatenaryWeb.Live do
   end
 
   def handle_event("shown-set", %{"value" => entries_string}, socket) do
-    Catenary.Preferences.mark_entries(:shown, Catenary.string_to_index_list(entries_string))
+    Preferences.mark_entries(:shown, Catenary.string_to_index_list(entries_string))
+    # Shown hash is updated on every state_set now
     {:noreply, state_set(socket, %{})}
   end
 
@@ -228,8 +232,8 @@ defmodule CatenaryWeb.Live do
 
   def handle_event("shown", %{"value" => mark}, socket) do
     case mark do
-      "all" -> Catenary.Preferences.mark_all_entries(:shown)
-      "none" -> Catenary.Preferences.mark_all_entries(:unshown)
+      "all" -> Preferences.mark_all_entries(:shown)
+      "none" -> Preferences.mark_all_entries(:unshown)
       _ -> :ok
     end
 
@@ -259,7 +263,7 @@ defmodule CatenaryWeb.Live do
         _ -> false
       end
 
-    Catenary.Preferences.set(String.to_existing_atom(target), set_to)
+    Preferences.set(String.to_existing_atom(target), set_to)
     {:noreply, socket}
   end
 
@@ -434,11 +438,11 @@ defmodule CatenaryWeb.Live do
     {:noreply, state_set(socket, Navigation.move_to(motion, :current, socket.assigns))}
   end
 
-  @prefs_keys Catenary.Preferences.keys()
+  @prefs_keys Preferences.keys()
   defp do_prefs([]), do: :ok
 
   defp do_prefs([{key, val} | rest]) when key in @prefs_keys do
-    Catenary.Preferences.set(key, val)
+    Preferences.set(key, val)
     do_prefs(rest)
   end
 
@@ -476,6 +480,7 @@ defmodule CatenaryWeb.Live do
       identities: ids,
       id_hash: ihash,
       indexing: Catenary.Indices.status(),
+      shown_hash: Preferences.shown_hash(),
       store_hash: shash,
       store: si,
       oases: Oases.recents(si, clump_id, 4)

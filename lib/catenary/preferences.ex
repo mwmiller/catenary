@@ -149,6 +149,7 @@ defmodule Catenary.Preferences do
   end
 
   defp this_clump_shown_set(), do: get(:shown) |> Map.get(get(:clump_id), MapSet.new())
+  def shown_hash(), do: this_clump_shown_set() |> :erlang.term_to_binary() |> Blake2.hash2b(5)
   def shown?(entry), do: MapSet.member?(this_clump_shown_set(), entry)
 
   def all_shown?(entries) when is_list(entries), do: all_shown?(MapSet.new(entries))
