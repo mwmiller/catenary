@@ -1,4 +1,6 @@
 defmodule Catenary.LogWriter do
+  alias Catenary.{Indices, Preferences}
+
   @moduledoc """
   Functions for dealing with writing to the Baobab log store
   """
@@ -19,9 +21,10 @@ defmodule Catenary.LogWriter do
       |> append_log_for_socket(360_360, socket)
 
     entry = {Baobab.Identity.as_base62(a), l, e}
-    maybe_post_mentions(body, entry, socket, Catenary.Preferences.get(:automention))
-
+    maybe_post_mentions(body, entry, socket, Preferences.get(:automention))
     maybe_tag(entry, vals, socket)
+    Indices.update(:timelines)
+    entry
   end
 
   def new_entry(%{"body" => body, "log_id" => "0"}, socket) do
@@ -71,8 +74,10 @@ defmodule Catenary.LogWriter do
       |> append_log_for_socket(533, socket)
 
     entry = {Baobab.Identity.as_base62(a), l, e}
-    maybe_post_mentions(body, entry, socket, Catenary.Preferences.get(:automention))
+    maybe_post_mentions(body, entry, socket, Preferences.get(:automention))
     maybe_tag(entry, vals, socket)
+    Indices.update([:timelines, :references])
+    entry
   end
 
   def new_entry(%{"log_id" => "53", "alias" => ali, "whom" => whom} = entry, socket) do
@@ -92,8 +97,8 @@ defmodule Catenary.LogWriter do
       |> CBOR.encode()
       |> append_log_for_socket(53, socket)
 
-    b62author = Baobab.Identity.as_base62(a)
-    {b62author, l, e}
+    Indices.update([:aliases, :references])
+    {Baobab.Identity.as_base62(a), l, e}
   end
 
   def new_entry(
@@ -125,7 +130,8 @@ defmodule Catenary.LogWriter do
 
         b62author = Baobab.Identity.as_base62(a)
         entry = {b62author, l, e}
-        Catenary.Preferences.mark_entry(:shown, entry)
+        Indices.update([:tags, :references])
+        Preferences.mark_entry(:shown, entry)
         # Here we send them back to the referenced post which should now have tags applied
         # They can see the actual tagging post from the footer (or profile)
         references
@@ -171,7 +177,8 @@ defmodule Catenary.LogWriter do
 
         b62author = Baobab.Identity.as_base62(a)
         entry = {b62author, l, e}
-        Catenary.Preferences.mark_entry(:shown, entry)
+        Indices.update([:mentions, :references])
+        Preferences.mark_entry(:shown, entry)
         # Here we send them back to the referenced post which should now have tags applied
         # They can see the actual tagging post from the footer (or profile)
         references
@@ -199,8 +206,8 @@ defmodule Catenary.LogWriter do
       |> CBOR.encode()
       |> append_log_for_socket(1337, socket)
 
-    b62author = Baobab.Identity.as_base62(a)
-    {b62author, l, e}
+    Indices.update([:graph, :references])
+    {Baobab.Identity.as_base62(a), l, e}
   end
 
   def new_entry(
@@ -236,8 +243,8 @@ defmodule Catenary.LogWriter do
       |> CBOR.encode()
       |> append_log_for_socket(1337, socket)
 
-    b62author = Baobab.Identity.as_base62(a)
-    {b62author, l, e}
+    Indices.update(:graph)
+    {Baobab.Identity.as_base62(a), l, e}
   end
 
   def new_entry(
@@ -260,7 +267,8 @@ defmodule Catenary.LogWriter do
 
     b62author = Baobab.Identity.as_base62(a)
     entry = {b62author, l, e}
-    Catenary.Preferences.mark_entry(:shown, entry)
+    Indices.update([:reactions, :references])
+    Preferences.mark_entry(:shown, entry)
 
     to
   end
@@ -279,7 +287,8 @@ defmodule Catenary.LogWriter do
 
     b62author = Baobab.Identity.as_base62(a)
     entry = {b62author, l, e}
-    Catenary.Preferences.mark_entry(:shown, entry)
+    Indices.update([:mentions, :references])
+    Preferences.mark_entry(:shown, entry)
 
     to
   end
@@ -309,7 +318,10 @@ defmodule Catenary.LogWriter do
       |> CBOR.encode()
       |> append_log_for_socket(360, socket)
 
-    {Baobab.Identity.as_base62(a), l, e}
+    me = Baobab.Identity.as_base62(a)
+    Preferences.mark_entry(:shown, {me, l, e})
+    Indices.update(:about)
+    {:profile, me}
   end
 
   # Raw data handling, this should come from the definitions as well
@@ -317,6 +329,7 @@ defmodule Catenary.LogWriter do
       when li in ["8008", "8009", "8010"] do
     lid = String.to_integer(li)
     %Baobab.Entry{author: a, log_id: l, seqnum: e} = append_log_for_socket(data, lid, socket)
+    Indices.update(:images)
     {Baobab.Identity.as_base62(a), l, e}
   end
 
@@ -331,17 +344,21 @@ defmodule Catenary.LogWriter do
   defp maybe_tag(entry, %{"tag0" => "", "tag1" => ""}, _), do: entry
 
   defp maybe_tag(entry, %{"tag0" => tag0, "tag1" => tag1}, socket) do
-    new_entry(
-      %{
-        "log_id" => "749",
-        "ref" => Catenary.index_to_string(entry),
-        "tag0" => tag0,
-        "tag1" => tag1,
-        "tag2" => "",
-        "tag3" => ""
-      },
-      socket
-    )
+    tag_entry =
+      new_entry(
+        %{
+          "log_id" => "749",
+          "ref" => Catenary.index_to_string(entry),
+          "tag0" => tag0,
+          "tag1" => tag1,
+          "tag2" => "",
+          "tag3" => ""
+        },
+        socket
+      )
+
+    Indices.update(:tags)
+    tag_entry
   end
 
   defp maybe_tag(entry, _, _), do: entry
@@ -379,14 +396,18 @@ defmodule Catenary.LogWriter do
             end
           end)
 
-        new_entry(
-          %{
-            "log_id" => "121",
-            "ref" => Catenary.index_to_string(parent),
-            "mentions" => mentioned
-          },
-          socket
-        )
+        mentions_entry =
+          new_entry(
+            %{
+              "log_id" => "121",
+              "ref" => Catenary.index_to_string(parent),
+              "mentions" => mentioned
+            },
+            socket
+          )
+
+        Indices.update(:mentions)
+        mentions_entry
     end
   end
 
