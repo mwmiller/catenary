@@ -107,13 +107,12 @@ defmodule CatenaryWeb.Live do
     """
   end
 
-  # store_hash makes it so it recognises new incoming
   # shown_hash lets type-marking be reactive in the page
   def render(%{view: :unshown} = assigns) do
     ~L"""
      <%= explorebar(assigns) %>
      <div class="max-h-screen w-100 grid grid-cols-3 gap-2 justify-center">
-       <%= live_component(Catenary.Live.UnshownExplorer, id: :unshown, which: @entry, clump_id: @clump_id, store_hash: @store_hash, shown_hash: @shown_hash) %>
+       <%= live_component(Catenary.Live.UnshownExplorer, id: :unshown, which: @entry, clump_id: @clump_id,  shown_hash: @shown_hash) %>
        <%= activitybar(assigns) %>
      </div>
     """
