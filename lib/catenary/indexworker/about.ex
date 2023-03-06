@@ -49,10 +49,10 @@ defmodule Catenary.IndexWorker.About do
   end
 
   @impl true
-  def handle_call({:update, _args}, _them, %{running: runstate} = state) do
+  def handle_call({:update, _args}, _them, %{running: runstate, me: me} = state) do
     case runstate do
       :idle ->
-        running = Task.start(fn -> update_from_logs(self()) end)
+        running = Task.start(fn -> update_from_logs(me) end)
         {:reply, :started, %{state | running: running, queued: false}}
 
       {:ok, _pid} ->
