@@ -1,5 +1,6 @@
 defmodule CatenaryWeb.Live do
   use CatenaryWeb, :live_view
+  require Logger
   alias Catenary.{Navigation, Oases, LogWriter, Preferences}
 
   def mount(_params, session, socket) do
@@ -37,6 +38,8 @@ defmodule CatenaryWeb.Live do
       socket
       |> assign(:uploaded_files, [])
       |> allow_upload(:image, accept: ~w(.jpg .jpeg .png .gif), max_entries: 1)
+
+    if Preferences.get(:autosync) and connected?(socket), do: Process.send(self(), :sync, [])
 
     {:ok,
      state_set(
@@ -184,6 +187,19 @@ defmodule CatenaryWeb.Live do
     {:noreply, state_set(socket, update)}
   end
 
+  def handle_info(:sync, socket) do
+    case socket.assigns.oases do
+      [] ->
+        {:noreply, socket}
+
+      possibles ->
+        %{id: id} = Enum.random(possibles)
+        # About 17 minutes.  May become configurable.
+        Process.send_after(self(), :sync, 1_020_979, [])
+        handle_event("connect", %{"value" => Catenary.index_to_string(id)}, socket)
+    end
+  end
+
   def handle_event("profile-update", values, socket) do
     # A bit of munging
     vals =
@@ -250,7 +266,7 @@ defmodule CatenaryWeb.Live do
 
   def handle_event("prefs-change", %{"_target" => [target]} = vals, socket) do
     # This idiom works for on change checkboxes.
-    # Might want to extract.  Also, be careful on how "pref-change" is used
+    # Might want to extract.  Also, be careful on how "prefs-change" is used
     set_to =
       case vals do
         %{^target => "on"} -> true
@@ -414,6 +430,7 @@ defmodule CatenaryWeb.Live do
          %Baobab.Entry{payload: payload} <-
            Baobab.log_entry(a, e, log_id: l, clump_id: socket.assigns.clump_id),
          {:ok, map, ""} <- CBOR.decode(payload) do
+      Logger.debug(["Connection opening to ", map["name"], "..."])
       ident = connector_wrap(map["host"], map["port"], socket)
 
       {:noreply,

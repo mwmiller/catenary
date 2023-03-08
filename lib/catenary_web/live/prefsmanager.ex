@@ -53,6 +53,7 @@ defmodule Catenary.Live.PrefsManager do
       <div>Preferences
       <form method="post" id="pref-form" phx-change="prefs-change">
       <input class="bg-white dark:bg-black" type="checkbox"  name="automention" <%= if Catenary.Preferences.get(:automention), do: "checked" %> > Auto-mention
+      <input class="bg-white dark:bg-black" type="checkbox"  name="autosync" <%= if Catenary.Preferences.get(:autosync), do: "checked" %> > Auto-sync
       </form>
       </div>
       <div class="flex-1 min-w-full">
