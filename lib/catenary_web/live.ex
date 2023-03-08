@@ -107,12 +107,13 @@ defmodule CatenaryWeb.Live do
     """
   end
 
-  # shown_hash lets type-marking be reactive in the page
+  # # shown_hash lets type-marking be reactive in the page
+  # connections lets us know when thing might be moving
   def render(%{view: :unshown} = assigns) do
     ~L"""
      <%= explorebar(assigns) %>
      <div class="max-h-screen w-100 grid grid-cols-3 gap-2 justify-center">
-       <%= live_component(Catenary.Live.UnshownExplorer, id: :unshown, which: @entry, clump_id: @clump_id,  shown_hash: @shown_hash) %>
+       <%= live_component(Catenary.Live.UnshownExplorer, id: :unshown, which: @entry, clump_id: @clump_id, connections: @connections, shown_hash: @shown_hash) %>
        <%= activitybar(assigns) %>
      </div>
     """
@@ -171,12 +172,6 @@ defmodule CatenaryWeb.Live do
        socket,
        Navigation.move_to("specified", %{view: view, entry: which}, socket.assigns)
      )}
-  end
-
-  def handle_info({:refresh, :connection}, socket) do
-    # Ongoing connection may have altered the store
-    # Pray it does not alter it further.
-    {:noreply, state_set(socket, %{})}
   end
 
   def handle_info({:completed, which}, %{assigns: assigns} = socket) do
@@ -496,33 +491,24 @@ defmodule CatenaryWeb.Live do
       Process.send(socket.assigns.me, {:completed, {:connection, {host, port}}}, [])
     end
 
-    refresh = fn ->
-      Process.send(socket.assigns.me, {:refresh, :connection}, [])
-    end
-
     Task.start(fn ->
       with {:ok, pid} <-
              Baby.connect(host, port,
                identity: Catenary.id_for_key(socket.assigns.identity),
                clump_id: socket.assigns.clump_id
              ) do
-        loop = fn p, i, f ->
+        loop = fn p, f ->
           case Process.alive?(p) do
             true ->
-              case rem(i, 7) do
-                0 -> refresh.()
-                _ -> :ok
-              end
-
-              Process.sleep(547)
-              f.(p, i + 1, f)
+              Process.sleep(809)
+              f.(p, f)
 
             false ->
               done.()
           end
         end
 
-        loop.(pid, 1, loop)
+        loop.(pid, loop)
       else
         _ -> done.()
       end
