@@ -199,6 +199,8 @@ defmodule Catenary.Live.EntryViewer do
             icons <> "</div>"
       end
 
+    key = key_link(a)
+
     Map.merge(
       %{
         "my_profile" => a == Keyword.get(settings, :identity, "buh"),
@@ -206,7 +208,7 @@ defmodule Catenary.Live.EntryViewer do
         "title" => clump_id <> " Overview",
         "back-refs" => [],
         "tags" => [],
-        "body" => Phoenix.HTML.raw(about <> mentions <> timeline <> others),
+        "body" => Phoenix.HTML.raw(key <> about <> mentions <> timeline <> others),
         "published" => as_of
       },
       from_refs(entry)
@@ -317,7 +319,7 @@ defmodule Catenary.Live.EntryViewer do
 
       Map.merge(data, %{
         "title" => added_title("Alias: ~" <> data["alias"]),
-        "body" => Phoenix.HTML.raw("Key: " <> data["whom"]),
+        "body" => Phoenix.HTML.raw(key_link(data["whom"])),
         "back-refs" => maybe_refs(data["references"])
       })
     rescue
@@ -372,7 +374,7 @@ defmodule Catenary.Live.EntryViewer do
       case action do
         "block" ->
           Map.merge(common, %{
-            "body" => Phoenix.HTML.raw("Key: " <> data["whom"] <> "<br/>" <> data["reason"])
+            "body" => Phoenix.HTML.raw(key_link(data["whom"]) <> "<br/>" <> data["reason"])
           })
 
         "logs" ->
@@ -444,6 +446,9 @@ defmodule Catenary.Live.EntryViewer do
       e -> malformed(e, cbor)
     end
   end
+
+  defp key_link(key),
+    do: Catenary.entry_icon_link({:profile, key}, 2) <> "&nbsp;&nbsp; Key: " <> key
 
   defp nice_time(:unknown), do: "timeless"
   defp nice_time(:latest), do: "latest known"
