@@ -1,67 +1,10 @@
 defmodule Catenary.IndexWorker.References do
-  use GenServer
-  alias Catenary.{Preferences, Indices}
-  require Logger
+  @name_atom :references
+  use Catenary.IndexWorker.Common, name_atom: :references, indica: {"🜪", "🜚"}
 
   @moduledoc """
   Reference Indices
   """
-  @name_atom :references
-
-  def start_link(state) do
-    GenServer.start_link(__MODULE__, state, name: @name_atom)
-  end
-
-  ## Callbacks
-
-  @impl true
-  def init(_arg) do
-    Indices.empty_table(@name_atom)
-    me = self()
-    running = Task.start(fn -> update_from_logs(me) end)
-
-    {:ok, %{running: running, me: me, queued: false}}
-  end
-
-  @impl true
-  def handle_info({:completed, pid}, state) do
-    case state do
-      %{running: {:ok, ^pid}, queued: true} ->
-        Logger.debug("references queued happypath")
-
-        running =
-          Task.start(fn ->
-            Process.sleep(2017 + Enum.random(0..2017))
-            update_from_logs(state.me)
-          end)
-
-        {:noreply, %{state | running: running, queued: false}}
-
-      %{running: {:ok, ^pid}, queued: false} ->
-        Logger.debug("references clear happypath")
-        {:noreply, %{state | running: :idle}}
-
-      lump ->
-        Logger.debug("references process mismatch")
-        IO.inspect({pid, lump})
-        {:noreply, %{state | running: :idle}}
-    end
-  end
-
-  @impl true
-  def handle_call({:update, _args}, _them, %{running: runstate, me: me} = state) do
-    case runstate do
-      :idle ->
-        running = Task.start(fn -> update_from_logs(me) end)
-        {:reply, :started, %{state | running: running, queued: false}}
-
-      {:ok, _pid} ->
-        {:reply, :queued, %{state | queued: true}}
-    end
-  end
-
-  def handle_call(:status, _, %{running: {:ok, _}} = state), do: {:reply, "🜪", state}
-  def handle_call(:status, _, %{running: :idle} = state), do: {:reply, "🜚", state}
 
   def update_from_logs(inform \\ nil) do
     clump_id = Preferences.get(:clump_id)

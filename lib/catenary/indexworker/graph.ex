@@ -1,65 +1,7 @@
 defmodule Catenary.IndexWorker.Graph do
-  use GenServer
-  require Logger
-  alias Catenary.{Preferences, Indices}
-
   @name_atom :graph
 
-  def start_link(state) do
-    GenServer.start_link(__MODULE__, state, name: @name_atom)
-  end
-
-  ## Callbacks
-
-  @impl true
-  def init(_arg) do
-    Indices.empty_table(@name_atom)
-    me = self()
-    running = Task.start(fn -> update_from_logs(me) end)
-
-    {:ok, %{running: running, me: me, queued: false}}
-  end
-
-  @impl true
-  def handle_info({:completed, pid}, state) do
-    case state do
-      %{running: {:ok, ^pid}, queued: true} ->
-        Logger.debug("graph queued happypath")
-
-        running =
-          Task.start(fn ->
-            Process.sleep(2017)
-            update_from_logs(state.me)
-          end)
-
-        {:noreply, %{state | running: running, queued: false}}
-
-      %{running: {:ok, ^pid}, queued: false} ->
-        Logger.debug("graph clear happypath")
-        {:noreply, %{state | running: :idle}}
-
-      lump ->
-        Logger.debug("graph process mismatch")
-        IO.inspect({pid, lump})
-        {:noreply, %{state | running: :idle}}
-    end
-  end
-
-  @impl true
-  def handle_call({:update, _args}, _them, %{running: runstate, me: me} = state) do
-    case runstate do
-      :idle ->
-        running = Task.start(fn -> update_from_logs(me) end)
-        {:reply, :started, %{state | running: running, queued: false}}
-
-      {:ok, _pid} ->
-        {:reply, :queued, %{state | queued: true}}
-    end
-  end
-
-  @impl true
-  def handle_call(:status, _, %{running: {:ok, _}} = state), do: {:reply, "∌", state}
-  def handle_call(:status, _, %{running: :idle} = state), do: {:reply, "∋", state}
+  use Catenary.IndexWorker.Common, name_atom: :graph, indica: {"∌", "∋"}
 
   @moduledoc """
   Functions to maintain the social graph

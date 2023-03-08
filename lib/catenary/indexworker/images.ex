@@ -1,66 +1,12 @@
 defmodule Catenary.IndexWorker.Images do
-  use GenServer
-  require Logger
-  alias Catenary.Preferences
+  # This attribute is unused in local code.  It is maintained here
+  # in case I change the compliation to not require duplication
+  # @name_atom :images
+  use Catenary.IndexWorker.Common, name_atom: :images, indica: {"≒", "≓"}
 
   @moduledoc """
-  Write clump logs to the file system
+  Write clump logged images to the file system
   """
-
-  @name_atom :images
-
-  def start_link(state) do
-    GenServer.start_link(__MODULE__, state, name: @name_atom)
-  end
-
-  ## Callbacks
-
-  @impl true
-  def init(_arg) do
-    me = self()
-    {:ok, %{running: Task.start(fn -> update_from_logs(me) end), me: me, queued: false}}
-  end
-
-  @impl true
-  def handle_info({:completed, pid}, state) do
-    case state do
-      %{running: {:ok, ^pid}, queued: true} ->
-        Logger.debug("images queued happypath")
-
-        running =
-          Task.start(fn ->
-            Process.sleep(2017 + Enum.random(0..2017))
-            update_from_logs(state.me)
-          end)
-
-        {:noreply, %{state | running: running, queued: false}}
-
-      %{running: {:ok, ^pid}, queued: false} ->
-        Logger.debug("images clear happypath")
-        {:noreply, %{state | running: :idle}}
-
-      lump ->
-        Logger.debug("images process mismatch")
-        IO.inspect({pid, lump})
-        {:noreply, %{state | running: :idle}}
-    end
-  end
-
-  @impl true
-  def handle_call({:update, _args}, _them, %{running: runstate, me: me} = state) do
-    case runstate do
-      :idle ->
-        running = Task.start(fn -> update_from_logs(me) end)
-        {:reply, :started, %{state | running: running, queued: false}}
-
-      {:ok, _pid} ->
-        {:reply, :queued, %{state | queued: true}}
-    end
-  end
-
-  @impl true
-  def handle_call(:status, _, %{running: {:ok, _}} = state), do: {:reply, "≒", state}
-  def handle_call(:status, _, %{running: :idle} = state), do: {:reply, "≓", state}
 
   def update_from_logs(inform \\ nil) do
     clump_id = Preferences.get(:clump_id)
