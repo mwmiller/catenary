@@ -31,7 +31,7 @@ defmodule Catenary.IndexWorker.About do
 
         running =
           Task.start(fn ->
-            Process.sleep(2017)
+            Process.sleep(2017 + Enum.random(0..2017))
             update_from_logs(state.me)
           end)
 
