@@ -7,7 +7,18 @@ defmodule Catenary.Preferences do
   # heads for is_valid? to maintain the sanity of the store
   # Provide resonable defaults. We'd prefer not to use these
   # defaults as "unset" signals.. just working values.
-  @keys [:identity, :clump_id, :shown, :view, :facet_id, :entry, :reject, :automention, :autosync]
+  @keys [
+    :identity,
+    :clump_id,
+    :shown,
+    :view,
+    :facet_id,
+    :entry,
+    :reject,
+    :automention,
+    :autosync,
+    :winsize
+  ]
   def keys(), do: @keys
 
   defp default(:identity) do
@@ -36,6 +47,7 @@ defmodule Catenary.Preferences do
   defp default(:shown), do: %{}
   defp default(:reject), do: %{}
   defp default(:facet_id), do: 0
+  defp default(:winsize), do: {1193, 787}
 
   # `:identity` should in the known list when it is set
   defp is_valid?(identity, :identity),
@@ -68,6 +80,11 @@ defmodule Catenary.Preferences do
        do: true
 
   defp is_valid?(_, :facet_id), do: false
+
+  defp is_valid?({w, h}, :winsize) when is_integer(w) and is_integer(h) and w > 0 and h > 0,
+    do: true
+
+  defp is_valid?(_, :winsize), do: false
 
   def get(key) when key in @keys do
     Catenary.dets_open(:prefs)

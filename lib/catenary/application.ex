@@ -3,6 +3,7 @@ defmodule Catenary.Application do
   # for more information on OTP Applications
   @moduledoc false
 
+  alias Catenary.Preferences
   require Catenary.MenuMaker
 
   use Application
@@ -12,7 +13,7 @@ defmodule Catenary.Application do
     # Still bad form
     Application.put_env(:baobab, :spool_dir, spool_dir())
 
-    whoami = Catenary.Preferences.get(:identity) |> Catenary.id_for_key()
+    whoami = Preferences.get(:identity) |> Catenary.id_for_key()
 
     clumps =
       for {c, k} <- Application.get_env(:catenary, :clumps) do
@@ -41,6 +42,8 @@ defmodule Catenary.Application do
 
     File.mkdir_p(Path.join([img_root, "identicons"]))
 
+    winsize = Preferences.get(:winsize)
+
     children = [
       {Baby.Application, spool_dir: spool_dir(), clumps: clumps},
       # Start the Telemetry supervisor
@@ -55,7 +58,7 @@ defmodule Catenary.Application do
        [
          app: :catenary,
          title: "Catenary",
-         size: {1193, 787},
+         size: winsize,
          id: CatenaryWindow,
          menubar: prepare_menubar("MenuBar", menu_structure()),
          url: &CatenaryWeb.Endpoint.url/0

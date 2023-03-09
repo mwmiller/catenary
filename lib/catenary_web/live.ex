@@ -53,6 +53,7 @@ defmodule CatenaryWeb.Live do
          aliases: Catenary.alias_state(),
          profile_items: Catenary.profile_items_state(),
          view: view,
+         winsize: get_winsize(),
          extra_nav: :stack,
          indexing: Catenary.Indices.status(),
          entry: entry,
@@ -485,6 +486,9 @@ defmodule CatenaryWeb.Live do
         _ -> Baobab.Identity.list()
       end
 
+    # We get winsize too often, but
+    #  - cannot find an exvent for change
+    #  - preferences get auto-updated here
     assign(full_socket,
       aliases: Catenary.alias_state(),
       profile_items: Catenary.profile_items_state(),
@@ -494,7 +498,8 @@ defmodule CatenaryWeb.Live do
       shown_hash: Preferences.shown_hash(),
       store_hash: shash,
       store: si,
-      oases: Oases.recents(si, clump_id, 4)
+      oases: Oases.recents(si, clump_id, 4),
+      winsize: get_winsize()
     )
   end
 
@@ -532,5 +537,10 @@ defmodule CatenaryWeb.Live do
     end)
 
     {host, port}
+  end
+
+  defp get_winsize() do
+    :wx.set_env(Desktop.Env.wx_env())
+    Desktop.Window.webview(CatenaryWindow) |> :wxWindow.getSize()
   end
 end
