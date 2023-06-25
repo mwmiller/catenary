@@ -272,7 +272,7 @@ defmodule Catenary.Live.EntryViewer do
       Map.merge(extract_type(payload, ldef), base)
     rescue
       e ->
-        Logger.warn(e)
+        Logger.warning(e)
         :error
     end
   end
