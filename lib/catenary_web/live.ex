@@ -53,7 +53,6 @@ defmodule CatenaryWeb.Live do
          aliases: Catenary.alias_state(),
          profile_items: Catenary.profile_items_state(),
          view: view,
-         winsize: get_winsize(),
          extra_nav: :stack,
          indexing: Catenary.Indices.status(),
          entry: entry,
@@ -462,7 +461,10 @@ defmodule CatenaryWeb.Live do
 
   defp state_set(socket, from_caller) do
     full_socket = assign(socket, from_caller)
-    do_prefs(from_caller |> Map.to_list())
+    # We get winsize too often, but
+    #  - cannot find an exvent for change
+    #  - preferences get auto-updated here
+    do_prefs(Map.merge(from_caller, %{winsize: get_winsize()}) |> Map.to_list())
     state = full_socket.assigns
     clump_id = state.clump_id
     shash = Baobab.Persistence.current_hash(:content, clump_id)
@@ -486,9 +488,6 @@ defmodule CatenaryWeb.Live do
         _ -> Baobab.Identity.list()
       end
 
-    # We get winsize too often, but
-    #  - cannot find an exvent for change
-    #  - preferences get auto-updated here
     assign(full_socket,
       aliases: Catenary.alias_state(),
       profile_items: Catenary.profile_items_state(),
@@ -498,8 +497,7 @@ defmodule CatenaryWeb.Live do
       shown_hash: Preferences.shown_hash(),
       store_hash: shash,
       store: si,
-      oases: Oases.recents(si, clump_id, 4),
-      winsize: get_winsize()
+      oases: Oases.recents(si, clump_id, 4)
     )
   end
 
