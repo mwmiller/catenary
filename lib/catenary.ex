@@ -77,6 +77,16 @@ defmodule Catenary do
     {:ok, MapSet.new(profile_items)}
   end
 
+  def oasis_state(clump_id) do
+    oasis_items =
+      case :ets.lookup(:oases, clump_id) do
+        [] -> []
+        [{^clump_id, items}] -> items
+      end
+
+    {:ok, oasis_items}
+  end
+
   def id_for_key(key), do: find_id_for_key(Baobab.Identity.list(), key)
   defp find_id_for_key([], key), do: {:error, "No identity found for key " <> key}
   defp find_id_for_key([{ali, key} | _], key), do: ali

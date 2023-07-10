@@ -1,7 +1,7 @@
 defmodule CatenaryWeb.Live do
   use CatenaryWeb, :live_view
   require Logger
-  alias Catenary.{Navigation, Oases, LogWriter, Preferences}
+  alias Catenary.{Navigation, LogWriter, Preferences}
 
   def mount(_params, session, socket) do
     # Making sure these exist, but also faux docs
@@ -59,7 +59,7 @@ defmodule CatenaryWeb.Live do
          entry_fore: [],
          entry_back: [],
          connections: [],
-         oases: [],
+         oases: {:reload, []},
          me: self(),
          clumps: clumps,
          clump_id: clump_id,
@@ -189,10 +189,10 @@ defmodule CatenaryWeb.Live do
 
   def handle_info(:sync, socket) do
     case socket.assigns.oases do
-      [] ->
+      {_, []} ->
         {:noreply, socket}
 
-      possibles ->
+      {:ok, possibles} ->
         %{id: id} = Enum.random(possibles)
         # About 17 minutes.  May become configurable.
         Process.send_after(self(), :sync, 1_020_979, [])
@@ -497,7 +497,7 @@ defmodule CatenaryWeb.Live do
       shown_hash: Preferences.shown_hash(),
       store_hash: shash,
       store: si,
-      oases: Oases.recents(si, clump_id, 4)
+      oases: Catenary.oasis_state(clump_id)
     )
   end
 

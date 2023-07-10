@@ -2,10 +2,12 @@ defmodule Catenary.Live.OasisBox do
   use Phoenix.LiveComponent
   @impl true
   def update(assigns, socket) do
+    {:ok, nodes} = assigns.oases
+
     {:ok,
      assign(socket,
        aliases: assigns.aliases,
-       nodes: assigns.oases,
+       nodes: nodes,
        connected: Enum.map(assigns.connections, &id_mapper/1)
      )}
   end

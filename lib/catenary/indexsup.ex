@@ -10,7 +10,8 @@ defmodule Catenary.IndexSup do
     Reactions,
     References,
     Timelines,
-    About
+    About,
+    Oases
   }
 
   def start_link(init_arg) do
@@ -29,7 +30,8 @@ defmodule Catenary.IndexSup do
       Reactions,
       References,
       Timelines,
-      About
+      About,
+      Oases
     ]
 
     Supervisor.init(children, strategy: :one_for_one)

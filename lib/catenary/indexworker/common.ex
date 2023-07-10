@@ -26,7 +26,7 @@ defmodule Catenary.IndexWorker.Common do
       def init(_arg) do
         Indices.empty_tables(unquote(empty))
         me = self()
-        running = Task.start(fn -> update_from_logs(me) end)
+        running = deferred_update_task(%{me: me})
 
         {:ok, %{running: running, me: me, queued: false}}
       end
@@ -37,12 +37,7 @@ defmodule Catenary.IndexWorker.Common do
           %{running: {:ok, ^pid}, queued: true} ->
             Logger.debug(unquote(ns) <> " queued happypath")
 
-            running =
-              Task.start(fn ->
-                Process.sleep(2017 + Enum.random(0..2017))
-                update_from_logs(state.me)
-              end)
-
+            running = deferred_update_task(state)
             {:noreply, %{state | running: running, queued: false}}
 
           %{running: {:ok, ^pid}, queued: false} ->
@@ -71,6 +66,13 @@ defmodule Catenary.IndexWorker.Common do
       @impl true
       def handle_call(:status, _, %{running: {:ok, _}} = state), do: {:reply, unquote(run), state}
       def handle_call(:status, _, %{running: :idle} = state), do: {:reply, unquote(idle), state}
+
+      defp deferred_update_task(state) do
+        Task.start(fn ->
+          Process.sleep(101 + :rand.uniform(1009))
+          update_from_logs(state.me)
+        end)
+      end
     end
   end
 end
