@@ -5,7 +5,10 @@ defmodule Catenary.Indices do
   Functions to manage indices
   """
 
+  # This list is a problem
+  # Not one I am going to solve today
   @indices [
+    :oases,
     :references,
     :tags,
     :reactions,
