@@ -4,7 +4,7 @@ defmodule Catenary.MixProject do
   def project do
     [
       app: :catenary,
-      version: "0.5.3",
+      version: "0.5.4",
       elixir: "~> 1.12",
       elixirc_paths: elixirc_paths(Mix.env()),
       compilers: Mix.compilers(),
@@ -33,7 +33,7 @@ defmodule Catenary.MixProject do
   # Type `mix help deps` for examples and options.
   defp deps do
     [
-      {:baby, "~> 0.6"},
+      {:baby, "~> 0.10"},
       {:baobab, "~> 0.17.0"},
       {:quagga_def, ">= 0.0.0"},
       {:cbor, "~> 1.0"},

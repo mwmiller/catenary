@@ -153,8 +153,7 @@ defmodule Catenary.Live.EntryViewer do
           %{"published" => as_of} = rev_order |> hd |> then(fn e -> extract(e, settings) end)
 
           groups =
-            activity
-            |> Enum.reverse()
+            rev_order
             |> Enum.take(11)
             |> Enum.group_by(fn {_, l, _} -> Catenary.pretty_log_name(l) end)
             |> Enum.map(fn t -> group_list(t, settings) end)
