@@ -33,8 +33,8 @@ defmodule Catenary.MixProject do
   # Type `mix help deps` for examples and options.
   defp deps do
     [
-      {:baby, "~> 0.10"},
-      {:baobab, "~> 0.17.0"},
+      {:baby, "~> 0.11"},
+      {:baobab, "~> 0.18"},
       {:quagga_def, ">= 0.0.0"},
       {:cbor, "~> 1.0"},
       {:earmark, "~> 1.4"},
