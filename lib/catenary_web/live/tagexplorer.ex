@@ -26,36 +26,12 @@ defmodule Catenary.Live.TagExplorer do
   end
 
   defp extract(:all) do
-    tags =
-      :ets.match(:tags, :"$1")
-      |> Enum.reduce([], fn [{f, i} | _], a ->
-        case f do
-          {"", t} ->
-            [
-              {t, Enum.any?(i, fn {_t, e} -> not Catenary.Preferences.shown?(e) end), length(i)}
-              | a
-            ]
-
-          _ ->
-            a
-        end
-      end)
-      |> size_group
-      |> link_groups([])
-
-    %{"tags" => tags}
+    :ets.lookup(:tags, :display)
+    |> then(fn [{_, items}] -> link_groups(items, []) end)
+    |> then(fn tags -> %{"tags" => tags} end)
   end
 
   defp extract(_), do: :none
-
-  defp size_group(items) do
-    items
-    |> Enum.group_by(fn {_, _, c} -> trunc(:math.log(c)) end)
-    |> Map.to_list()
-    |> Enum.sort(:desc)
-    |> Enum.reduce([], fn {_s, i}, acc -> [Enum.shuffle(i) | acc] end)
-    |> Enum.reverse()
-  end
 
   defp link_groups([], acc), do: Enum.reverse(acc)
   defp link_groups([tags | rest], acc), do: link_groups(rest, [to_links(tags) | acc])

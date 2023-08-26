@@ -29,11 +29,37 @@ defmodule Catenary.IndexWorker.Tags do
     end
   end
 
-  defp build_index([], _), do: :ok
+  defp build_index([], _) do
+    # This is a bit redundant during conversion
+    :ets.match(:tags, :"$1")
+    |> Enum.reduce([], fn [{f, i} | _], a ->
+      case f do
+        {"", t} ->
+          [
+            {t, Enum.any?(i, fn {_t, e} -> not Catenary.Preferences.shown?(e) end), length(i)}
+            | a
+          ]
+
+        _ ->
+          a
+      end
+    end)
+    |> group_sizes
+    |> then(fn items -> :ets.insert(@name_atom, {:display, items}) end)
+  end
 
   defp build_index([{a, l} | rest], clump_id) do
     entries_index(Baobab.full_log(a, log_id: l, clump_id: clump_id), clump_id)
     build_index(rest, clump_id)
+  end
+
+  def group_sizes(items) do
+    items
+    |> Enum.group_by(fn {_, _, c} -> trunc(:math.log(c)) end)
+    |> Map.to_list()
+    |> Enum.sort(:desc)
+    |> Enum.reduce([], fn {_s, i}, acc -> [Enum.shuffle(i) | acc] end)
+    |> Enum.reverse()
   end
 
   # This could maybe give up on a CBOR failure, eventually
