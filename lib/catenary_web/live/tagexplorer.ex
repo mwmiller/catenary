@@ -27,7 +27,10 @@ defmodule Catenary.Live.TagExplorer do
 
   defp extract(:all) do
     :ets.lookup(:tags, :display)
-    |> then(fn [{_, items}] -> link_groups(items, []) end)
+    |> then(fn
+      [{_, items}] -> link_groups(items, [])
+      _ -> []
+    end)
     |> then(fn tags -> %{"tags" => tags} end)
   end
 
