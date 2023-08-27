@@ -35,13 +35,10 @@ defmodule Catenary.IndexWorker.Common do
       def handle_info({:completed, pid}, state) do
         case state do
           %{running: {:ok, ^pid}, queued: true} ->
-            Logger.debug(unquote(ns) <> " queued happypath")
-
             running = deferred_update_task(state)
             {:noreply, %{state | running: running, queued: false}}
 
           %{running: {:ok, ^pid}, queued: false} ->
-            Logger.debug(unquote(ns) <> " clear happypath")
             {:noreply, %{state | running: :idle}}
 
           lump ->

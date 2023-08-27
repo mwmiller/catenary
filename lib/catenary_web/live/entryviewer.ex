@@ -140,8 +140,6 @@ defmodule Catenary.Live.EntryViewer do
       end
       |> inna_box(cols: "1", border: "dashed")
 
-    Preferences.mark_entry(:shown, entry)
-
     {timeline, as_of} =
       case from_ets(a, :timelines) do
         [] ->
@@ -169,21 +167,25 @@ defmodule Catenary.Live.EntryViewer do
       |> Enum.group_by(fn {_, l, _} -> QuaggaDef.log_def(l) end)
       |> Enum.reject(fn {ldef, _} -> ldef == %{} end)
       |> Enum.filter(fn {%{name: name}, _} -> Preferences.accept_log_name?(name) end)
-      |> Enum.reduce([], fn {%{name: name}, [entry | _]}, a ->
-        [
-          "<div class=\"p-1\"><button class=\"text-xs\" value=\"" <>
-            Catenary.index_to_string(entry) <>
-            "\" phx-click=\"view-entry\">" <>
-            String.capitalize(Atom.to_string(name)) <> "</button></div>"
-          | a
-        ]
-      end)
-      |> Enum.reverse()
 
     others =
       case length(items) do
-        0 -> ""
-        _ -> inna_box(items, cols: "5", border: "double")
+        0 ->
+          ""
+
+        _ ->
+          items
+          |> Enum.reduce([], fn {%{name: name}, [entry | _]}, a ->
+            [
+              "<div class=\"p-1\"><button class=\"text-xs\" value=\"" <>
+                Catenary.index_to_string(entry) <>
+                "\" phx-click=\"view-entry\">" <>
+                String.capitalize(Atom.to_string(name)) <> "</button></div>"
+              | a
+            ]
+          end)
+          |> Enum.reverse()
+          |> inna_box(cols: "5", border: "double")
       end
 
     mentions =
@@ -200,6 +202,15 @@ defmodule Catenary.Live.EntryViewer do
 
     key = key_link(a)
 
+    case Preferences.shown?(entry) do
+      false ->
+        extras = Enum.map(items, fn {_, entry} -> entry end)
+        Preferences.mark_entries(:shown, extras ++ [entry])
+
+      true ->
+        :ok
+    end
+
     Map.merge(
       %{
         "my_profile" => a == Keyword.get(settings, :identity, "buh"),
@@ -215,11 +226,8 @@ defmodule Catenary.Live.EntryViewer do
   end
 
   def extract({a, l, e} = entry, settings) do
-    # We want failure to save here to fail loudly without any further work
-    # But if it does fail later we don't mind having said it was shown
     clump_id = Keyword.get(settings, :clump_id)
     ldef = l |> QuaggaDef.base_log() |> QuaggaDef.log_def()
-    Preferences.mark_entry(:shown, {a, l, e})
     lname = ldef.name
 
     try do
@@ -256,6 +264,11 @@ defmodule Catenary.Live.EntryViewer do
           false -> []
         end
         |> Enum.map(fn k -> Catenary.entry_icon_link({:profile, k}, 2) end)
+
+      case Preferences.shown?(entry) do
+        false -> Preferences.mark_entries(:shown, tags ++ reactions ++ [entry])
+        true -> :ok
+      end
 
       base =
         Map.merge(

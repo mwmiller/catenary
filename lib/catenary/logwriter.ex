@@ -119,19 +119,15 @@ defmodule Catenary.LogWriter do
         references
 
       tags ->
-        %Baobab.Entry{author: a, log_id: l, seqnum: e} =
-          %{
-            "references" => [references],
-            "tags" => tags,
-            "published" => Timex.now() |> DateTime.to_string()
-          }
-          |> CBOR.encode()
-          |> append_log_for_socket(749, socket)
+        %{
+          "references" => [references],
+          "tags" => tags,
+          "published" => Timex.now() |> DateTime.to_string()
+        }
+        |> CBOR.encode()
+        |> append_log_for_socket(749, socket)
 
-        b62author = Baobab.Identity.as_base62(a)
-        entry = {b62author, l, e}
-        Indices.update([:tags, :references])
-        Preferences.mark_entry(:shown, entry)
+        Indices.update([:references])
         # Here we send them back to the referenced post which should now have tags applied
         # They can see the actual tagging post from the footer (or profile)
         references
@@ -166,19 +162,15 @@ defmodule Catenary.LogWriter do
         references
 
       mentions ->
-        %Baobab.Entry{author: a, log_id: l, seqnum: e} =
-          %{
-            "references" => [references],
-            "mentions" => mentions,
-            "published" => Timex.now() |> DateTime.to_string()
-          }
-          |> CBOR.encode()
-          |> append_log_for_socket(121, socket)
+        %{
+          "references" => [references],
+          "mentions" => mentions,
+          "published" => Timex.now() |> DateTime.to_string()
+        }
+        |> CBOR.encode()
+        |> append_log_for_socket(121, socket)
 
-        b62author = Baobab.Identity.as_base62(a)
-        entry = {b62author, l, e}
         Indices.update([:mentions, :references])
-        Preferences.mark_entry(:shown, entry)
         # Here we send them back to the referenced post which should now have tags applied
         # They can see the actual tagging post from the footer (or profile)
         references
@@ -256,40 +248,30 @@ defmodule Catenary.LogWriter do
       ) do
     to = Catenary.string_to_index(ref)
 
-    %Baobab.Entry{author: a, log_id: l, seqnum: e} =
-      %{
-        "references" => [to],
-        "reactions" => Catenary.checkbox_expander(values, "reaction-"),
-        "published" => Timex.now() |> DateTime.to_string()
-      }
-      |> CBOR.encode()
-      |> append_log_for_socket(101, socket)
+    %{
+      "references" => [to],
+      "reactions" => Catenary.checkbox_expander(values, "reaction-"),
+      "published" => Timex.now() |> DateTime.to_string()
+    }
+    |> CBOR.encode()
+    |> append_log_for_socket(101, socket)
 
-    b62author = Baobab.Identity.as_base62(a)
-    entry = {b62author, l, e}
     Indices.update([:reactions, :references])
-    Preferences.mark_entry(:shown, entry)
-
     to
   end
 
   def new_entry(%{"ref" => ref, "log_id" => "121", "mentions" => mentions}, socket) do
     to = Catenary.string_to_index(ref)
 
-    %Baobab.Entry{author: a, log_id: l, seqnum: e} =
-      %{
-        "references" => [to],
-        "mentions" => mentions,
-        "published" => Timex.now() |> DateTime.to_string()
-      }
-      |> CBOR.encode()
-      |> append_log_for_socket(121, socket)
+    %{
+      "references" => [to],
+      "mentions" => mentions,
+      "published" => Timex.now() |> DateTime.to_string()
+    }
+    |> CBOR.encode()
+    |> append_log_for_socket(121, socket)
 
-    b62author = Baobab.Identity.as_base62(a)
-    entry = {b62author, l, e}
     Indices.update([:mentions, :references])
-    Preferences.mark_entry(:shown, entry)
-
     to
   end
 
@@ -310,7 +292,7 @@ defmodule Catenary.LogWriter do
       end
 
     # There is surely a better way to do this
-    %Baobab.Entry{author: a, log_id: l, seqnum: e} =
+    %Baobab.Entry{author: a} =
       values
       |> Map.drop(["log_id", "avatar"])
       |> Map.merge(maybe_avatar)
@@ -319,7 +301,6 @@ defmodule Catenary.LogWriter do
       |> append_log_for_socket(360, socket)
 
     me = Baobab.Identity.as_base62(a)
-    Preferences.mark_entry(:shown, {me, l, e})
     Indices.update(:about)
     {:profile, me}
   end
