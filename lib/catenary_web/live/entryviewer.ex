@@ -200,16 +200,9 @@ defmodule Catenary.Live.EntryViewer do
             icons <> "</div>"
       end
 
+    Preferences.mark_entry(:shown, entry)
+
     key = key_link(a)
-
-    case Preferences.shown?(entry) do
-      false ->
-        extras = Enum.map(items, fn {_, entry} -> entry end)
-        Preferences.mark_entries(:shown, extras ++ [entry])
-
-      true ->
-        :ok
-    end
 
     Map.merge(
       %{
@@ -265,8 +258,10 @@ defmodule Catenary.Live.EntryViewer do
         end
         |> Enum.map(fn k -> Catenary.entry_icon_link({:profile, k}, 2) end)
 
+      all_refs = from_refs(entry)
+
       case Preferences.shown?(entry) do
-        false -> Preferences.mark_entries(:shown, tags ++ reactions ++ [entry])
+        false -> Preferences.mark_entries(:shown, [entry | all_refs["refs"]])
         true -> :ok
       end
 
@@ -278,7 +273,7 @@ defmodule Catenary.Live.EntryViewer do
             "reactions" => reactions,
             "mentions" => mentions
           },
-          from_refs(entry)
+          all_refs
         )
 
       Map.merge(extract_type(payload, ldef), base)
