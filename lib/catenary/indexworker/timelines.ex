@@ -1,6 +1,6 @@
 defmodule Catenary.IndexWorker.Timelines do
   @name_atom :timelines
-  use Catenary.IndexWorker.Common, name_atom: :timelines, indica: {"⫝̸", "⫝"}
+  use Catenary.IndexWorker.Common, name_atom: :timelines, indica: {"✐", "✎"}
 
   @moduledoc """
   Timeline Indices

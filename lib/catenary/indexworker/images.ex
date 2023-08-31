@@ -2,7 +2,7 @@ defmodule Catenary.IndexWorker.Images do
   # This attribute is unused in local code.  It is maintained here
   # in case I change the compliation to not require duplication
   # @name_atom :images
-  use Catenary.IndexWorker.Common, name_atom: :images, indica: {"≒", "≓"}
+  use Catenary.IndexWorker.Common, name_atom: :images, indica: {"𐍊", "҂"}
 
   @moduledoc """
   Write clump logged images to the file system

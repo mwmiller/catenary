@@ -1,6 +1,6 @@
 defmodule Catenary.IndexWorker.References do
   @name_atom :references
-  use Catenary.IndexWorker.Common, name_atom: :references, indica: {"🜪", "🜚"}
+  use Catenary.IndexWorker.Common, name_atom: :references, indica: {"↪︎", "↩︎"}
 
   @moduledoc """
   Reference Indices

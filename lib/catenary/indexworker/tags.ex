@@ -1,6 +1,6 @@
 defmodule Catenary.IndexWorker.Tags do
   @name_atom :tags
-  use Catenary.IndexWorker.Common, name_atom: :tags, indica: {"⸘", "‽"}
+  use Catenary.IndexWorker.Common, name_atom: :tags, indica: {"|", "#"}
 
   @moduledoc """
   Tag Indices

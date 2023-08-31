@@ -1,6 +1,6 @@
 defmodule Catenary.IndexWorker.Oases do
   @name_atom :oases
-  use Catenary.IndexWorker.Common, name_atom: :oases, indica: {"㈬", "㊌"}
+  use Catenary.IndexWorker.Common, name_atom: :oases, indica: {"⇆", "⇄"}
 
   @moduledoc """
   Oasis Indices

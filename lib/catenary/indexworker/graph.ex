@@ -1,7 +1,7 @@
 defmodule Catenary.IndexWorker.Graph do
   @name_atom :graph
 
-  use Catenary.IndexWorker.Common, name_atom: :graph, indica: {"∌", "∋"}
+  use Catenary.IndexWorker.Common, name_atom: :graph, indica: {"⊛", "⛒"}
 
   @moduledoc """
   Functions to maintain the social graph

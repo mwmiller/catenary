@@ -1,6 +1,6 @@
 defmodule Catenary.IndexWorker.About do
   @name_atom :about
-  use Catenary.IndexWorker.Common, name_atom: :about, extra_tables: [:avatars], indica: {"⧞", "∞"}
+  use Catenary.IndexWorker.Common, name_atom: :about, extra_tables: [:avatars], indica: {"⸘", "‽"}
 
   @moduledoc """
   About Indices

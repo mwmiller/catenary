@@ -1,6 +1,6 @@
 defmodule Catenary.IndexWorker.Aliases do
   @name_atom :aliases
-  use Catenary.IndexWorker.Common, name_atom: :aliases, indica: {"⍲", "⍱"}
+  use Catenary.IndexWorker.Common, name_atom: :aliases, indica: {"§", "~"}
 
   @moduledoc """
   Alias Indices

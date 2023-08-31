@@ -1,6 +1,6 @@
 defmodule Catenary.IndexWorker.Reactions do
   @name_atom :reactions
-  use Catenary.IndexWorker.Common, name_atom: :reactions, indica: {"☽", "☾"}
+  use Catenary.IndexWorker.Common, name_atom: :reactions, indica: {"※", "⌘"}
 
   @moduledoc """
   Tag Indices

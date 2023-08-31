@@ -1,6 +1,6 @@
 defmodule Catenary.IndexWorker.Mentions do
   @name_atom :mentions
-  use Catenary.IndexWorker.Common, name_atom: :mentions, indica: {"⎒", "⎑"}
+  use Catenary.IndexWorker.Common, name_atom: :mentions, indica: {"∏", "∑"}
 
   @moduledoc """
   Mention Indices
