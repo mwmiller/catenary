@@ -127,7 +127,7 @@ defmodule Catenary.LogWriter do
         |> CBOR.encode()
         |> append_log_for_socket(749, socket)
 
-        Indices.update([:references])
+        Indices.update([:tags, :references])
         # Here we send them back to the referenced post which should now have tags applied
         # They can see the actual tagging post from the footer (or profile)
         references
