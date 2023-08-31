@@ -18,7 +18,7 @@ defmodule Catenary.IndexWorker.Graph do
   # synchronised clocks between all facet providers.
   # Our best hope is that there are not conflicts in
   # the timing error bars.
-  def update_from_logs(inform \\ nil) do
+  def update_from_logs(inform \\ []) do
     {identity, clump_id} = {Preferences.get(:identity), Preferences.get(:clump_id)}
 
     logs =
@@ -38,14 +38,9 @@ defmodule Catenary.IndexWorker.Graph do
       |> reduce_operations()
       |> note_operations()
 
-    ppid = self()
-
     apply_operations(ops, clump_id)
 
-    case inform do
-      nil -> :ok
-      pid -> Process.send(pid, {:completed, ppid}, [])
-    end
+    run_complete(inform, self())
   end
 
   defp order_operations([], _, acc), do: acc |> Enum.sort()

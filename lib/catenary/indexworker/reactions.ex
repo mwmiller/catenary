@@ -6,7 +6,7 @@ defmodule Catenary.IndexWorker.Reactions do
   Tag Indices
   """
 
-  def update_from_logs(inform \\ nil) do
+  def update_from_logs(inform \\ []) do
     clump_id = Preferences.get(:clump_id)
 
     logs =
@@ -23,10 +23,7 @@ defmodule Catenary.IndexWorker.Reactions do
     end)
     |> build_index(clump_id)
 
-    case inform do
-      nil -> :ok
-      pid -> Process.send(pid, {:completed, self()}, [])
-    end
+    run_complete(inform, self())
   end
 
   defp build_index([], _), do: :ok

@@ -165,6 +165,10 @@ defmodule CatenaryWeb.Live do
 
   def handle_info(<<"toggle-", _::binary>> = event, socket), do: handle_event(event, nil, socket)
 
+  # This includes updating the index status, might as well do everything
+  # until its proven slow
+  def handle_info("index-change", socket), do: {:noreply, state_set(socket, %{})}
+
   def handle_info(%{view: :dashboard}, socket) do
     {:noreply, push_redirect(socket, to: Routes.live_dashboard_path(socket, :home))}
   end

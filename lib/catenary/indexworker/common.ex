@@ -26,33 +26,35 @@ defmodule Catenary.IndexWorker.Common do
       def init(_arg) do
         Indices.empty_tables(unquote(empty))
         me = self()
-        running = deferred_update_task(%{me: me})
-
-        {:ok, %{running: running, me: me, queued: false}}
+        {:ok, %{running: deferred_update_task(%{me: me}), me: me, queued: false}}
       end
 
       @impl true
       def handle_info({:completed, pid}, state) do
-        case state do
-          %{running: {:ok, ^pid}, queued: true} ->
-            running = deferred_update_task(state)
-            {:noreply, %{state | running: running, queued: false}}
+        ns =
+          case state do
+            %{running: {:ok, ^pid}, queued: true} ->
+              %{state | running: deferred_update_task(state), queued: false}
 
-          %{running: {:ok, ^pid}, queued: false} ->
-            {:noreply, %{state | running: :idle}}
+            %{running: {:ok, ^pid}, queued: false} ->
+              %{state | running: :idle}
 
-          lump ->
-            Logger.debug(unquote(ns) <> " process mismatch")
-            IO.inspect({pid, lump})
-            {:noreply, %{state | running: :idle}}
-        end
+            lump ->
+              Logger.debug(unquote(ns) <> " process mismatch")
+              IO.inspect({pid, lump})
+              %{state | running: :idle}
+          end
+
+        Phoenix.PubSub.local_broadcast(Catenary.PubSub, "ui", "index-change")
+        {:noreply, ns}
       end
 
       @impl true
       def handle_call({:update, _args}, _them, %{running: runstate, me: me} = state) do
         case runstate do
           :idle ->
-            running = Task.start(fn -> update_from_logs(me) end)
+            running = Task.start(fn -> update_from_logs([me]) end)
+            Phoenix.PubSub.local_broadcast(Catenary.PubSub, "ui", "index-change")
             {:reply, :started, %{state | running: running, queued: false}}
 
           {:ok, _pid} ->
@@ -64,10 +66,17 @@ defmodule Catenary.IndexWorker.Common do
       def handle_call(:status, _, %{running: {:ok, _}} = state), do: {:reply, unquote(run), state}
       def handle_call(:status, _, %{running: :idle} = state), do: {:reply, unquote(idle), state}
 
+      defp run_complete([], _), do: :ok
+
+      defp run_complete([pid | rest], which) do
+        Process.send(pid, {:completed, which}, [])
+        run_complete(rest, which)
+      end
+
       defp deferred_update_task(state) do
         Task.start(fn ->
           Process.sleep(101 + :rand.uniform(1009))
-          update_from_logs(state.me)
+          update_from_logs([state.me])
         end)
       end
     end

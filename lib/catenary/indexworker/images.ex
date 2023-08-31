@@ -8,11 +8,9 @@ defmodule Catenary.IndexWorker.Images do
   Write clump logged images to the file system
   """
 
-  def update_from_logs(inform \\ nil) do
+  def update_from_logs(inform \\ []) do
     clump_id = Preferences.get(:clump_id)
     logs = Enum.reduce(Catenary.image_logs(), [], fn n, a -> a ++ QuaggaDef.logs_for_name(n) end)
-
-    ppid = self()
 
     clump_id
     |> Baobab.stored_info()
@@ -24,10 +22,7 @@ defmodule Catenary.IndexWorker.Images do
     end)
     |> write_if_missing(clump_id, Path.join(["priv/static/cat_images", clump_id]))
 
-    case inform do
-      nil -> :ok
-      pid -> Process.send(pid, {:completed, ppid}, [])
-    end
+    run_complete(inform, self())
   end
 
   defp write_if_missing([], _, _), do: :ok

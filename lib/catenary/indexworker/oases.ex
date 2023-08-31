@@ -8,7 +8,7 @@ defmodule Catenary.IndexWorker.Oases do
 
   @display_count 4
 
-  def update_from_logs(inform \\ nil) do
+  def update_from_logs(inform \\ []) do
     clump_id = Preferences.get(:clump_id)
     logs = QuaggaDef.logs_for_name(:oasis)
 
@@ -23,10 +23,7 @@ defmodule Catenary.IndexWorker.Oases do
     |> extract_recents(clump_id, [])
     |> build_index(@display_count, clump_id)
 
-    case inform do
-      nil -> :ok
-      pid -> Process.send(pid, {:completed, self()}, [])
-    end
+    run_complete(inform, self())
   end
 
   defp build_index(all, count, clump_id) do
