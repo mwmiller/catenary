@@ -46,7 +46,7 @@ defmodule Catenary.IndexWorker.Tags do
   end
 
   defp build_index([{a, l} | rest], clump_id) do
-    entries_index(Baobab.full_log(a, log_id: l, clump_id: clump_id), clump_id)
+    entries_index(Enum.reverse(Baobab.full_log(a, log_id: l, clump_id: clump_id)), clump_id)
     build_index(rest, clump_id)
   end
 
