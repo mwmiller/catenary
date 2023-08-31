@@ -83,9 +83,9 @@ defmodule Catenary.Live.EntryViewer do
           <p class="text-sm font-light"><%= Catenary.linked_author(@card["author"], @aliases) %> &mdash; <%= nice_time(@card["published"]) %></p>
           <p><%= icon_entries(@card["back-refs"]) %>&nbsp;↹&nbsp;<%= icon_entries(@card["fore-refs"]) %></p>
         <hr class="mb-3"/>
-        <div class="font-light">
+         <div class="font-light">
           <%= @card["body"] %>
-        </div>
+         </div>
         </div>
         <%= if is_tuple(@entry) && tuple_size(@entry) == 3 do %>
           <div class="flex flex-row">
@@ -152,10 +152,10 @@ defmodule Catenary.Live.EntryViewer do
 
           groups =
             rev_order
-            |> Enum.take(11)
+            |> Enum.take(23)
             |> Enum.group_by(fn {_, l, _} -> Catenary.pretty_log_name(l) end)
             |> Enum.map(fn t -> group_list(t, settings) end)
-            |> inna_box(cols: "3", border: "dotted")
+            |> inna_box(cols: "1", border: "dotted")
 
           {groups, as_of}
       end
@@ -565,7 +565,7 @@ defmodule Catenary.Live.EntryViewer do
   defp group_list({ln, items}, settings) do
     recents =
       items
-      |> Enum.take(3)
+      |> Enum.take(5)
       |> Enum.map(fn e -> {e, extract(e, settings)} end)
       |> Enum.reduce("", fn {e, vals}, acc ->
         acc <>
@@ -576,7 +576,7 @@ defmodule Catenary.Live.EntryViewer do
           "\">" <> vals["title"] <> "</button></li>"
       end)
 
-    "<div class=\"row-auto mx-3\"><h4>" <> ln <> "</h4><ul>" <> recents <> "</ul></div>"
+    "<div class=\"min-w-full p-2\"><h4>" <> ln <> "</h4><ul>" <> recents <> "</ul></div>"
   end
 
   defp added_title(title), do: "⸤" <> title <> "⸣"
