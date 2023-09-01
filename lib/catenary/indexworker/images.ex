@@ -26,17 +26,28 @@ defmodule Catenary.IndexWorker.Images do
   end
 
   defp write_if_missing([], _, _, acc) do
-    acc |> Enum.reverse() |> then(fn i -> :ets.insert(:images, {:all, i}) end)
+    acc
+    |> List.flatten()
+    |> Enum.shuffle()
+    |> then(fn i -> :ets.insert(:images, {:all, i}) end)
   end
 
-  defp write_if_missing([{who, log_id, seq} = entry | rest], clump_id, img_root, acc) do
-    # We want these to be file system browsable, so they look like this
+  defp write_if_missing([{_, _, seq} = entry | rest], clump_id, img_root, acc) do
+    write_if_missing(rest, clump_id, img_root, [
+      fill_missing(Enum.to_list(1..seq), entry, clump_id, img_root, []) | acc
+    ])
+  end
+
+  defp fill_missing([], _, _, _, acc), do: acc |> List.flatten() |> Enum.reverse()
+
+  defp fill_missing([seq | rest], {who, log_id, _} = last, clump_id, img_root, acc) do
+    entry = {who, log_id, seq}
     src = Catenary.image_src_for_entry(entry, clump_id)
     filename = Path.join([img_root, src])
 
     fse =
       case File.stat(filename) do
-        {:ok, %File.Stat{type: :regular}} ->
+        {:ok, _} ->
           [{src, entry}]
 
         {:error, _} ->
@@ -52,6 +63,6 @@ defmodule Catenary.IndexWorker.Images do
           []
       end
 
-    write_if_missing(rest, clump_id, img_root, fse ++ acc)
+    fill_missing(rest, last, clump_id, img_root, [fse | acc])
   end
 end
