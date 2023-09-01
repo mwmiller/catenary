@@ -16,11 +16,11 @@ defmodule Catenary.Live.ImageExplorer do
     ~L"""
      <div id="imageexplore-wrap" class="col-span-2 overflow-y-auto max-h-screen m-2 p-x-2">
       <h1 class="text=center">Image Explorer</h1>
-        <%= for g <-  @card["images"] do %>
-      <div class="flex flex-row min-w-full p-5">
+      <div class="flex flex-row flex-wrap mt-7 mx-auto">
+       <%= for g <-  @card["images"] do %>
         <%= g %>
+       <% end %>
       </div>
-      <% end %>
     </div>
     """
   end
@@ -39,7 +39,7 @@ defmodule Catenary.Live.ImageExplorer do
   defp displayable([], images), do: images
 
   defp displayable([{src, entry} | rest], images) do
-    img_tag = "<img src=" <> src <> ">"
+    img_tag = "<img class=\"w-20 m-2\" src=" <> src <> ">"
 
     val =
       ("<div class=\"flex-auto\">" <> Catenary.view_entry_button(entry, img_tag) <> "</div>")
