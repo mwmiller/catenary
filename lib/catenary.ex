@@ -166,9 +166,9 @@ defmodule Catenary do
     Phoenix.HTML.raw("<a href=\"/authors/" <> a <> "\">" <> short_id(a, aliases) <> "</a>")
   end
 
-  defp view_entry_button(entry, {:safe, contents}), do: view_entry_button(entry, contents)
+  def view_entry_button(entry, {:safe, contents}), do: view_entry_button(entry, contents)
 
-  defp view_entry_button(entry, contents) do
+  def view_entry_button(entry, contents) do
     "<button value=\"" <>
       Catenary.index_to_string(entry) <>
       "\" phx-click=\"view-entry\">" <> contents <> "</button>"

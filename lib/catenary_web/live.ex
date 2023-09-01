@@ -110,6 +110,16 @@ defmodule CatenaryWeb.Live do
     """
   end
 
+  def render(%{view: :images} = assigns) do
+    ~L"""
+     <%= explorebar(assigns) %>
+     <div class="max-h-screen w-100 grid grid-cols-3 gap-2 justify-center">
+       <%= live_component(Catenary.Live.ImageExplorer, id: :images, entry: @entry) %>
+       <%= activitybar(assigns) %>
+     </div>
+    """
+  end
+
   # # shown_hash lets type-marking be reactive in the page
   # connections lets us know when thing might be moving
   def render(%{view: :unshown} = assigns) do
@@ -148,6 +158,7 @@ defmodule CatenaryWeb.Live do
         <button value="unshown" phx-click="toview">◎</button>
         <button value="tags" phx-click="toview">#</button>
         <button value="aliases" phx-click="toview">~</button>
+        <button value="images" phx-click="toview">҂</button>
         </div>
     """
   end
