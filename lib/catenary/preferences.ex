@@ -177,7 +177,7 @@ defmodule Catenary.Preferences do
     indices_for_shown()
   end
 
-  defp indices_for_shown, do: Indices.update([:tags])
+  defp indices_for_shown, do: Indices.update([:tags, :images])
 
   defp this_clump_shown_set(), do: get(:shown) |> Map.get(get(:clump_id), MapSet.new())
   def shown_hash(), do: this_clump_shown_set() |> :erlang.term_to_binary() |> Blake2.hash2b(5)

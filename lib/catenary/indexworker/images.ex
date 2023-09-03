@@ -70,9 +70,16 @@ defmodule Catenary.IndexWorker.Images do
     fill_missing(rest, last, clump_id, img_root, accumulate_entries(this, acc))
   end
 
-  defp accumulate_entries({src, {who, _, _}} = full, acc) do
+  defp accumulate_entries({src, {who, _, _} = entry} = full, acc) do
+    ss =
+      case Preferences.shown?(entry) do
+        true -> :shown
+        false -> :unshown
+      end
+
     acc
     |> tiered_insert(:any, "any", full)
+    |> tiered_insert(:shown, ss, full)
     |> tiered_insert(:type, Path.extname(src), full)
     |> tiered_insert(:poster, who, full)
   end

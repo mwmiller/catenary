@@ -252,6 +252,7 @@ defmodule CatenaryWeb.Live do
 
   def handle_event("toview", %{"value" => sview}, socket) do
     # This :all default might not make sense in the long-term
+    # Its starting now. Under consideration 2023-09-03
     {:noreply, state_set(socket, %{view: String.to_existing_atom(sview), entry: :all})}
   end
 
