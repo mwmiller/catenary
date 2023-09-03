@@ -32,16 +32,21 @@ defmodule Catenary do
 
   def image_logs, do: @image_logs
 
-  def image_src_for_entry({a, l, e}, clump_id) do
+  def mime_for_entry({_, l, _}) do
     %{name: mime} = l |> QuaggaDef.base_log() |> QuaggaDef.log_def()
+    mime
+  end
 
+  def ext_for_entry(entry), do: entry |> mime_for_entry |> Atom.to_string()
+
+  def image_src_for_entry({a, l, e} = entry, clump_id) do
     Path.join([
       "/cat_images",
       clump_id,
       a,
       Integer.to_string(l),
       Integer.to_string(e) <>
-        "." <> Atom.to_string(mime)
+        "." <> ext_for_entry(entry)
     ])
   end
 
