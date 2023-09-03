@@ -25,16 +25,15 @@ defmodule Catenary.Live.ImageExplorer do
     """
   end
 
-  defp extract(:all) do
-    :ets.lookup(:images, :all)
+  defp extract(which) do
+    :images
+    |> :ets.lookup(which)
     |> then(fn
       [{:all, items}] -> displayable(items, [])
       _ -> []
     end)
     |> then(fn images -> %{"images" => images} end)
   end
-
-  defp extract(_), do: :none
 
   defp displayable([], images), do: images
 
