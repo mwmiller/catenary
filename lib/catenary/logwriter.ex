@@ -179,20 +179,24 @@ defmodule Catenary.LogWriter do
 
   def new_entry(
         %{
-          "ref" => ref,
           "whom" => whom,
           "log_id" => "1337",
-          "reason" => reason,
           "action" => action
-        },
+        } = info,
         socket
       ) do
+    ref =
+      case info["ref"] do
+        nil -> []
+        val -> [Catenary.string_to_index(val)]
+      end
+
     %Baobab.Entry{author: a, log_id: l, seqnum: e} =
       %{
         "whom" => whom,
         "references" => ref,
         "action" => action,
-        "reason" => reason,
+        "reason" => Map.get(info, "reason", ""),
         "published" => Timex.now() |> DateTime.to_string()
       }
       |> CBOR.encode()
