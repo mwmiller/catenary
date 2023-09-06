@@ -56,8 +56,10 @@ defmodule Catenary.Live.Navigation do
       <div class="flex flex-row-3 text-xl">
         <div class="flex-auto p-1 text-center">
           <button value="origin" phx-click="nav"><%= Catenary.scaled_avatar(@identity, 2) |> Phoenix.HTML.raw %></button>
-         <%= if displayed_matches([:log], @displayed_info), do: post_button_for(:graph) %>
-         <%= if displayed_matches([:log, :profile], @displayed_info), do: post_button_for(:alias) %>
+          <%= if displayed_matches([:log, :profile], @displayed_info) do %>
+           <%= post_button_for(:graph) %>
+           <%= post_button_for(:alias) %>
+          <% end %>
         </div>
         <div class="flex-auto p-1 text-center">
          <button value="prev-author" phx-click="nav">↥</button>
@@ -142,6 +144,30 @@ defmodule Catenary.Live.Navigation do
     """
   end
 
+  defp extra_nav(%{:extra_nav => :graph} = assigns) do
+    ~L"""
+    <div id="block">
+      <p class="my-5">Blocking will be published on a public log.
+      While this is worthwhile to help others on the network, it can have negative social implications.
+      As with all log entries, a block cannot disappear from your history.</p>
+      <br>
+       <form method="post" id="block-form" phx-submit="new-entry">
+         <input type="hidden" name="log_id" value="1337">
+         <input type="hidden" name="action" value="block">
+         <%= if displayed_matches([:log], @displayed_info) do %>
+         <input type="hidden" name="ref" value="<%= Catenary.index_to_string(@entry) %>" />
+         <% end %>
+         <input type="hidden" name="whom" value="<%= @whom %>" />
+         <div class="w-100 grid grid-cols-3">
+    <div>Block:</div><div><%= Catenary.scaled_avatar(@whom, 2) |> Phoenix.HTML.raw %></div><div><%= Catenary.short_id(@whom, @aliases) %></div>
+           <div>Reason:</div><div class="grid-cols=2"><textarea class="bg-white dark:bg-black" name="reason" rows="4" cols="20"></textarea></div>
+         </div>
+         <%= Catenary.log_submit_button %>
+       </form>
+    </div>
+    """
+  end
+
   defp extra_nav(%{:extra_nav => :profile} = assigns) do
     ~L"""
     <div id="profile-nav">
@@ -168,31 +194,6 @@ defmodule Catenary.Live.Navigation do
          <input type="hidden" name="ref" value="<%= Catenary.index_to_string(@entry) %>" />
          <% end %>
          <%= mention_inputs(4) %>
-         <%= Catenary.log_submit_button %>
-       </form>
-    </div>
-    """
-  end
-
-  defp extra_nav(%{:extra_nav => :graph} = assigns) do
-    ~L"""
-    <div id="block">
-      <p class="my-5">Blocking will be published on a public log.
-      While this is worthwhile to help others on the network, it can have negative social implications.
-      As with all log entries, a block cannot disappear from your history.</p>
-      <br>
-       <form method="post" id="block-form" phx-submit="new-entry">
-         <input type="hidden" name="log_id" value="1337">
-         <input type="hidden" name="action" value="block">
-         <%= if displayed_matches([:log], @displayed_info) do %>
-         <input type="hidden" name="ref" value="<%= Catenary.index_to_string(@entry) %>" />
-         <% end %>
-         <input type="hidden" name="whom" value="<%= @whom %>" />
-         <div class="w-100 grid grid-cols-3">
-    <div>Block:</div><div><%= Catenary.scaled_avatar(@whom, 2) |> Phoenix.HTML.raw %></div><div><%= Catenary.short_id(@whom, @aliases) %></div>
-         |
-           <div>Reason:</div><div class="grid-cols=2"><textarea class="bg-white dark:bg-black" name="reason" rows="4" cols="20"></textarea></div>
-         </div>
          <%= Catenary.log_submit_button %>
        </form>
     </div>

@@ -67,8 +67,8 @@ defmodule Catenary.Live.EntryViewer do
     ~L"""
       <div id="block-wrap" class="col-span-2 overflow-y-auto max-h-screen m-2 p-x-2">
       <div class="min-w-full font-sans row-span-full">
-        <h1>Blocked author</h1>
-        <p>You have blocked this author. Their activity will not be available to you unless you unblock.</p>
+        <h1>Blocked</h1>
+        <p>You have blocked this activity. It will not be available to you unless you unblock.</p>
       </div>
     </div>
     """
@@ -381,7 +381,18 @@ defmodule Catenary.Live.EntryViewer do
       case action do
         "block" ->
           Map.merge(common, %{
-            "body" => Phoenix.HTML.raw(key_link(data["whom"]) <> "<br/>" <> data["reason"])
+            "body" =>
+              Phoenix.HTML.raw(
+                key_link(data["whom"]) <> "<div class=\"mt-5\">" <> data["reason"] <> "</div>"
+              )
+          })
+
+        "unblock" ->
+          Map.merge(common, %{
+            "body" =>
+              Phoenix.HTML.raw(
+                key_link(data["whom"]) <> "<div class=\"mt-5\">" <> data["reason"] <> "</div>"
+              )
           })
 
         "logs" ->

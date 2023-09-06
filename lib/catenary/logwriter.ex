@@ -190,7 +190,7 @@ defmodule Catenary.LogWriter do
     %Baobab.Entry{author: a, log_id: l, seqnum: e} =
       %{
         "whom" => whom,
-        "references" => [Catenary.string_to_index(ref)],
+        "references" => ref,
         "action" => action,
         "reason" => reason,
         "published" => Timex.now() |> DateTime.to_string()
