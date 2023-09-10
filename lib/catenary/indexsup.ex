@@ -2,6 +2,7 @@ defmodule Catenary.IndexSup do
   use Supervisor
 
   alias Catenary.IndexWorker.{
+    Status,
     Graph,
     Images,
     Tags,
@@ -22,6 +23,7 @@ defmodule Catenary.IndexSup do
   def init(_init_arg) do
     # These indices are in conversion order.  Feel free to rearrange
     children = [
+      Status,
       Graph,
       Images,
       Tags,

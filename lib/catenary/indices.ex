@@ -1,5 +1,6 @@
 defmodule Catenary.Indices do
   require Logger
+  alias Catenary.IndexWorker.Status
 
   @moduledoc """
   Functions to manage indices
@@ -21,24 +22,14 @@ defmodule Catenary.Indices do
   ]
   @table_options [:public, :named_table]
 
-  def status(indices \\ @indices)
-  def status(index) when not is_list(index), do: status([index])
-  def status(indices), do: status(indices, [])
-  def status([], acc), do: acc |> Enum.reverse()
-
-  def status([index | rest], acc) do
-    status(rest, [GenServer.call(index, :status) | acc])
-  end
+  def status(), do: Status.get_all()
 
   def update(indices \\ @indices)
   def update(index) when not is_list(index), do: update([index])
   def update([]), do: :ok
 
   def update([index | rest]) do
-    # For now we ignore the call reply
-    # We also provide no way to supply a subset
-    # which is fine because the indexers don't handle that
-    GenServer.call(index, {:update, []})
+    GenServer.cast(index, :update)
     update(rest)
   end
 

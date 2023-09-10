@@ -1,6 +1,9 @@
 defmodule Catenary.IndexWorker.Oases do
   @name_atom :oases
-  use Catenary.IndexWorker.Common, name_atom: :oases, indica: {"⇆", "⇄"}
+  use Catenary.IndexWorker.Common,
+    name_atom: :oases,
+    indica: {"⇆", "⇄"},
+    logs: QuaggaDef.logs_for_name(:oasis)
 
   @moduledoc """
   Oasis Indices
@@ -8,22 +11,10 @@ defmodule Catenary.IndexWorker.Oases do
 
   @display_count 4
 
-  def update_from_logs(inform \\ []) do
-    clump_id = Preferences.get(:clump_id)
-    logs = QuaggaDef.logs_for_name(:oasis)
-
-    clump_id
-    |> Baobab.stored_info()
-    |> Enum.reduce([], fn {a, l, e}, acc ->
-      case l in logs do
-        false -> acc
-        true -> [{a, l, e} | acc]
-      end
-    end)
+  def do_index(todo, clump_id) do
+    todo
     |> extract_recents(clump_id, [])
     |> build_index(@display_count, clump_id)
-
-    run_complete(inform, self())
   end
 
   defp build_index(all, count, clump_id) do

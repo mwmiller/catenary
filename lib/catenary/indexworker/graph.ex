@@ -1,7 +1,10 @@
 defmodule Catenary.IndexWorker.Graph do
   @name_atom :graph
 
-  use Catenary.IndexWorker.Common, name_atom: :graph, indica: {"⊛", "⛒"}
+  use Catenary.IndexWorker.Common,
+    name_atom: @name_atom,
+    indica: {"⊛", "⛒"},
+    logs: QuaggaDef.logs_for_name(@name_atom)
 
   @moduledoc """
   Functions to maintain the social graph
@@ -18,34 +21,24 @@ defmodule Catenary.IndexWorker.Graph do
   # synchronised clocks between all facet providers.
   # Our best hope is that there are not conflicts in
   # the timing error bars.
-  def update_from_logs(inform \\ []) do
-    {identity, clump_id} = {Preferences.get(:identity), Preferences.get(:clump_id)}
+  def indexer_logs, do: QuaggaDef.logs_for_name(@name_atom)
 
-    logs =
-      @name_atom
-      |> QuaggaDef.logs_for_name()
+  def do_index(todo, clump_id) do
+    identity = Preferences.get(:identity)
 
     ops =
-      clump_id
-      |> Baobab.stored_info()
-      |> Enum.reduce([], fn {a, l, _}, acc ->
-        case a == identity and l in logs do
-          true -> [{a, l} | acc]
-          false -> acc
-        end
-      end)
+      todo
+      |> Enum.filter(fn {a, _, _} -> a == identity end)
       |> order_operations(clump_id, [])
       |> reduce_operations()
       |> note_operations()
 
     apply_operations(ops, clump_id)
-
-    run_complete(inform, self())
   end
 
   defp order_operations([], _, acc), do: acc |> Enum.sort()
 
-  defp order_operations([{who, log_id} | rest], clump_id, acc) do
+  defp order_operations([{who, log_id, _} | rest], clump_id, acc) do
     order_operations(
       rest,
       clump_id,

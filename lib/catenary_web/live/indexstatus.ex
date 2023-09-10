@@ -8,7 +8,7 @@ defmodule Catenary.Live.IndexStatus do
   @impl true
   def render(assigns) do
     ~L"""
-    <div class="flex flex-row font-mono text-xs text-center my-2 min-w-full">
+    <div class="flex flex-row font-mono text-xs text-center my-1px min-w-full">
       <%= for s <- @indexing do %>
         <div class="flex-auto"><%= s %></div>
       <% end %>

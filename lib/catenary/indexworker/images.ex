@@ -2,27 +2,17 @@ defmodule Catenary.IndexWorker.Images do
   # This attribute is unused in local code.  It is maintained here
   # in case I change the compliation to not require duplication
   # @name_atom :images
-  use Catenary.IndexWorker.Common, name_atom: :images, indica: {"𐍊", "҂"}
+  use Catenary.IndexWorker.Common,
+    name_atom: :images,
+    indica: {"𐍊", "҂"},
+    logs: Enum.reduce(Catenary.image_logs(), [], fn n, a -> a ++ QuaggaDef.logs_for_name(n) end)
 
   @moduledoc """
   Write clump logged images to the file system
   """
 
-  def update_from_logs(inform \\ []) do
-    clump_id = Preferences.get(:clump_id)
-    logs = Enum.reduce(Catenary.image_logs(), [], fn n, a -> a ++ QuaggaDef.logs_for_name(n) end)
-
-    clump_id
-    |> Baobab.stored_info()
-    |> Enum.reduce([], fn {a, l, e}, acc ->
-      case l in logs do
-        false -> acc
-        true -> [{a, l, e} | acc]
-      end
-    end)
-    |> write_if_missing(clump_id, Path.join(["priv", "static"]), %{})
-
-    run_complete(inform, self())
+  def do_index(todo, clump_id) do
+    write_if_missing(todo, clump_id, Path.join(["priv", "static"]), %{})
   end
 
   defp write_if_missing([], _, _, acc), do: :ets.insert(:images, {:map, acc})
@@ -61,10 +51,10 @@ defmodule Catenary.IndexWorker.Images do
               File.mkdir_p(Path.dirname(filename))
               File.write(filename, data, [:binary])
               {src, entry}
-          end
 
-        _ ->
-          {}
+            _ ->
+              {}
+          end
       end
 
     fill_missing(rest, last, clump_id, img_root, accumulate_entries(this, acc))

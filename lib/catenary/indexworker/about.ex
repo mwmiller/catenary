@@ -1,33 +1,25 @@
 defmodule Catenary.IndexWorker.About do
   @name_atom :about
-  use Catenary.IndexWorker.Common, name_atom: :about, extra_tables: [:avatars], indica: {"⸘", "‽"}
+  use Catenary.IndexWorker.Common,
+    name_atom: :about,
+    extra_tables: [:avatars],
+    indica: {"⸘", "‽"},
+    logs: QuaggaDef.logs_for_name(:about)
 
   @moduledoc """
   About Indices
   """
 
-  def update_from_logs(inform \\ []) do
-    clump_id = Preferences.get(:clump_id)
-    logs = QuaggaDef.logs_for_name(:about)
-
-    clump_id
-    |> Baobab.stored_info()
-    |> Enum.reduce([], fn {a, l, _}, acc ->
-      case l in logs do
-        false -> acc
-        true -> [{a, l} | acc]
-      end
-    end)
+  def do_index(todo, clump_id) do
+    todo
     |> gather_updates(clump_id, %{})
     |> Map.to_list()
     |> build_index(clump_id)
-
-    run_complete(inform, self())
   end
 
   defp gather_updates([], _, acc), do: acc
 
-  defp gather_updates([{who, log_id} | rest], clump_id, acc) do
+  defp gather_updates([{who, log_id, _} | rest], clump_id, acc) do
     gather_updates(
       rest,
       clump_id,

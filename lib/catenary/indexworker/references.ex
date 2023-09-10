@@ -1,34 +1,22 @@
 defmodule Catenary.IndexWorker.References do
   @name_atom :references
-  use Catenary.IndexWorker.Common, name_atom: :references, indica: {"↪︎", "↩︎"}
+  use Catenary.IndexWorker.Common,
+    name_atom: :references,
+    indica: {"↪︎", "↩︎"},
+    logs: QuaggaDef.logs_for_encoding(:cbor)
 
   @moduledoc """
   Reference Indices
   """
 
-  def update_from_logs(inform \\ []) do
-    clump_id = Preferences.get(:clump_id)
-
-    logs =
-      :cbor
-      |> QuaggaDef.logs_for_encoding()
-
-    clump_id
-    |> Baobab.stored_info()
-    |> Enum.reduce([], fn {a, l, _}, acc ->
-      case l in logs do
-        true -> [{a, l} | acc]
-        false -> acc
-      end
-    end)
+  def do_index(todo, clump_id) do
+    todo
     |> build_index(clump_id)
-
-    run_complete(inform, self())
   end
 
   defp build_index([], _), do: :ok
 
-  defp build_index([{a, l} | rest], clump_id) do
+  defp build_index([{a, l, _} | rest], clump_id) do
     entries_index(Enum.reverse(Baobab.full_log(a, log_id: l, clump_id: clump_id)), clump_id)
     build_index(rest, clump_id)
   end
