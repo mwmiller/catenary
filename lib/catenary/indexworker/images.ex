@@ -11,70 +11,102 @@ defmodule Catenary.IndexWorker.Images do
   Write clump logged images to the file system
   """
 
+  @img_root Path.join(["priv", "static"])
+  @img_cat Path.join([@img_root, "cat_images"])
+
   def do_index(todo, clump_id) do
-    write_if_missing(todo, clump_id, Path.join(["priv", "static"]), %{})
+    # I'm going to avoid the sync for deletion for now
+    # I will handle that with a preference screen cache clear
+    # Instead we write out all of the new stuff
+    :ok = write_missing(todo, clump_id)
+    # And then see what's on the disk
+    clump_id
+    |> scan_clump()
+    |> accumulate_entries(%{})
+    |> then(fn m -> :ets.insert(:images, {:map, m}) end)
   end
 
-  defp write_if_missing([], _, _, acc), do: :ets.insert(:images, {:map, acc})
-
-  defp write_if_missing([{_, _, seq} = entry | rest], clump_id, img_root, acc) do
-    write_if_missing(
-      rest,
-      clump_id,
-      img_root,
-      fill_missing(
-        Enum.to_list(1..seq),
-        entry,
-        clump_id,
-        img_root,
-        acc
-      )
-    )
+  def scan_clump(clump) do
+    clump
+    |> then(fn c -> Path.join([@img_cat, c, "**"]) end)
+    |> Path.wildcard()
+    |> Enum.map(fn p -> Path.relative_to(p, @img_cat) end)
+    |> files_to_entries([])
   end
 
-  defp fill_missing([], _, _, _, acc), do: acc
+  defp files_to_entries([], acc), do: acc
 
-  defp fill_missing([seq | rest], {who, log_id, _} = last, clump_id, img_root, acc) do
+  defp files_to_entries([file | rest], acc) do
+    file |> Path.relative_to(@img_cat)
+
+    case file |> Path.relative_to(@img_cat) |> Path.split() do
+      [clump_id, author, log_id, file] ->
+        {l, ""} = Integer.parse(log_id)
+        {e, ""} = file |> Path.rootname() |> Integer.parse()
+        entry = {author, l, e}
+
+        files_to_entries(rest, [
+          {Catenary.image_src_for_entry(entry, clump_id), {author, l, e}} | acc
+        ])
+
+      _ ->
+        files_to_entries(rest, acc)
+    end
+  end
+
+  defp write_missing([], _), do: :ok
+
+  defp write_missing([{_, _, seq} = entry | rest], clump_id) do
+    entry |> fill_missing(clump_id, seq)
+
+    write_missing(rest, clump_id)
+  end
+
+  defp fill_missing(_, _, 0), do: :ok
+
+  defp fill_missing({who, log_id, _} = last, clump_id, seq) do
     entry = {who, log_id, seq}
     src = Catenary.image_src_for_entry(entry, clump_id)
-    filename = Path.join([img_root, src])
+    filename = Path.join([@img_root, src])
 
-    this =
-      case File.stat(filename) do
-        {:ok, _} ->
-          {src, entry}
+    case File.stat(filename) do
+      {:error, _} ->
+        case Baobab.log_entry(who, seq, log_id: log_id, clump_id: clump_id) do
+          %Baobab.Entry{payload: data} ->
+            # Extra work here, but should be cheap.
+            File.mkdir_p(Path.dirname(filename))
+            File.write(filename, data, [:binary])
+            {src, entry}
 
-        {:error, _} ->
-          case Baobab.log_entry(who, seq, log_id: log_id, clump_id: clump_id) do
-            %Baobab.Entry{payload: data} ->
-              # Extra work here, but should be cheap.
-              File.mkdir_p(Path.dirname(filename))
-              File.write(filename, data, [:binary])
-              {src, entry}
+          _ ->
+            :ok
+        end
 
-            _ ->
-              {}
-          end
-      end
+      _ ->
+        :ok
+    end
 
-    fill_missing(rest, last, clump_id, img_root, accumulate_entries(this, acc))
+    fill_missing(last, clump_id, seq - 1)
   end
 
-  defp accumulate_entries({src, {who, _, _} = entry} = full, acc) do
+  defp accumulate_entries([], acc), do: acc
+
+  defp accumulate_entries([{src, {who, _, _} = entry} = full | rest], acc) do
     ss =
       case Preferences.shown?(entry) do
         true -> :shown
         false -> :unshown
       end
 
-    acc
-    |> tiered_insert(:any, "any", full)
-    |> tiered_insert(:shown, ss, full)
-    |> tiered_insert(:type, Path.extname(src), full)
-    |> tiered_insert(:poster, who, full)
-  end
+    na =
+      acc
+      |> tiered_insert(:any, "any", full)
+      |> tiered_insert(:shown, ss, full)
+      |> tiered_insert(:type, Path.extname(src), full)
+      |> tiered_insert(:poster, who, full)
 
-  defp accumulate_entries(_, acc), do: acc
+    accumulate_entries(rest, na)
+  end
 
   defp tiered_insert(map, first_tier, second_tier, val) do
     map
