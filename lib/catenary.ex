@@ -83,11 +83,15 @@ defmodule Catenary do
   end
 
   def oasis_state(clump_id) do
+    # For now I am going to recreate the sorted by
+    # recency experience. I don't expect it to persist
     oasis_items =
       case :ets.lookup(:oases, clump_id) do
-        [] -> []
+        [] -> %{}
         [{^clump_id, items}] -> items
       end
+      |> Map.values()
+      |> Enum.sort_by(fn m -> Map.get(m, "running") end, :desc)
 
     {:ok, oasis_items}
   end

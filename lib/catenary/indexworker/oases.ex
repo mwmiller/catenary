@@ -23,8 +23,16 @@ defmodule Catenary.IndexWorker.Oases do
       |> Enum.sort_by(fn m -> Map.get(m, "running") end, :desc)
       |> Enum.uniq_by(fn %{"host" => h, "port" => p} -> {h, p} end)
       |> Enum.take(count)
+      |> Enum.reduce(%{}, fn i, m -> Map.put(m, i["name"], i) end)
 
-    :ets.insert(@name_atom, {clump_id, recents})
+    prev =
+      case :ets.lookup(@name_atom, clump_id) do
+        [] -> %{}
+        [{^clump_id, items}] -> items
+      end
+
+    # We let the list grow if a newly named oasis is discovered
+    :ets.insert(@name_atom, {clump_id, Map.merge(prev, recents)})
   end
 
   defp extract_recents([], _, acc), do: acc
