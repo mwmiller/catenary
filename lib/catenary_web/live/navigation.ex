@@ -148,8 +148,8 @@ defmodule Catenary.Live.Navigation do
     ~L"""
     <div id="block">
       <p class="my-5">Blocking will be published on a public log.
-      While this is worthwhile to help others on the network, it can have negative social implications.
-      As with all log entries, a block cannot disappear from your history.</p>
+      This can have negative social implications.
+      A block cannot disappear from your history.</p>
       <br>
        <form method="post" id="block-form" phx-submit="new-entry">
          <input type="hidden" name="log_id" value="1337">
