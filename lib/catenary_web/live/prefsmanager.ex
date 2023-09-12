@@ -9,17 +9,20 @@ defmodule Catenary.Live.PrefsManager do
 
   @impl true
   def render(assigns) do
+    {ac, lc, ec} = Catenary.clump_stats(assigns.clump_id)
+
     ~L"""
      <div id="identview-wrap" class="col-span-full overflow-y-auto max-h-screen m-2 p-x-2">
-       <div class="my-5 text-center min-w-full"><a href="/authors/<%= @identity %>"><%= Catenary.scaled_avatar(@identity, 8, ["mx-auto"])  %></a></div>
+       <div class="my-2 text-center min-w-full"><a href="/authors/<%= @identity %>"><%= Catenary.scaled_avatar(@identity, 8, ["mx-auto"])  %></a></div>
       <form method="post" id="clump-form" phx-change="clump-change">
         <label for"clump_id">🎋</label>
-        <select name="clump_id" class="m-10 bg-white dark:bg-black">
+        <select name="clump_id" class="bg-white dark:bg-black">
           <%= for {c,_} <- @clumps do %>
             <option value="<%= c %>" <%= if c == @clump_id, do: "selected" %>><%= c %></option>
           <% end %>
         </select>
       </form>
+      <p class="m-1 text-xs"><%= ec %> log entries available across <%= lc %> logs from <%= ac %> authors in <%= @clump_id %>.</p>
       <form method="post" id="identity-form" phx-change="identity-change">
       <table class="min-w-full"><thead>
         <thead>

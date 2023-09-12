@@ -270,4 +270,19 @@ defmodule Catenary do
       end
     end)
   end
+
+  def clump_stats(clump_id) do
+    clump_id
+    |> Baobab.stored_info()
+    |> Enum.reduce({{0, 0, 0}, MapSet.new()}, fn {a, _, e}, {{ac, lc, pc}, as} ->
+      author_inc =
+        case MapSet.member?(as, a) do
+          true -> 0
+          false -> 1
+        end
+
+      {{ac + author_inc, lc + 1, pc + e}, MapSet.put(as, a)}
+    end)
+    |> then(fn {counts, _} -> counts end)
+  end
 end
