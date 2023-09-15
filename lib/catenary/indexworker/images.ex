@@ -100,8 +100,8 @@ defmodule Catenary.IndexWorker.Images do
 
     na =
       acc
-      |> tiered_insert(:any, "any", full)
       |> tiered_insert(:shown, ss, full)
+      |> tiered_insert(:filesize, size_group(src), full)
       |> tiered_insert(:type, Path.extname(src), full)
       |> tiered_insert(:poster, who, full)
 
@@ -113,5 +113,23 @@ defmodule Catenary.IndexWorker.Images do
     |> Map.update(first_tier, %{second_tier => [val]}, fn inner_map ->
       Map.update(inner_map, second_tier, [val], fn list -> [val | list] end)
     end)
+  end
+
+  defp size_group(filename) do
+    # We have been dinking around enough
+    # we should know they exist at this point
+    # but racing!
+    size =
+      case File.stat(Path.join([@img_root, filename])) do
+        {:ok, %{size: s}} -> s
+        _ -> 0
+      end
+
+    cond do
+      size < 100 * 1024 -> "tiny"
+      size < 1 * 1024 * 1024 -> "small"
+      size < 10 * 1024 * 1024 -> "med"
+      true -> "huge"
+    end
   end
 end
