@@ -7,7 +7,8 @@ defmodule Catenary.Live.OasisBox do
     {:ok,
      assign(socket,
        aliases: assigns.aliases,
-       nodes: nodes
+       nodes: nodes,
+       opened: assigns.opened
      )}
   end
 
@@ -17,7 +18,13 @@ defmodule Catenary.Live.OasisBox do
     ~L"""
     <div class="font-mono text-xs my-2">
       <div class="my-1 p-1 bg-slate-200 dark:bg-slate-700">
-        No recent oases found. <button phx-click="init-connect" phx-disable-with="↯ trying ↯">⇆ try fallback host ⇆</span></button>
+        No recent oases found.
+        <%= if @opened == 0 do %>
+        <button phx-click="init-connect" phx-disable-with="↯ trying ↯">
+        ⇆ try fallback host ⇆</span></button>
+        <% else %>
+        ⥀ attempting sync ⥀
+        <% end %>
       </div>
     </div>
     """

@@ -77,19 +77,6 @@ defmodule CatenaryWeb.Live do
     """
   end
 
-  def render(%{store: []} = assigns) do
-    ~L"""
-    <div>
-      <h1>No data just yet</h1>
-      <%= if @opened == 0 do %>
-        <button phx-click="init-connect">⇆ Get started on the <%= @clump_id %> network ⇆</button>
-      <% else %>
-        ⥀ performing initial sync ⥀
-      <% end %>
-    </div>
-    """
-  end
-
   def render(%{view: :entries, entry: {:tag, tag}} = assigns) do
     ~L"""
      <%= explorebar(assigns) %>
@@ -168,7 +155,7 @@ defmodule CatenaryWeb.Live do
     <div>
       <%= live_component(Catenary.Live.Ident, id: :ident, entry: @entry, profile_items: @profile_items, identity: @identity, clump_id: @clump_id, aliases: @aliases) %>
       <%= live_component(Catenary.Live.IndexStatus, id: :indices, indexing: @indexing) %>
-      <%= live_component(Catenary.Live.OasisBox, id: :recents, oases: @oases, aliases: @aliases) %>
+      <%= live_component(Catenary.Live.OasisBox, id: :recents, oases: @oases, opened: @opened, aliases: @aliases) %>
       <%= live_component(Catenary.Live.Navigation, id: :nav, uploads: @uploads, entry: @entry, extra_nav: @extra_nav, identity: @identity, view: @view, aliases: @aliases, entry_fore: @entry_fore, entry_back: @entry_back, clump_id: @clump_id) %>
     </div>
     """
