@@ -92,6 +92,7 @@ defmodule Catenary do
       end
       |> Map.values()
       |> Enum.sort_by(fn m -> Map.get(m, "running") end, :desc)
+      |> Enum.map(fn m -> Map.put(m, :connected, Baby.is_connected?({m["host"], m["port"]})) end)
 
     {:ok, oasis_items}
   end

@@ -58,9 +58,9 @@ defmodule CatenaryWeb.Live do
          entry: entry,
          entry_fore: [],
          entry_back: [],
-         connections: [],
          oases: {:reload, []},
          me: self(),
+         opened: 0,
          clumps: clumps,
          clump_id: clump_id,
          identity: whoami,
@@ -81,10 +81,10 @@ defmodule CatenaryWeb.Live do
     ~L"""
     <div>
       <h1>No data just yet</h1>
-      <%= if @connections == [] do %>
+      <%= if @opened == 0 do %>
         <button phx-click="init-connect">⇆ Get started on the <%= @clump_id %> network ⇆</button>
       <% else %>
-        ⥀ any time now ⥀
+        ⥀ performing initial sync ⥀
       <% end %>
     </div>
     """
@@ -120,13 +120,13 @@ defmodule CatenaryWeb.Live do
     """
   end
 
-  # # shown_hash lets type-marking be reactive in the page
-  # connections lets us know when thing might be moving
+  # shown_hash lets type-marking be reactive in the page
+  # oases lets us know when thing might be moving
   def render(%{view: :unshown} = assigns) do
     ~L"""
      <%= explorebar(assigns) %>
      <div class="max-h-screen w-100 grid grid-cols-3 gap-2 justify-center">
-       <%= live_component(Catenary.Live.UnshownExplorer, id: :unshown, which: @entry, clump_id: @clump_id, connections: @connections, shown_hash: @shown_hash) %>
+       <%= live_component(Catenary.Live.UnshownExplorer, id: :unshown, which: @entry, clump_id: @clump_id, oases: @oases, shown_hash: @shown_hash) %>
        <%= activitybar(assigns) %>
      </div>
     """
@@ -168,7 +168,7 @@ defmodule CatenaryWeb.Live do
     <div>
       <%= live_component(Catenary.Live.Ident, id: :ident, entry: @entry, profile_items: @profile_items, identity: @identity, clump_id: @clump_id, aliases: @aliases) %>
       <%= live_component(Catenary.Live.IndexStatus, id: :indices, indexing: @indexing) %>
-      <%= live_component(Catenary.Live.OasisBox, id: :recents, connections: @connections, oases: @oases, aliases: @aliases) %>
+      <%= live_component(Catenary.Live.OasisBox, id: :recents, oases: @oases, aliases: @aliases) %>
       <%= live_component(Catenary.Live.Navigation, id: :nav, uploads: @uploads, entry: @entry, extra_nav: @extra_nav, identity: @identity, view: @view, aliases: @aliases, entry_fore: @entry_fore, entry_back: @entry_back, clump_id: @clump_id) %>
     </div>
     """
@@ -192,16 +192,6 @@ defmodule CatenaryWeb.Live do
        socket,
        Navigation.move_to("specified", %{view: view, entry: which}, socket.assigns)
      )}
-  end
-
-  def handle_info({:completed, which}, %{assigns: assigns} = socket) do
-    update =
-      case which do
-        {:connection, ident} ->
-          %{connections: Enum.reject(assigns.connections, fn {i, _map} -> i == ident end)}
-      end
-
-    {:noreply, state_set(socket, update)}
   end
 
   def handle_info(:sync, socket) do
@@ -439,25 +429,19 @@ defmodule CatenaryWeb.Live do
 
     which = Keyword.get(this_clump, :fallback_node)
 
-    ident = connector_wrap(Keyword.get(which, :host), Keyword.get(which, :port), socket)
-    {:noreply, state_set(socket, %{connections: [{ident, %{}} | socket.assigns.connections]})}
+    connector_wrap(Keyword.get(which, :host), Keyword.get(which, :port), socket)
+    {:noreply, state_set(socket, %{})}
   end
 
   def handle_event("connect", %{"value" => where}, socket) do
-    with {a, l, e} = index <- Catenary.string_to_index(where),
+    with {a, l, e} <- Catenary.string_to_index(where),
          %Baobab.Entry{payload: payload} <-
            Baobab.log_entry(a, e, log_id: l, clump_id: socket.assigns.clump_id),
          {:ok, map, ""} <- CBOR.decode(payload) do
       Logger.debug(["Connection opening to ", map["name"], "..."])
-      ident = connector_wrap(map["host"], map["port"], socket)
+      connector_wrap(map["host"], map["port"], socket)
 
-      {:noreply,
-       state_set(
-         socket,
-         %{
-           connections: [{ident, Map.put(map, :id, index)} | socket.assigns.connections]
-         }
-       )}
+      {:noreply, state_set(socket, %{})}
     else
       _ -> {:noreply, socket}
     end
@@ -487,7 +471,7 @@ defmodule CatenaryWeb.Live do
     clump_id = state.clump_id
     shash = Baobab.Persistence.current_hash(:content, clump_id)
 
-    # The index update here is excessive.  
+    # The index update here is excessive.
     si =
       case state.store_hash do
         ^shash ->
@@ -506,6 +490,8 @@ defmodule CatenaryWeb.Live do
         _ -> Baobab.Identity.list()
       end
 
+    oases = Catenary.oasis_state(clump_id)
+
     assign(full_socket,
       aliases: Catenary.alias_state(),
       profile_items: Catenary.profile_items_state(),
@@ -515,44 +501,18 @@ defmodule CatenaryWeb.Live do
       shown_hash: Preferences.shown_hash(),
       store_hash: shash,
       store: si,
-      oases: Catenary.oasis_state(clump_id)
+      oases: oases,
+      # This is a place holder for interesting stats later
+      # It is needed to make onboarding less confusing for now
+      opened: Baby.Connection.Registry.active() |> Enum.count()
     )
   end
 
   defp connector_wrap(host, port, socket) do
-    # This should probably use `Process.spawn` with `:monitor`
-    # Feel free to curse my name when that becomes true
-    # We get the task pid, not the underlying task process pid
-    # This might seem like the same thing, but it's not sometimes
-    #
-    done = fn ->
-      Process.send(socket.assigns.me, {:completed, {:connection, {host, port}}}, [])
-    end
-
-    Task.start(fn ->
-      with {:ok, pid} <-
-             Baby.connect(host, port,
-               identity: Catenary.id_for_key(socket.assigns.identity),
-               clump_id: socket.assigns.clump_id
-             ) do
-        loop = fn p, f ->
-          case Process.alive?(p) do
-            true ->
-              Process.sleep(809)
-              f.(p, f)
-
-            false ->
-              done.()
-          end
-        end
-
-        loop.(pid, loop)
-      else
-        _ -> done.()
-      end
-    end)
-
-    {host, port}
+    Baby.connect(host, port,
+      identity: Catenary.id_for_key(socket.assigns.identity),
+      clump_id: socket.assigns.clump_id
+    )
   end
 
   defp get_winsize() do

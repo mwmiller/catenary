@@ -7,8 +7,7 @@ defmodule Catenary.Live.OasisBox do
     {:ok,
      assign(socket,
        aliases: assigns.aliases,
-       nodes: nodes,
-       connected: Enum.map(assigns.connections, &id_mapper/1)
+       nodes: nodes
      )}
   end
 
@@ -33,7 +32,7 @@ defmodule Catenary.Live.OasisBox do
         1 -> "bg-slate-200 dark:bg-slate-700"
       end %>"><%= Catenary.scaled_avatar(elem(recent.id, 0), 2, ["m-1", "float-right", "align-middle"]) %>
         <p><%= recent["name"] %> (<%= Catenary.linked_author(elem(recent.id, 0), @aliases) %>)
-        <%= if recent.id in @connected do %>
+        <%= if recent.connected do %>
           ⥀
         <% else %>
         <button phx-click="connect" phx-disable-with="↯" value="<%= Catenary.index_to_string(recent.id) %>">⇆</button>
@@ -43,7 +42,4 @@ defmodule Catenary.Live.OasisBox do
     </div>
     """
   end
-
-  defp id_mapper({_, %{id: id}}), do: id
-  defp id_mapper(_), do: ""
 end
