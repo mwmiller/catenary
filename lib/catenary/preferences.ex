@@ -30,7 +30,7 @@ defmodule Catenary.Preferences do
     # was this comment wrong?" counter here.
     rando = "catenary-user-" <> BaseX.Base62.encode(:crypto.strong_rand_bytes(2))
     id = Baobab.Identity.create(rando)
-    # We do end up having to come through here a couple times before they might 
+    # We do end up having to come through here a couple times before they might
     # set the preference themselves so we set it ourselves
     set(:identity, id)
     id
@@ -180,7 +180,13 @@ defmodule Catenary.Preferences do
   defp indices_for_shown, do: Indices.update([:tags, :images])
 
   defp this_clump_shown_set(), do: get(:shown) |> Map.get(get(:clump_id), MapSet.new())
-  def shown_hash(), do: this_clump_shown_set() |> :erlang.term_to_binary() |> Blake2.hash2b(5)
+
+  def shown_hash(),
+    do:
+      this_clump_shown_set()
+      |> :erlang.term_to_binary()
+      |> then(fn t -> :crypto.hash(:blake2b, t) end)
+
   def shown?(entry), do: MapSet.member?(this_clump_shown_set(), entry)
 
   def all_shown?(entries) when is_list(entries), do: all_shown?(MapSet.new(entries))
