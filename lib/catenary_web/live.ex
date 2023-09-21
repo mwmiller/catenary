@@ -45,9 +45,8 @@ defmodule CatenaryWeb.Live do
      state_set(
        upsock,
        %{
-         store_hash: Baobab.Persistence.current_hash(:content, clump_id),
+         store_hash: Baobab.Persistence.content_hash(clump_id),
          store: Baobab.stored_info(clump_id),
-         id_hash: Baobab.Persistence.current_hash(:identity, clump_id),
          identities: Baobab.Identity.list(),
          shown_hash: Preferences.shown_hash(),
          aliases: Catenary.alias_state(),
@@ -460,7 +459,7 @@ defmodule CatenaryWeb.Live do
     do_prefs(Map.merge(from_caller, %{winsize: get_winsize()}) |> Map.to_list())
     state = full_socket.assigns
     clump_id = state.clump_id
-    shash = Baobab.Persistence.current_hash(:content, clump_id)
+    shash = Baobab.Persistence.content_hash(clump_id)
 
     # The index update here is excessive.
     si =
@@ -473,21 +472,11 @@ defmodule CatenaryWeb.Live do
           Baobab.stored_info(clump_id)
       end
 
-    ihash = Baobab.Persistence.current_hash(:identity, clump_id)
-
-    ids =
-      case state.id_hash do
-        ^ihash -> state.identities
-        _ -> Baobab.Identity.list()
-      end
-
     oases = Catenary.oasis_state(clump_id)
 
     assign(full_socket,
       aliases: Catenary.alias_state(),
       profile_items: Catenary.profile_items_state(),
-      identities: ids,
-      id_hash: ihash,
       indexing: Catenary.Indices.status(),
       shown_hash: Preferences.shown_hash(),
       store_hash: shash,
