@@ -305,17 +305,17 @@ defmodule CatenaryWeb.Live do
   end
 
   # There should always be a selection.  Make sure it's not being dropped
-  def handle_event("identity-change", %{"selection" => whom, "drop" => whom}, socket) do
-    {:noreply, state_set(socket, %{identity: whom |> Baobab.Identity.as_base62()})}
-  end
+  def handle_event("identity-change", %{"selection" => whom} = vals, socket) do
+    case vals["drop"] do
+      ^whom -> :noop
+      other -> Baobab.Identity.drop(other)
+    end
 
-  def handle_event("identity-change", %{"selection" => whom, "drop" => doom}, socket) do
-    :ok = Baobab.Identity.drop(doom)
-    {:noreply, state_set(socket, %{identity: whom |> Baobab.Identity.as_base62()})}
-  end
-
-  def handle_event("identity-change", %{"selection" => whom}, socket) do
-    {:noreply, state_set(socket, %{identity: whom |> Baobab.Identity.as_base62()})}
+    {:noreply,
+     state_set(socket, %{
+       identity: whom |> Baobab.Identity.as_base62(),
+       identities: Baobab.Identity.list()
+     })}
   end
 
   # A lot of overhead for a no-op.  Discover how to do this properly
@@ -333,7 +333,7 @@ defmodule CatenaryWeb.Live do
         nil -> Baobab.Identity.create(whom)
       end
 
-    {:noreply, state_set(socket, %{identity: pk})}
+    {:noreply, state_set(socket, %{identity: pk, identities: Baobab.Identity.list()})}
   end
 
   def handle_event("new-id", _, socket), do: {:noreply, socket}
@@ -349,7 +349,11 @@ defmodule CatenaryWeb.Live do
 
     # We set this to make it obvious what happened
     # if anything
-    {:noreply, state_set(socket, %{identity: tobe |> Baobab.Identity.as_base62()})}
+    {:noreply,
+     state_set(socket, %{
+       identity: tobe |> Baobab.Identity.as_base62(),
+       identities: Baobab.Identity.list()
+     })}
   end
 
   def handle_event(<<"rename-id-", _::binary>>, _, socket), do: {:noreply, socket}
