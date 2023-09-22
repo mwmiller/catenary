@@ -21,19 +21,16 @@ defmodule Catenary.IndexWorker.Graph do
   # synchronised clocks between all facet providers.
   # Our best hope is that there are not conflicts in
   # the timing error bars.
-  def indexer_logs, do: QuaggaDef.logs_for_name(@name_atom)
 
   def do_index(todo, clump_id) do
     identity = Preferences.get(:identity)
 
-    ops =
-      todo
-      |> Enum.filter(fn {a, _, _} -> a == identity end)
-      |> order_operations(clump_id, [])
-      |> reduce_operations()
-      |> note_operations()
-
-    apply_operations(ops, clump_id)
+    todo
+    |> Enum.filter(fn {a, _, _} -> a == identity end)
+    |> order_operations(clump_id, [])
+    |> reduce_operations()
+    |> note_operations()
+    |> apply_operations(clump_id)
   end
 
   defp order_operations([], _, acc), do: acc |> Enum.sort()
