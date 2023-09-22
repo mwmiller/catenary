@@ -10,10 +10,12 @@ defmodule Catenary.IndexWorker.Aliases do
   """
 
   def do_index(todo, clump_id) do
-    identity = Preferences.get(:identity)
+    # This should be always small enough that MapSet
+    # would be overkill
+    keepers = Baobab.Identity.list() |> Enum.map(fn {_n, k} -> k end)
 
     todo
-    |> Enum.filter(fn {a, _, _} -> a == identity end)
+    |> Enum.filter(fn {a, _, _} -> a in keepers end)
     |> build_index(clump_id)
   end
 
