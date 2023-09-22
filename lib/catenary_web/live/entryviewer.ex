@@ -428,9 +428,17 @@ defmodule Catenary.Live.EntryViewer do
     try do
       {:ok, data, ""} = CBOR.decode(cbor)
 
+      body =
+        case {"<p>" <>
+                data["host"] <> ":" <> Integer.to_string(data["port"]) <> "</p>",
+              data["operator"]} do
+          {b, nil} -> b
+          {b, op} -> b <> "<p>operated by:</p><p>" <> key_link(op) <> "</p>"
+        end
+
       %{
         "title" => added_title("Oasis: " <> data["name"]),
-        "body" => data["host"] <> ":" <> Integer.to_string(data["port"]),
+        "body" => Phoenix.HTML.raw(body),
         "back-refs" => maybe_refs(data["references"]),
         "published" => data["running"]
       }

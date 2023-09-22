@@ -37,7 +37,10 @@ defmodule Catenary.Live.OasisBox do
         <div class="my-1 p-1 <%= case rem(index, 2)  do
         0 ->  "bg-zinc-200 dark:bg-stone-700"
         1 -> "bg-slate-200 dark:bg-slate-700"
-      end %>"><%= Catenary.scaled_avatar(elem(recent.id, 0), 2, ["m-1", "float-right", "align-middle"]) %>
+      end %>">
+          <%= if op = recent["operator"], do:
+            Catenary.scaled_avatar(op, 1, ["m-1", "float-left", "align-middle"]) %>
+          <%= Catenary.scaled_avatar(elem(recent.id, 0), 2, ["m-1", "float-right", "align-middle"]) %>
         <p><%= recent["name"] %> (<%= Catenary.linked_author(elem(recent.id, 0), @aliases) %>)
         <%= if recent.connected do %>
           ⥀

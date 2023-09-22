@@ -472,8 +472,6 @@ defmodule CatenaryWeb.Live do
           Baobab.stored_info(clump_id)
       end
 
-    oases = Catenary.oasis_state(clump_id)
-
     assign(full_socket,
       aliases: Catenary.alias_state(),
       profile_items: Catenary.profile_items_state(),
@@ -481,7 +479,7 @@ defmodule CatenaryWeb.Live do
       shown_hash: Preferences.shown_hash(),
       store_hash: shash,
       store: si,
-      oases: oases,
+      oases: Catenary.oasis_state(clump_id),
       # This is a place holder for interesting stats later
       # It is needed to make onboarding less confusing for now
       opened: Baby.Connection.Registry.active() |> Enum.count()
