@@ -19,14 +19,8 @@ defmodule Catenary.IndexWorker.Tags do
     :ets.match(:tags, :"$1")
     |> Enum.reduce([], fn [{f, i} | _], a ->
       case f do
-        {"", t} ->
-          [
-            {t, Enum.any?(i, fn {_d, _t, e} -> not Catenary.Preferences.shown?(e) end), length(i)}
-            | a
-          ]
-
-        _ ->
-          a
+        {"", t} -> [{t, length(i)} | a]
+        _ -> a
       end
     end)
     |> group_sizes
@@ -40,7 +34,7 @@ defmodule Catenary.IndexWorker.Tags do
 
   def group_sizes(items) do
     items
-    |> Enum.group_by(fn {_, _, c} -> trunc(:math.log(c)) end)
+    |> Enum.group_by(fn {_, c} -> trunc(:math.log(c)) end)
     |> Map.to_list()
     |> Enum.sort(:desc)
     |> Enum.reduce([], fn {_s, i}, acc -> [Enum.shuffle(i) | acc] end)
