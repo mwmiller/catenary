@@ -21,7 +21,7 @@ defmodule Catenary.IndexWorker.Tags do
       case f do
         {"", t} ->
           [
-            {t, Enum.any?(i, fn {_t, e} -> not Catenary.Preferences.shown?(e) end), length(i)}
+            {t, Enum.any?(i, fn {_d, _t, e} -> not Catenary.Preferences.shown?(e) end), length(i)}
             | a
           ]
 
@@ -58,7 +58,18 @@ defmodule Catenary.IndexWorker.Tags do
       {:ok, data, ""} = CBOR.decode(payload)
       tags = data["tags"] |> Enum.map(fn s -> {"", String.trim(s)} end)
       [ent] = data["references"]
-      e = List.to_tuple(ent)
+      e = {oa, ol, oe} = List.to_tuple(ent)
+      # Now try to get a title from the original
+      %Baobab.Entry{payload: pl} = Baobab.log_entry(oa, oe, log_id: ol, clump_id: clump_id)
+      {:ok, od, ""} = CBOR.decode(pl)
+
+      title =
+        case od["title"] do
+          <<>> -> Catenary.added_title("empty")
+          nil -> Catenary.added_title("none")
+          t -> t
+        end
+
       # Tags for entry
       old =
         case :ets.lookup(@name_atom, e) do
@@ -78,9 +89,9 @@ defmodule Catenary.IndexWorker.Tags do
           end
 
         insert =
-          [{Indices.published_date(data), e} | old_val]
+          [{Indices.published_date(data), title, e} | old_val]
           |> Enum.sort()
-          |> Enum.uniq_by(fn {_p, e} -> e end)
+          |> Enum.uniq_by(fn {_p, _t, e} -> e end)
 
         :ets.insert(@name_atom, {tag, insert})
       end

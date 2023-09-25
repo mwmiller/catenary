@@ -304,7 +304,7 @@ defmodule Catenary.Live.EntryViewer do
 
   defp extract_type(text, %{name: :test}) do
     %{
-      "title" => added_title("Test Post"),
+      "title" => Catenary.added_title("Test Post"),
       "back-refs" => [],
       "body" => maybe_text(text),
       "published" => :unknown
@@ -313,7 +313,7 @@ defmodule Catenary.Live.EntryViewer do
 
   defp extract_type(src_uri, %{name: mime}) when mime in @image_logs do
     %{
-      "title" => added_title("Image Added"),
+      "title" => Catenary.added_title("Image Added"),
       "back-refs" => [],
       "body" => Phoenix.HTML.raw("<img src=\"" <> src_uri <> "\">"),
       "published" => :unknown
@@ -325,7 +325,7 @@ defmodule Catenary.Live.EntryViewer do
       {:ok, data, ""} = CBOR.decode(cbor)
 
       Map.merge(data, %{
-        "title" => added_title("Alias: ~" <> data["alias"]),
+        "title" => Catenary.added_title("Alias: ~" <> data["alias"]),
         "body" => Phoenix.HTML.raw(key_link(data["whom"])),
         "back-refs" => maybe_refs(data["references"])
       })
@@ -339,7 +339,7 @@ defmodule Catenary.Live.EntryViewer do
       {:ok, data, ""} = CBOR.decode(cbor)
 
       Map.merge(data, %{
-        "title" => added_title("Profile Update"),
+        "title" => Catenary.added_title("Profile Update"),
         "body" =>
           Phoenix.HTML.raw(
             "Visit profile for latest view.  Maybe this will show the update someday."
@@ -358,7 +358,7 @@ defmodule Catenary.Live.EntryViewer do
       keys = data["mentions"] |> Enum.join(", ")
 
       Map.merge(data, %{
-        "title" => added_title("Mention"),
+        "title" => Catenary.added_title("Mention"),
         "body" => Phoenix.HTML.raw("Keys: " <> keys),
         "back-refs" => maybe_refs(data["references"])
       })
@@ -374,7 +374,7 @@ defmodule Catenary.Live.EntryViewer do
 
       common =
         Map.merge(data, %{
-          "title" => added_title(String.capitalize(data["action"])),
+          "title" => Catenary.added_title(String.capitalize(data["action"])),
           "back-refs" => maybe_refs(data["references"])
         })
 
@@ -415,7 +415,7 @@ defmodule Catenary.Live.EntryViewer do
       {:ok, data, ""} = CBOR.decode(cbor)
 
       Map.merge(data, %{
-        "title" => added_title("Reactions Added"),
+        "title" => Catenary.added_title("Reactions Added"),
         "body" => Enum.join(data["reactions"], " "),
         "back-refs" => maybe_refs(data["references"])
       })
@@ -437,7 +437,7 @@ defmodule Catenary.Live.EntryViewer do
         end
 
       %{
-        "title" => added_title("Oasis: " <> data["name"]),
+        "title" => Catenary.added_title("Oasis: " <> data["name"]),
         "body" => Phoenix.HTML.raw(body),
         "back-refs" => maybe_refs(data["references"]),
         "published" => data["running"]
@@ -464,7 +464,7 @@ defmodule Catenary.Live.EntryViewer do
       body = "<div>" <> Enum.join(tagdivs, "") <> "</div>"
 
       Map.merge(data, %{
-        "title" => added_title("Tags Added"),
+        "title" => Catenary.added_title("Tags Added"),
         "back-refs" => maybe_refs(data["references"]),
         "body" => Phoenix.HTML.raw(body)
       })
@@ -598,15 +598,13 @@ defmodule Catenary.Live.EntryViewer do
     "<div class=\"min-w-full p-2\"><h4>" <> ln <> "</h4><ul>" <> recents <> "</ul></div>"
   end
 
-  defp added_title(title), do: "⸤" <> title <> "⸣"
-
   defp text_post(cbor) do
     try do
       {:ok, data, ""} = CBOR.decode(cbor)
 
       title =
         case data["title"] do
-          <<>> -> added_title("untitled")
+          <<>> -> Catenary.added_title("untitled")
           t -> t
         end
 

@@ -21,6 +21,8 @@ defmodule Catenary do
                 end
               end)
 
+  def added_title(title), do: "⸤" <> title <> "⸣"
+
   def image_logs, do: @image_logs
 
   def mime_for_entry({_, l, _}) do

@@ -18,17 +18,17 @@ defmodule Catenary.Tagline do
 
     tagline =
       case :ets.lookup(:tags, {"", tag}) do
-        [] -> [{0, {a, l, e}}]
+        [] -> [{0, <<>>, {a, l, e}}]
         [{^ti, tl}] -> tl
       end
 
     wherearewe =
-      case Enum.find_index(tagline, fn {_, listed} -> listed == entry end) do
+      case Enum.find_index(tagline, fn {_, _, listed} -> listed == entry end) do
         nil -> 0
         n -> n
       end
 
-    {_t, to_entry} =
+    {_d, _t, to_entry} =
       case dir do
         :prev -> Enum.at(tagline, wherearewe - 1)
         :next -> Enum.at(tagline, wherearewe + 1, Enum.at(tagline, 0))

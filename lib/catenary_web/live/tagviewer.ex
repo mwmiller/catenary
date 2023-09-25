@@ -20,7 +20,7 @@ defmodule Catenary.Live.TagViewer do
         <hr/>
         <%= for {type, entries} <- @card do %>
           <h3  class="pt-5 text-slate-600 dark:text-slate-300"><%= type %></h3>
-        <div class="grid grid-cols-5 my-2">
+        <div class="grid grid-cols-3 my-2">
         <%= entries %>
       </div>
     <% end %>
@@ -33,7 +33,7 @@ defmodule Catenary.Live.TagViewer do
   defp extract(tag) do
     tag
     |> from_ets(:tags)
-    |> Enum.group_by(fn {_, {_, l, _}} -> QuaggaDef.base_log(l) end)
+    |> Enum.group_by(fn {_, _, {_, l, _}} -> QuaggaDef.base_log(l) end)
     |> Map.to_list()
     |> prettify([])
     |> Enum.sort(:asc)
@@ -42,12 +42,15 @@ defmodule Catenary.Live.TagViewer do
   defp prettify([], acc), do: acc
 
   defp prettify([{k, v} | rest], acc),
-    do: prettify(rest, [{Catenary.pretty_log_name(k), icon_entries(v)} | acc])
+    do: prettify(rest, [{Catenary.pretty_log_name(k), title_entries(v)} | acc])
 
-  defp icon_entries(entries) do
+  defp title_entries(entries) do
     entries
-    |> Enum.reduce("", fn {_d, e}, a ->
-      a <> "<div>" <> Catenary.entry_icon_link(e, 4) <> "</div>"
+    |> Enum.reduce("", fn {_d, t, {a, _, _} = e}, acc ->
+      {:safe, ava} = Catenary.scaled_avatar(a, 1, ["m-1", "float-left", "align-middle"])
+
+      acc <>
+        "<div>" <> ava <> Catenary.view_entry_button(e, t) <> "</div>"
     end)
     |> Phoenix.HTML.raw()
   end
