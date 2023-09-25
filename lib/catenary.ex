@@ -5,16 +5,7 @@ defmodule Catenary do
   Contexts are also responsible for managing your data, regardless
   if it comes from the database, an external API or others.
   """
-  @dets_tables %{
-    aliases: "aliases.dets",
-    graph: "social_graph.dets",
-    mentions: "mentions.dets",
-    prefs: "preferences.dets",
-    reactions: "reactions.dets",
-    references: "references.dets",
-    tags: "tags.dets",
-    timelines: "timelines.dets"
-  }
+  @dets_tables %{prefs: "preferences.dets"}
 
   @image_logs QuaggaDef.log_defs()
               |> Enum.reduce([], fn {_lid, %{type: t, name: n}}, a ->
