@@ -91,21 +91,12 @@ defmodule Catenary.IndexWorker.Images do
 
   defp accumulate_entries([], acc), do: acc
 
-  defp accumulate_entries([{src, {who, _, _} = entry} = full | rest], acc) do
-    ss =
-      case Preferences.shown?(entry) do
-        true -> :shown
-        false -> :unshown
-      end
-
-    na =
-      acc
-      |> tiered_insert(:shown, ss, full)
-      |> tiered_insert(:filesize, size_group(src), full)
-      |> tiered_insert(:type, Path.extname(src), full)
-      |> tiered_insert(:poster, who, full)
-
-    accumulate_entries(rest, na)
+  defp accumulate_entries([{src, {who, _, _}} = full | rest], acc) do
+    acc
+    |> tiered_insert(:filesize, size_group(src), full)
+    |> tiered_insert(:type, Path.extname(src), full)
+    |> tiered_insert(:poster, who, full)
+    |> then(fn a -> accumulate_entries(rest, a) end)
   end
 
   defp tiered_insert(map, first_tier, second_tier, val) do

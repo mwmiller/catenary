@@ -1,6 +1,4 @@
 defmodule Catenary.Preferences do
-  alias Catenary.Indices
-
   @moduledoc """
   End user preference persistence
   """
@@ -145,16 +143,12 @@ defmodule Catenary.Preferences do
     update(:shown, fn m ->
       Map.update(m, get(:clump_id), MapSet.new([entry]), fn ms -> MapSet.put(ms, entry) end)
     end)
-
-    indices_for_shown()
   end
 
   def mark_entry(:unshown, entry) do
     update(:shown, fn m ->
       Map.update(m, get(:clump_id), MapSet.new(), fn ms -> MapSet.delete(ms, entry) end)
     end)
-
-    indices_for_shown()
   end
 
   def mark_entries(:shown, entries) do
@@ -163,8 +157,6 @@ defmodule Catenary.Preferences do
         MapSet.union(ms, MapSet.new(entries))
       end)
     end)
-
-    indices_for_shown()
   end
 
   def mark_entries(:unshown, entries) do
@@ -173,11 +165,7 @@ defmodule Catenary.Preferences do
         MapSet.difference(ms, MapSet.new(entries))
       end)
     end)
-
-    indices_for_shown()
   end
-
-  defp indices_for_shown, do: Indices.update([:images])
 
   defp this_clump_shown_set(), do: get(:shown) |> Map.get(get(:clump_id), MapSet.new())
 

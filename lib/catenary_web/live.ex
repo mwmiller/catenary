@@ -100,7 +100,7 @@ defmodule CatenaryWeb.Live do
     ~L"""
      <%= explorebar(assigns) %>
      <div class="max-h-screen w-100 grid grid-cols-3 gap-2 justify-center">
-       <%= live_component(Catenary.Live.ImageExplorer, id: :images, entry: :shown, aliases: @aliases) %>
+       <%= live_component(Catenary.Live.ImageExplorer, id: :images, entry: :poster, aliases: @aliases) %>
        <%= activitybar(assigns) %>
      </div>
     """
