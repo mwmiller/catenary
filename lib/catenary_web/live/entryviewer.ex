@@ -304,7 +304,7 @@ defmodule Catenary.Live.EntryViewer do
 
   defp extract_type(text, %{name: :test}) do
     %{
-      "title" => Catenary.added_title("Test Post"),
+      "title" => Catenary.entry_title(:test, %{}),
       "back-refs" => [],
       "body" => maybe_text(text),
       "published" => :unknown
@@ -313,7 +313,7 @@ defmodule Catenary.Live.EntryViewer do
 
   defp extract_type(src_uri, %{name: mime}) when mime in @image_logs do
     %{
-      "title" => Catenary.added_title("Image Added"),
+      "title" => Catenary.entry_title(:image, %{}),
       "back-refs" => [],
       "body" => Phoenix.HTML.raw("<img src=\"" <> src_uri <> "\">"),
       "published" => :unknown
@@ -325,7 +325,7 @@ defmodule Catenary.Live.EntryViewer do
       {:ok, data, ""} = CBOR.decode(cbor)
 
       Map.merge(data, %{
-        "title" => Catenary.added_title("Alias: ~" <> data["alias"]),
+        "title" => Catenary.entry_title(:alias, data),
         "body" => Phoenix.HTML.raw(key_link(data["whom"])),
         "back-refs" => maybe_refs(data["references"])
       })
@@ -339,7 +339,7 @@ defmodule Catenary.Live.EntryViewer do
       {:ok, data, ""} = CBOR.decode(cbor)
 
       Map.merge(data, %{
-        "title" => Catenary.added_title("Profile Update"),
+        "title" => Catenary.entry_title(:about, data),
         "body" =>
           Phoenix.HTML.raw(
             "Visit profile for latest view.  Maybe this will show the update someday."
@@ -358,7 +358,7 @@ defmodule Catenary.Live.EntryViewer do
       keys = data["mentions"] |> Enum.join(", ")
 
       Map.merge(data, %{
-        "title" => Catenary.added_title("Mention"),
+        "title" => Catenary.entry_title(:mention, data),
         "body" => Phoenix.HTML.raw("Keys: " <> keys),
         "back-refs" => maybe_refs(data["references"])
       })
@@ -374,7 +374,7 @@ defmodule Catenary.Live.EntryViewer do
 
       common =
         Map.merge(data, %{
-          "title" => Catenary.added_title(String.capitalize(data["action"])),
+          "title" => Catenary.entry_title(:graph, data),
           "back-refs" => maybe_refs(data["references"])
         })
 
@@ -415,7 +415,7 @@ defmodule Catenary.Live.EntryViewer do
       {:ok, data, ""} = CBOR.decode(cbor)
 
       Map.merge(data, %{
-        "title" => Catenary.added_title("Reactions Added"),
+        "title" => Catenary.entry_title(:react, data),
         "body" => Enum.join(data["reactions"], " "),
         "back-refs" => maybe_refs(data["references"])
       })
@@ -437,7 +437,7 @@ defmodule Catenary.Live.EntryViewer do
         end
 
       %{
-        "title" => Catenary.added_title("Oasis: " <> data["name"]),
+        "title" => Catenary.entry_title(:oasis, data),
         "body" => Phoenix.HTML.raw(body),
         "back-refs" => maybe_refs(data["references"]),
         "published" => data["running"]
@@ -447,8 +447,8 @@ defmodule Catenary.Live.EntryViewer do
     end
   end
 
-  defp extract_type(cbor, %{name: :journal}), do: text_post(cbor)
-  defp extract_type(cbor, %{name: :reply}), do: text_post(cbor)
+  defp extract_type(cbor, %{name: type}) when type in [:journal, :reply],
+    do: text_post(type, cbor)
 
   defp extract_type(cbor, %{name: :tag}) do
     try do
@@ -464,7 +464,7 @@ defmodule Catenary.Live.EntryViewer do
       body = "<div>" <> Enum.join(tagdivs, "") <> "</div>"
 
       Map.merge(data, %{
-        "title" => Catenary.added_title("Tags Added"),
+        "title" => Catenary.entry_title(:tag, data),
         "back-refs" => maybe_refs(data["references"]),
         "body" => Phoenix.HTML.raw(body)
       })
@@ -598,18 +598,12 @@ defmodule Catenary.Live.EntryViewer do
     "<div class=\"min-w-full p-2\"><h4>" <> ln <> "</h4><ul>" <> recents <> "</ul></div>"
   end
 
-  defp text_post(cbor) do
+  defp text_post(type, cbor) do
     try do
       {:ok, data, ""} = CBOR.decode(cbor)
 
-      title =
-        case data["title"] do
-          <<>> -> Catenary.added_title("untitled")
-          t -> t
-        end
-
       Map.merge(data, %{
-        "title" => title,
+        "title" => Catenary.entry_title(type, data),
         "back-refs" => maybe_refs(data["references"]),
         "body" => data["body"] |> Earmark.as_html!() |> Phoenix.HTML.raw()
       })

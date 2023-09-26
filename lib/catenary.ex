@@ -21,7 +21,22 @@ defmodule Catenary do
                 end
               end)
 
-  def added_title(title), do: "⸤" <> title <> "⸣"
+  def entry_title(type, data) when type in [:jpeg, :png, :gif], do: entry_title(:image, data)
+  def entry_title(_type, %{"title" => title}), do: title
+  def entry_title(type, data), do: added_title(type, data)
+
+  defp added_title(type, data), do: type |> faux_title(data) |> wrap_added_title
+  defp faux_title(:test, _), do: "Test Post"
+  defp faux_title(:image, _), do: "Image Upload"
+  defp faux_title(:alias, %{"alias" => ali}), do: "Alias: ~" <> ali
+  defp faux_title(:about, _), do: "Profile Update"
+  defp faux_title(:mention, _), do: "Mention"
+  defp faux_title(:graph, %{"action" => act}), do: String.capitalize(act)
+  defp faux_title(:reaction, _), do: "Reaction"
+  defp faux_title(:oasis, %{"name" => name}), do: "Oasis: " <> name
+  defp faux_title(:tag, _), do: "Tagging"
+  defp faux_title(_, _), do: "untitled"
+  defp wrap_added_title(title), do: "⸤" <> title <> "⸣"
 
   def image_logs, do: @image_logs
 
