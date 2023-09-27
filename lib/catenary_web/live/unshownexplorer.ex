@@ -2,7 +2,7 @@ defmodule Catenary.Live.UnshownExplorer do
   require Logger
   use Phoenix.LiveComponent
 
-  @display_limit 17
+  @display_limit 11
   @impl true
   def update(%{which: which, clump_id: clump_id} = assigns, socket) do
     {:ok, assign(socket, Map.merge(assigns, %{card: extract(which, clump_id)}))}
@@ -20,7 +20,7 @@ defmodule Catenary.Live.UnshownExplorer do
       <hr/>
       <%= for {type, entries, estring, size} <- @card do %>
         <h3 class="text-slate-600 dark:text-slate-300"><button phx-click="shown-set" value="<%= estring %>">∅</button>&nbsp;&nbsp;<%= type %></h3>
-        <div class="grid grid-cols-5 my-2">
+        <div class="grid grid-cols-3 my-2">
         <%= entries %>
         <%= if size == :more do %>
         <p class="text-xs">(◎+)</p>
@@ -38,39 +38,57 @@ defmodule Catenary.Live.UnshownExplorer do
     |> MapSet.new()
     |> MapSet.difference(shown)
     |> MapSet.to_list()
-    |> group_entries()
+    |> group_entries(clump_id)
   end
 
   defp extract(_, _), do: :none
 
-  defp group_entries(entries) do
+  defp group_entries(entries, clump_id) do
     entries
     |> Enum.group_by(fn {_, l, _} -> QuaggaDef.base_log(l) end)
     |> Map.to_list()
-    |> prettify([])
+    |> prettify(clump_id)
     |> Enum.sort(:asc)
   end
 
-  defp prettify([], acc), do: acc
+  defp prettify(entries, clump_id, acc \\ [])
+  defp prettify([], _, acc), do: acc
 
-  defp prettify([{k, v} | rest], acc) do
+  defp prettify([{k, v} | rest], clump_id, acc) do
     size =
       case length(v) > @display_limit do
         true -> :more
         false -> :all
       end
 
-    display_list = v |> Enum.sort_by(&elem(&1, 2)) |> Enum.take(@display_limit) |> icon_entries()
+    display_list =
+      v |> Enum.sort_by(&elem(&1, 2)) |> Enum.take(@display_limit) |> display_entries(clump_id)
+
     group = {Catenary.pretty_log_name(k), display_list, Catenary.index_list_to_string(v), size}
 
-    prettify(rest, [group | acc])
+    prettify(rest, clump_id, [group | acc])
   end
 
-  defp icon_entries(entries) do
-    entries
-    |> Enum.reduce("", fn e, a ->
-      a <> "<div>" <> Catenary.entry_icon_link(e, 4) <> "</div>"
-    end)
-    |> Phoenix.HTML.raw()
+  defp display_entries(entries, clump_id, acc \\ [])
+
+  defp display_entries([], _, acc),
+    do: acc |> Enum.reverse() |> Enum.join("") |> Phoenix.HTML.raw()
+
+  defp display_entries([entry | rest], clump_id, acc),
+    do: display_entries(rest, clump_id, [for_display(entry, clump_id) | acc])
+
+  defp for_display({a, l, e} = entry, clump_id) do
+    val =
+      try do
+        %Baobab.Entry{payload: payload} = Baobab.log_entry(a, e, log_id: l, clump_id: clump_id)
+        # Some entries are not CBOR, we can just fail for now
+        # Likely more logic is coming.
+        {:ok, data, ""} = CBOR.decode(payload)
+        Catenary.avatar_view_entry_button(entry, Catenary.entry_title(l, data))
+      rescue
+        _ -> Catenary.entry_icon_link(entry, 4)
+      end
+
+    "<div>" <> val <> "</div>"
   end
 end

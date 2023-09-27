@@ -72,7 +72,8 @@ defmodule Catenary.Live.ImageExplorer do
     img_tag = "<img class=\"w-20 m-1\" src=" <> src <> ">"
 
     val =
-      ("<div class=\"flex-auto\">" <> Catenary.view_entry_button(entry, img_tag) <> "</div>")
+      ("<div class=\"flex-auto\">" <>
+         Catenary.avatar_view_entry_button(entry, img_tag) <> "</div>")
       |> Phoenix.HTML.raw()
 
     displayable(rest, [val | images])

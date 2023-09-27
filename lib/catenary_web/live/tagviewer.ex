@@ -46,11 +46,8 @@ defmodule Catenary.Live.TagViewer do
 
   defp title_entries(entries) do
     entries
-    |> Enum.reduce("", fn {_d, t, {a, _, _} = e}, acc ->
-      {:safe, ava} = Catenary.scaled_avatar(a, 1, ["m-1", "float-left", "align-middle"])
-
-      acc <>
-        "<div>" <> ava <> Catenary.view_entry_button(e, t) <> "</div>"
+    |> Enum.reduce("", fn {_d, t, e}, acc ->
+      acc <> "<div>" <> Catenary.avatar_view_entry_button(e, t) <> "</div>"
     end)
     |> Phoenix.HTML.raw()
   end

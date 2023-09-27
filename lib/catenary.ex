@@ -21,6 +21,11 @@ defmodule Catenary do
                 end
               end)
 
+  def entry_title(log_id, data) when is_integer(log_id) do
+    %{name: n} = QuaggaDef.log_def(log_id)
+    entry_title(n, data)
+  end
+
   def entry_title(type, data) when type in [:jpeg, :png, :gif], do: entry_title(:image, data)
   def entry_title(_type, %{"title" => ""}), do: wrap_added_title("untitled")
   def entry_title(_type, %{"title" => title}), do: title
@@ -191,6 +196,11 @@ defmodule Catenary do
     "<button value=\"" <>
       Catenary.index_to_string(entry) <>
       "\" phx-click=\"view-entry\">" <> contents <> "</button>"
+  end
+
+  def avatar_view_entry_button({a, _, _} = entry, contents) do
+    {:safe, ava} = Catenary.scaled_avatar(a, 1, ["m-1", "float-left", "align-middle"])
+    ava <> view_entry_button(entry, contents)
   end
 
   def entry_icon_link({a, _, _} = entry, size),

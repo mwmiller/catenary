@@ -56,8 +56,7 @@ defmodule Catenary.IndexWorker.Tags do
       # Now try to get a title from the original
       %Baobab.Entry{payload: pl} = Baobab.log_entry(oa, oe, log_id: ol, clump_id: clump_id)
       {:ok, od, ""} = CBOR.decode(pl)
-      %{name: n} = QuaggaDef.log_def(ol)
-      title = Catenary.entry_title(n, od)
+      title = Catenary.entry_title(ol, od)
 
       # Tags for entry
       old =
