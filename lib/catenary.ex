@@ -38,7 +38,7 @@ defmodule Catenary do
   defp faux_title(:about, _), do: "Profile Update"
   defp faux_title(:mention, _), do: "Mention"
   defp faux_title(:graph, %{"action" => act}), do: String.capitalize(act)
-  defp faux_title(:reaction, _), do: "Reaction"
+  defp faux_title(:react, _), do: "Reaction"
   defp faux_title(:oasis, %{"name" => name}), do: "Oasis: " <> name
   defp faux_title(:tag, _), do: "Tagging"
   defp faux_title(_, _), do: "untitled"
