@@ -41,27 +41,9 @@ defmodule Catenary do
     ])
   end
 
-  def alias_state() do
-    aliases =
-      :ets.match(:aliases, :"$1")
-      |> Enum.reject(fn [{a, _}] -> is_atom(a) end)
-      |> Enum.reduce(%{}, fn [{a, n}], acc -> Map.put(acc, a, n) end)
+  def alias_state(), do: {:ok, Catenary.State.get(:aliases)}
 
-    {:ok, aliases}
-  end
-
-  def profile_items_state() do
-    # This might become more complicated and inclusive later
-    whoami = Catenary.Preferences.get(:identity)
-
-    profile_items =
-      case :ets.lookup(:mentions, {"", whoami}) do
-        [] -> []
-        [{{"", ^whoami}, items}] -> Enum.map(items, fn {_t, e} -> e end)
-      end
-
-    {:ok, MapSet.new(profile_items)}
-  end
+  def profile_items_state(), do: {:ok, Catenary.State.get(:profile)}
 
   def oasis_state(clump_id) do
     # For now I am going to recreate the sorted by

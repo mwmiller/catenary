@@ -11,6 +11,7 @@ defmodule Catenary.IndexWorker.Mentions do
 
   def do_index(todo, clump_id) do
     todo |> build_index(clump_id)
+    Catenary.State.set_profile()
   end
 
   defp build_index([], _), do: :ok

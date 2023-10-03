@@ -63,7 +63,8 @@ defmodule Catenary.Application do
          menubar: prepare_menubar("MenuBar", menu_structure()),
          url: &CatenaryWeb.Endpoint.url/0
        ]},
-      Catenary.IndexSup
+      Catenary.IndexSup,
+      Catenary.State
     ]
 
     opts = [strategy: :one_for_one, name: Catenary.Supervisor]
