@@ -1,6 +1,7 @@
 defmodule Catenary.Live.UnshownExplorer do
   require Logger
   use Phoenix.LiveComponent
+  alias Catenary.Display
 
   @display_limit 11
   @impl true
@@ -64,7 +65,7 @@ defmodule Catenary.Live.UnshownExplorer do
     display_list =
       v |> Enum.sort_by(&elem(&1, 2)) |> Enum.take(@display_limit) |> display_entries(clump_id)
 
-    group = {Catenary.pretty_log_name(k), display_list, Catenary.index_list_to_string(v), size}
+    group = {Display.pretty_log_name(k), display_list, Catenary.index_list_to_string(v), size}
 
     prettify(rest, clump_id, [group | acc])
   end

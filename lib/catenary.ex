@@ -212,26 +212,6 @@ defmodule Catenary do
   def timeline_logs, do: @timeline_logs
   def random_timeline_log(), do: @timeline_logs |> Enum.random()
 
-  def pretty_log_name(log_id) do
-    case QuaggaDef.log_id_unpack(log_id) do
-      {base_log, _} ->
-        base_log
-        |> QuaggaDef.log_def()
-        |> Map.get(:name, :unknown)
-        |> cap_atom_string
-
-      _ ->
-        ""
-    end
-  end
-
-  def all_pretty_log_pairs() do
-    QuaggaDef.log_defs()
-    |> Enum.map(fn {_id, %{name: n}} -> {cap_atom_string(n), n} end)
-  end
-
-  defp cap_atom_string(a), do: a |> Atom.to_string() |> String.capitalize()
-
   # This should use the local indices eventually
   def blocked?({:profile, a}, clump_id), do: Baobab.ClumpMeta.blocked?(a, clump_id)
   def blocked?({a, _, _}, clump_id), do: Baobab.ClumpMeta.blocked?(a, clump_id)

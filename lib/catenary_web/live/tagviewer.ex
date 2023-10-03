@@ -1,6 +1,7 @@
 defmodule Catenary.Live.TagViewer do
   require Logger
   use Phoenix.LiveComponent
+  alias Catenary.Display
 
   @impl true
   def update(%{entry: tag} = assigns, socket) do
@@ -42,7 +43,7 @@ defmodule Catenary.Live.TagViewer do
   defp prettify([], acc), do: acc
 
   defp prettify([{k, v} | rest], acc),
-    do: prettify(rest, [{Catenary.pretty_log_name(k), title_entries(v)} | acc])
+    do: prettify(rest, [{Display.pretty_log_name(k), title_entries(v)} | acc])
 
   defp title_entries(entries) do
     entries

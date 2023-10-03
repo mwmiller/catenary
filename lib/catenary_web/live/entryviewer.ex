@@ -153,7 +153,7 @@ defmodule Catenary.Live.EntryViewer do
           groups =
             rev_order
             |> Enum.take(23)
-            |> Enum.group_by(fn {_, l, _} -> Catenary.pretty_log_name(l) end)
+            |> Enum.group_by(fn {_, l, _} -> Display.pretty_log_name(l) end)
             |> Enum.map(fn t -> group_list(t, settings) end)
             |> inna_box(cols: "1", border: "dotted")
 

@@ -40,4 +40,30 @@ defmodule Catenary.Display do
     """
     |> Phoenix.HTML.raw()
   end
+
+  @doc """
+  Turn an integer log_id into a "nice" string.
+  """
+  def pretty_log_name(log_id) do
+    case QuaggaDef.log_id_unpack(log_id) do
+      {base_log, _} ->
+        base_log
+        |> QuaggaDef.log_def()
+        |> Map.get(:name, :unknown)
+        |> cap_atom_string
+
+      _ ->
+        ""
+    end
+  end
+
+  @doc """
+  Return all known log types with an array of {pretty_string, atom}
+  """
+  def all_pretty_log_pairs() do
+    QuaggaDef.log_defs()
+    |> Enum.map(fn {_id, %{name: n}} -> {cap_atom_string(n), n} end)
+  end
+
+  defp cap_atom_string(a), do: a |> Atom.to_string() |> String.capitalize()
 end
