@@ -1,7 +1,7 @@
 defmodule Catenary.Live.EntryViewer do
   require Logger
   use Phoenix.LiveComponent
-  alias Catenary.Preferences
+  alias Catenary.{Preferences, Display}
 
   @image_logs Catenary.image_logs()
   @impl true
@@ -304,7 +304,7 @@ defmodule Catenary.Live.EntryViewer do
 
   defp extract_type(text, %{name: :test}) do
     %{
-      "title" => Catenary.Util.entry_title(:test, %{}),
+      "title" => Display.entry_title(:test, %{}),
       "back-refs" => [],
       "body" => maybe_text(text),
       "published" => :unknown
@@ -313,7 +313,7 @@ defmodule Catenary.Live.EntryViewer do
 
   defp extract_type(src_uri, %{name: mime}) when mime in @image_logs do
     %{
-      "title" => Catenary.Util.entry_title(:image, %{}),
+      "title" => Display.entry_title(:image, %{}),
       "back-refs" => [],
       "body" => Phoenix.HTML.raw("<img src=\"" <> src_uri <> "\">"),
       "published" => :unknown
@@ -325,7 +325,7 @@ defmodule Catenary.Live.EntryViewer do
       {:ok, data, ""} = CBOR.decode(cbor)
 
       Map.merge(data, %{
-        "title" => Catenary.Util.entry_title(:alias, data),
+        "title" => Display.entry_title(:alias, data),
         "body" => Phoenix.HTML.raw(key_link(data["whom"])),
         "back-refs" => maybe_refs(data["references"])
       })
@@ -339,7 +339,7 @@ defmodule Catenary.Live.EntryViewer do
       {:ok, data, ""} = CBOR.decode(cbor)
 
       Map.merge(data, %{
-        "title" => Catenary.Util.entry_title(:about, data),
+        "title" => Display.entry_title(:about, data),
         "body" =>
           Phoenix.HTML.raw(
             "Visit profile for latest view.  Maybe this will show the update someday."
@@ -358,7 +358,7 @@ defmodule Catenary.Live.EntryViewer do
       keys = data["mentions"] |> Enum.join(", ")
 
       Map.merge(data, %{
-        "title" => Catenary.Util.entry_title(:mention, data),
+        "title" => Display.entry_title(:mention, data),
         "body" => Phoenix.HTML.raw("Keys: " <> keys),
         "back-refs" => maybe_refs(data["references"])
       })
@@ -374,7 +374,7 @@ defmodule Catenary.Live.EntryViewer do
 
       common =
         Map.merge(data, %{
-          "title" => Catenary.Util.entry_title(:graph, data),
+          "title" => Display.entry_title(:graph, data),
           "back-refs" => maybe_refs(data["references"])
         })
 
@@ -415,7 +415,7 @@ defmodule Catenary.Live.EntryViewer do
       {:ok, data, ""} = CBOR.decode(cbor)
 
       Map.merge(data, %{
-        "title" => Catenary.Util.entry_title(:react, data),
+        "title" => Display.entry_title(:react, data),
         "body" => Enum.join(data["reactions"], " "),
         "back-refs" => maybe_refs(data["references"])
       })
@@ -437,7 +437,7 @@ defmodule Catenary.Live.EntryViewer do
         end
 
       %{
-        "title" => Catenary.Util.entry_title(:oasis, data),
+        "title" => Display.entry_title(:oasis, data),
         "body" => Phoenix.HTML.raw(body),
         "back-refs" => maybe_refs(data["references"]),
         "published" => data["running"]
@@ -464,7 +464,7 @@ defmodule Catenary.Live.EntryViewer do
       body = "<div>" <> Enum.join(tagdivs, "") <> "</div>"
 
       Map.merge(data, %{
-        "title" => Catenary.Util.entry_title(:tag, data),
+        "title" => Display.entry_title(:tag, data),
         "back-refs" => maybe_refs(data["references"]),
         "body" => Phoenix.HTML.raw(body)
       })
@@ -603,7 +603,7 @@ defmodule Catenary.Live.EntryViewer do
       {:ok, data, ""} = CBOR.decode(cbor)
 
       Map.merge(data, %{
-        "title" => Catenary.Util.entry_title(type, data),
+        "title" => Display.entry_title(type, data),
         "back-refs" => maybe_refs(data["references"]),
         "body" => data["body"] |> Earmark.as_html!() |> Phoenix.HTML.raw()
       })

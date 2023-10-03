@@ -84,7 +84,7 @@ defmodule Catenary.Live.UnshownExplorer do
         # Some entries are not CBOR, we can just fail for now
         # Likely more logic is coming.
         {:ok, data, ""} = CBOR.decode(payload)
-        Catenary.avatar_view_entry_button(entry, Catenary.Util.entry_title(l, data))
+        Catenary.avatar_view_entry_button(entry, Catenary.Display.entry_title(l, data))
       rescue
         _ -> Catenary.entry_icon_link(entry, 4)
       end

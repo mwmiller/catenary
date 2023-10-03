@@ -1,6 +1,6 @@
-defmodule Catenary.Util do
+defmodule Catenary.Display do
   @moduledoc """
-  Utility functions used across contexts.
+  Display formatting functions used across contexts.
   """
 
   @doc """
