@@ -1,6 +1,6 @@
 defmodule Catenary.Live.Navigation do
   use Phoenix.LiveComponent
-  alias Catenary.Preferences
+  alias Catenary.{Preferences, Display}
 
   @impl true
 
@@ -113,7 +113,7 @@ defmodule Catenary.Live.Navigation do
            <h3><%= Catenary.short_id(@whom, @aliases) %></h3>
          <label for="alias">～</label>
          <input class="bg-white dark:bg-black" name="alias" value="<%= @ali %>" type="text" size="16" />
-         <%= Catenary.log_submit_button %>
+         <%= Display.log_submit_button %>
        </form>
     </div>
     """
@@ -138,7 +138,7 @@ defmodule Catenary.Live.Navigation do
        <div>Unblock:</div><div><%= Catenary.scaled_avatar(@whom, 2) %></div><div><%= Catenary.short_id(@whom, @aliases) %></div>
        <div>Reason:</div><div class="grid-cols=2"><textarea class="bg-white dark:bg-black" name="reason" rows="4" cols="20"></textarea></div>
      </div>
-     <%= Catenary.log_submit_button %>
+     <%= Display.log_submit_button %>
     </form>
     </div>
     """
@@ -162,7 +162,7 @@ defmodule Catenary.Live.Navigation do
     <div>Block:</div><div><%= Catenary.scaled_avatar(@whom, 2) |> Phoenix.HTML.raw %></div><div><%= Catenary.short_id(@whom, @aliases) %></div>
            <div>Reason:</div><div class="grid-cols=2"><textarea class="bg-white dark:bg-black" name="reason" rows="4" cols="20"></textarea></div>
          </div>
-         <%= Catenary.log_submit_button %>
+         <%= Display.log_submit_button %>
        </form>
     </div>
     """
@@ -177,7 +177,7 @@ defmodule Catenary.Live.Navigation do
     <tr><td>About:</td><td><textarea class="bg-white dark:bg-black" rows=11 cols=31 name="description"><%= Catenary.about_key(@identity,"description") %></textarea></td></tr>
     <tr><td>Avatar:</td><td><input type="checkbox" class="bg-white dark:bg-black" name="keep-avatar" checked> keep</td></tr>
     </table>
-    <%= Catenary.log_submit_button %>
+    <%= Display.log_submit_button %>
     </form>
     </div>
     """
@@ -194,7 +194,7 @@ defmodule Catenary.Live.Navigation do
          <input type="hidden" name="ref" value="<%= Catenary.index_to_string(@entry) %>" />
          <% end %>
          <%= mention_inputs(4) %>
-         <%= Catenary.log_submit_button %>
+         <%= Display.log_submit_button %>
        </form>
     </div>
     """
@@ -211,7 +211,7 @@ defmodule Catenary.Live.Navigation do
          <input type="hidden" name="ref" value="<%= Catenary.index_to_string(@entry) %>">
          <p>
          <%= tag_inputs(4) %>
-         <%= Catenary.log_submit_button %>
+         <%= Display.log_submit_button %>
        </form>
       <% end %>
     </div>
@@ -229,7 +229,7 @@ defmodule Catenary.Live.Navigation do
              <input class="bg-white dark:bg-black" type="checkbox" name="reaction-<%= e %>" value="<%= e %>"> <%= e %><br>
             <% end %>
           <br>
-         <%= Catenary.log_submit_button %>
+         <%= Display.log_submit_button %>
        </form>
      <% end %>
     </div>
@@ -244,14 +244,14 @@ defmodule Catenary.Live.Navigation do
           <input type="hidden" name="log_id" value="360" />
           <input type="hidden" name="avatar" value="<%= Catenary.index_to_string(@entry) %>" />
           <h4> Set this image as your avatar</h4>
-          <%= Catenary.log_submit_button %>
+          <%= Display.log_submit_button %>
        </form>
        <br/><br/>
       <% end %>
       <form id="imageupload-form" phx-submit="image-save" phx-change="image-validate">
         <h4>Publish a new image</h4>
         <%= live_file_input(@uploads.image) %>
-        <%= Catenary.log_submit_button %>
+        <%= Display.log_submit_button %>
       </form>
       <p class="py-5">Please be considerate with file sizes.</p>
     </div>
@@ -317,7 +317,7 @@ defmodule Catenary.Live.Navigation do
       <textarea class="bg-white dark:bg-black" name="body" rows="8" cols="35"></textarea>
       <p>
       <%= if Preferences.accept_log_name?(:tag), do: tag_inputs(2) %>
-      <%= Catenary.log_submit_button %>
+      <%= Display.log_submit_button %>
     </form>
     """
   end

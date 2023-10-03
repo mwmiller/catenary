@@ -28,4 +28,16 @@ defmodule Catenary.Display do
   defp faux_title(:tag, _), do: "Tagging"
   defp faux_title(_, _), do: "untitled"
   defp wrap_added_title(title), do: "⸤" <> title <> "⸣"
+
+  # Let's not delve into why I hate using templates
+  @doc """
+  The standard button which indicates a log entry will be created.
+  """
+  def log_submit_button do
+    """
+    <hr/>
+    <button phx-disable-with="𝄇" type="submit">➲</button>
+    """
+    |> Phoenix.HTML.raw()
+  end
 end

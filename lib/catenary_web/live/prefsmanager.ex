@@ -1,6 +1,7 @@
 defmodule Catenary.Live.PrefsManager do
   use Phoenix.LiveComponent
   use Phoenix.HTML
+  alias Catenary.Display
 
   @impl true
   def update(assigns, socket) do
@@ -69,7 +70,7 @@ defmodule Catenary.Live.PrefsManager do
             <div><%= log_accept_input(a, @blocked) |> Phoenix.HTML.raw %>&nbsp;<%= s %> </div>
           <% end %>
     </div>
-        <%= Catenary.log_submit_button %>
+        <%= Display.log_submit_button %>
       </form>
     </div>
     </div>
