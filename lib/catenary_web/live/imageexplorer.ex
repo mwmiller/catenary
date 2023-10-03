@@ -1,6 +1,7 @@
 defmodule Catenary.Live.ImageExplorer do
   require Logger
   use Phoenix.LiveComponent
+  alias Catenary.Display
 
   @impl true
   def update(%{entry: which, aliases: aliases} = assigns, socket) do
@@ -58,7 +59,7 @@ defmodule Catenary.Live.ImageExplorer do
     # but all of this is very hasky anyway
     t =
       case is_binary(title) and byte_size(title) == 43 do
-        true -> Catenary.short_id(title, aliases)
+        true -> Display.short_id(title, aliases)
         false -> title
       end
 
@@ -73,7 +74,7 @@ defmodule Catenary.Live.ImageExplorer do
 
     val =
       ("<div class=\"flex-auto\">" <>
-         Catenary.avatar_view_entry_button(entry, img_tag) <> "</div>")
+         Display.avatar_view_entry_button(entry, img_tag) <> "</div>")
       |> Phoenix.HTML.raw()
 
     displayable(rest, [val | images])

@@ -55,7 +55,7 @@ defmodule Catenary.Live.Navigation do
     <div class="align-top min-w-full">
       <div class="flex flex-row-3 text-xl">
         <div class="flex-auto p-1 text-center">
-          <button value="origin" phx-click="nav"><%= Catenary.scaled_avatar(@identity, 2) |> Phoenix.HTML.raw %></button>
+          <button value="origin" phx-click="nav"><%= Display.scaled_avatar(@identity, 2) |> Phoenix.HTML.raw %></button>
           <%= if displayed_matches([:log, :profile], @displayed_info) do %>
            <%= post_button_for(:graph) %>
            <%= post_button_for(:alias) %>
@@ -109,8 +109,8 @@ defmodule Catenary.Live.Navigation do
          <input type="hidden" name="ref" value="<%= Catenary.index_to_string(@entry) %>" />
          <% end %>
          <input type="hidden" name="whom" value="<%= @whom %>" />
-         <%= Catenary.scaled_avatar(@whom, 4, ["mx-auto"]) |> Phoenix.HTML.raw %>
-           <h3><%= Catenary.short_id(@whom, @aliases) %></h3>
+         <%= Display.scaled_avatar(@whom, 4, ["mx-auto"]) |> Phoenix.HTML.raw %>
+           <h3><%= Display.short_id(@whom, @aliases) %></h3>
          <label for="alias">～</label>
          <input class="bg-white dark:bg-black" name="alias" value="<%= @ali %>" type="text" size="16" />
          <%= Display.log_submit_button %>
@@ -124,7 +124,7 @@ defmodule Catenary.Live.Navigation do
   defp extra_nav(%{:extra_nav => :graph, :blocked => true} = assigns) do
     ~L"""
     <div id="block">
-    <p class="my-5">You may unblock by submitting this form.  It will publish a 
+    <p class="my-5">You may unblock by submitting this form.  It will publish a
     public log entry to that effect.  Including a reason is optional.</p>
     <br>
     <form method="post" id="block-form" phx-submit="new-entry">
@@ -135,7 +135,7 @@ defmodule Catenary.Live.Navigation do
      <% end %>
      <input type="hidden" name="whom" value="<%= @whom %>" />
      <div class="w-100 grid grid-cols-3">
-       <div>Unblock:</div><div><%= Catenary.scaled_avatar(@whom, 2) %></div><div><%= Catenary.short_id(@whom, @aliases) %></div>
+       <div>Unblock:</div><div><%= Display.scaled_avatar(@whom, 2) %></div><div><%= Display.short_id(@whom, @aliases) %></div>
        <div>Reason:</div><div class="grid-cols=2"><textarea class="bg-white dark:bg-black" name="reason" rows="4" cols="20"></textarea></div>
      </div>
      <%= Display.log_submit_button %>
@@ -159,7 +159,7 @@ defmodule Catenary.Live.Navigation do
          <% end %>
          <input type="hidden" name="whom" value="<%= @whom %>" />
          <div class="w-100 grid grid-cols-3">
-    <div>Block:</div><div><%= Catenary.scaled_avatar(@whom, 2) |> Phoenix.HTML.raw %></div><div><%= Catenary.short_id(@whom, @aliases) %></div>
+    <div>Block:</div><div><%= Display.scaled_avatar(@whom, 2) |> Phoenix.HTML.raw %></div><div><%= Display.short_id(@whom, @aliases) %></div>
            <div>Reason:</div><div class="grid-cols=2"><textarea class="bg-white dark:bg-black" name="reason" rows="4" cols="20"></textarea></div>
          </div>
          <%= Display.log_submit_button %>

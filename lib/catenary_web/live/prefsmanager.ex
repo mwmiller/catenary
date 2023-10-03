@@ -14,7 +14,7 @@ defmodule Catenary.Live.PrefsManager do
 
     ~L"""
      <div id="identview-wrap" class="col-span-full overflow-y-auto max-h-screen m-2 p-x-2">
-       <div class="my-2 text-center min-w-full"><a href="/authors/<%= @identity %>"><%= Catenary.scaled_avatar(@identity, 8, ["mx-auto"])  %></a></div>
+       <div class="my-2 text-center min-w-full"><a href="/authors/<%= @identity %>"><%= Display.scaled_avatar(@identity, 8, ["mx-auto"])  %></a></div>
       <form method="post" id="clump-form" phx-change="clump-change">
         <label for"clump_id">🎋</label>
         <select name="clump_id" class="bg-white dark:bg-black">
@@ -34,8 +34,8 @@ defmodule Catenary.Live.PrefsManager do
           <tr class="my-10 border <%= if k == @identity, do: "bg-slate-300 border-stone-400 dark:bg-stone-600 dark:border-slate-900", else: "border-slate-200 dark:border-slate-800" %>">
             <td class="py-5"><input type="radio" name="selection" value="<%= n %>" <%= if k == @identity, do: "checked" %>></td>
             <td><input class="bg-white dark:bg-black" type="text" size=16 id="<%= n %>" value="<%= n %>" phx-blur="rename-id-<%= n %>" /></td>
-            <td><%= Catenary.scaled_avatar(k, 4, ["mx-auto"])  %></td>
-            <td><%= Catenary.linked_author(k, @aliases, :href) %></td>
+            <td><%= Display.scaled_avatar(k, 4, ["mx-auto"])  %></td>
+            <td><%= Display.linked_author(k, @aliases, :href) %></td>
             <td><%= log_info_string(@store, k) %></td>
             <td> <%= if k == @identity do %>⛒<% else %><input type="radio" name="drop" value="<%= n %>"><% end %></td>
           </tr>

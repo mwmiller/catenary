@@ -1,6 +1,7 @@
 defmodule Catenary.Live.AliasExplorer do
   require Logger
   use Phoenix.LiveComponent
+  alias Catenary.Display
 
   @impl true
   def update(%{alias: which, aliases: aliases} = assigns, socket) do
@@ -39,7 +40,7 @@ defmodule Catenary.Live.AliasExplorer do
   defp to_links(aliases, as) do
     aliases
     |> Enum.map(fn {a, _} ->
-      {:safe, html} = Catenary.linked_author(a, as)
+      {:safe, html} = Display.linked_author(a, as)
       "<div>" <> html <> "</div>"
     end)
     |> Phoenix.HTML.raw()

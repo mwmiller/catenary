@@ -1,5 +1,7 @@
 defmodule Catenary.Live.OasisBox do
   use Phoenix.LiveComponent
+  alias Catenary.Display
+
   @impl true
   def update(assigns, socket) do
     {:ok, nodes} = assigns.oases
@@ -39,9 +41,9 @@ defmodule Catenary.Live.OasisBox do
         1 -> "bg-slate-200 dark:bg-slate-700"
       end %>">
           <%= if op = recent["operator"], do:
-            Catenary.scaled_avatar(op, 1, ["m-1", "float-left", "align-middle"]) %>
-          <%= Catenary.scaled_avatar(elem(recent.id, 0), 2, ["m-1", "float-right", "align-middle"]) %>
-        <p><%= recent["name"] %> (<%= Catenary.linked_author(elem(recent.id, 0), @aliases) %>)
+            Display.scaled_avatar(op, 1, ["m-1", "float-left", "align-middle"]) %>
+          <%= Display.scaled_avatar(elem(recent.id, 0), 2, ["m-1", "float-right", "align-middle"]) %>
+        <p><%= recent["name"] %> (<%= Display.linked_author(elem(recent.id, 0), @aliases) %>)
         <%= if recent.connected do %>
           ⥀
         <% else %>

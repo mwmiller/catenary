@@ -78,9 +78,9 @@ defmodule Catenary.Live.EntryViewer do
     ~L"""
       <div id="entryview-wrap" class="col-span-2 overflow-y-auto max-h-screen m-2 p-x-2">
         <div class="min-w-full font-sans row-span-full">
-          <%= Catenary.scaled_avatar(@card["author"], 8, ["float-left",  "m-3"]) %>
+          <%= Display.scaled_avatar(@card["author"], 8, ["float-left",  "m-3"]) %>
           <h1><%= @card["title"] %></h1>
-          <p class="text-sm font-light"><%= Catenary.linked_author(@card["author"], @aliases) %> &mdash; <%= nice_time(@card["published"]) %></p>
+          <p class="text-sm font-light"><%= Display.linked_author(@card["author"], @aliases) %> &mdash; <%= nice_time(@card["published"]) %></p>
           <p><%= icon_entries(@card["back-refs"]) %>&nbsp;↹&nbsp;<%= icon_entries(@card["fore-refs"]) %></p>
         <hr class="mb-3"/>
          <div class="font-light">
@@ -256,7 +256,7 @@ defmodule Catenary.Live.EntryViewer do
           true -> from_ets(entry, :mentions)
           false -> []
         end
-        |> Enum.map(fn k -> Catenary.entry_icon_link({:profile, k}, 2) end)
+        |> Enum.map(fn k -> Display.entry_icon_link({:profile, k}, 2) end)
 
       all_refs = from_refs(entry)
 
@@ -474,7 +474,7 @@ defmodule Catenary.Live.EntryViewer do
   end
 
   defp key_link(key),
-    do: Catenary.entry_icon_link({:profile, key}, 2) <> "&nbsp;&nbsp; Key: " <> key
+    do: Display.entry_icon_link({:profile, key}, 2) <> "&nbsp;&nbsp; Key: " <> key
 
   defp nice_time(:unknown), do: "timeless"
   defp nice_time(:latest), do: "latest known"
@@ -578,7 +578,7 @@ defmodule Catenary.Live.EntryViewer do
   defp icon_entries([], acc), do: Phoenix.HTML.raw(acc)
 
   defp icon_entries([entry | rest], acc) do
-    icon_entries(rest, acc <> Catenary.entry_icon_link(entry, 2) <> "&nbsp;")
+    icon_entries(rest, acc <> Display.entry_icon_link(entry, 2) <> "&nbsp;")
   end
 
   defp group_list({ln, items}, settings) do
@@ -589,7 +589,7 @@ defmodule Catenary.Live.EntryViewer do
       |> Enum.reduce("", fn {e, vals}, acc ->
         acc <>
           "<li><button class=\"" <>
-          Enum.join(Catenary.maybe_border(e), " ") <>
+          Enum.join(Display.maybe_border(e), " ") <>
           "\" phx-click=\"view-entry\" value=\"" <>
           Catenary.index_to_string(e) <>
           "\">" <> vals["title"] <> "</button></li>"

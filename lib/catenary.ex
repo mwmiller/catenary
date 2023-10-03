@@ -41,16 +41,6 @@ defmodule Catenary do
     ])
   end
 
-  def short_id(id, {_, aliases}) do
-    string =
-      case Map.get(aliases, id) do
-        nil -> String.slice(id, 0..10)
-        ali -> ali
-      end
-
-    "~" <> string
-  end
-
   def alias_state() do
     aliases =
       :ets.match(:aliases, :"$1")
@@ -93,42 +83,6 @@ defmodule Catenary do
   defp find_id_for_key([{ali, key} | _], key), do: ali
   defp find_id_for_key([_ | rest], key), do: find_id_for_key(rest, key)
 
-  def scaled_avatar(id, mag, classes \\ []) do
-    ss = Integer.to_string(mag * 8)
-
-    uri =
-      case :ets.lookup(:avatars, id) do
-        [{^id, {a, l, e, cid}}] ->
-          p = image_src_for_entry({a, l, e}, cid)
-          :ets.insert(:avatars, {id, p})
-          p
-
-        [{^id, v}] ->
-          v
-
-        [] ->
-          val = write_svg_identicon(id, mag)
-
-          :ets.insert(:avatars, {id, val})
-          val
-      end
-
-    Phoenix.HTML.raw(
-      "<img class=\"" <>
-        Enum.join(classes, " ") <>
-        "\"  width=" <> ss <> " height=" <> ss <> " src=\"" <> uri <> "\">"
-    )
-  end
-
-  defp write_svg_identicon(id, mag) do
-    fs = Path.join([Application.app_dir(:catenary), "priv", "static"])
-    idd = Path.join(["/cat_images", "identicons"])
-    srv = Path.join([idd, id])
-    file = Path.join([fs, srv])
-    Excon.ident(id, type: :svg, magnification: mag, filename: file)
-    srv <> ".svg"
-  end
-
   @list_sep "‑"
   def index_list_to_string(indices) when is_list(indices) do
     indices |> Enum.map(fn i -> index_to_string(i) end) |> Enum.join(@list_sep)
@@ -153,43 +107,6 @@ defmodule Catenary do
       [a, l, e] -> {a, String.to_integer(l), String.to_integer(e)}
       [t, w] -> {String.to_existing_atom(t), w}
       _ -> :error
-    end
-  end
-
-  def linked_author(author, aliases, type \\ :button)
-  def linked_author({a, _, _}, aliases, type), do: linked_author(a, aliases, type)
-
-  def linked_author(a, aliases, :button) do
-    view_entry_button({:profile, a}, short_id(a, aliases)) |> Phoenix.HTML.raw()
-  end
-
-  def linked_author(a, aliases, :href) do
-    Phoenix.HTML.raw("<a href=\"/authors/" <> a <> "\">" <> short_id(a, aliases) <> "</a>")
-  end
-
-  def view_entry_button(entry, {:safe, contents}), do: view_entry_button(entry, contents)
-
-  def view_entry_button(entry, contents) do
-    "<button value=\"" <>
-      Catenary.index_to_string(entry) <>
-      "\" phx-click=\"view-entry\">" <> contents <> "</button>"
-  end
-
-  def avatar_view_entry_button({a, _, _} = entry, contents) do
-    {:safe, ava} = Catenary.scaled_avatar(a, 1, ["m-1", "float-left", "align-middle"])
-    ava <> view_entry_button(entry, contents)
-  end
-
-  def entry_icon_link({a, _, _} = entry, size),
-    do: view_entry_button(entry, scaled_avatar(a, size, maybe_border(entry)))
-
-  def entry_icon_link({:profile, a} = entry, size),
-    do: view_entry_button(entry, scaled_avatar(a, size, maybe_border(entry)))
-
-  def maybe_border(entry) do
-    case Catenary.Preferences.shown?(entry) do
-      true -> ["mx-auto"]
-      false -> ["mx-auto", "new-border", "rounded"]
     end
   end
 
