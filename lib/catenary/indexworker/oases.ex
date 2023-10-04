@@ -1,5 +1,4 @@
 defmodule Catenary.IndexWorker.Oases do
-  @name_atom :oases
   use Catenary.IndexWorker.Common,
     name_atom: :oases,
     indica: {"⇆", "⇄"},
@@ -14,25 +13,15 @@ defmodule Catenary.IndexWorker.Oases do
   def do_index(todo, clump_id) do
     todo
     |> extract_recents(clump_id, [])
-    |> build_index(@display_count, clump_id)
+    |> build_index(@display_count)
+    |> Catenary.State.update_oases()
   end
 
-  defp build_index(all, count, clump_id) do
-    recents =
-      all
-      |> Enum.sort_by(fn m -> Map.get(m, "running") end, :desc)
-      |> Enum.uniq_by(fn %{"host" => h, "port" => p} -> {h, p} end)
-      |> Enum.take(count)
-      |> Enum.reduce(%{}, fn i, m -> Map.put(m, i["name"], i) end)
-
-    prev =
-      case :ets.lookup(@name_atom, clump_id) do
-        [] -> %{}
-        [{^clump_id, items}] -> items
-      end
-
-    # We let the list grow if a newly named oasis is discovered
-    :ets.insert(@name_atom, {clump_id, Map.merge(prev, recents)})
+  defp build_index(all, count) do
+    all
+    |> Enum.sort_by(fn m -> Map.get(m, "running") end, :desc)
+    |> Enum.uniq_by(fn %{"host" => h, "port" => p} -> {h, p} end)
+    |> Enum.take(count)
   end
 
   defp extract_recents([], _, acc), do: acc

@@ -45,16 +45,9 @@ defmodule Catenary do
 
   def profile_items_state(), do: {:ok, Catenary.State.get(:profile)}
 
-  def oasis_state(clump_id) do
-    # For now I am going to recreate the sorted by
-    # recency experience. I don't expect it to persist
+  def oasis_state() do
     oasis_items =
-      case :ets.lookup(:oases, clump_id) do
-        [] -> %{}
-        [{^clump_id, items}] -> items
-      end
-      |> Map.values()
-      |> Enum.sort_by(fn m -> Map.get(m, "running") end, :desc)
+      Catenary.State.get(:oases)
       |> Enum.map(fn m -> Map.put(m, :connected, Baby.is_connected?({m["host"], m["port"]})) end)
 
     {:ok, oasis_items}

@@ -276,6 +276,7 @@ defmodule CatenaryWeb.Live do
     # It's essentially a whole new instance.
     # We need to drop a whole lot of state
     Catenary.Indices.reset()
+    Catenary.State.reset()
 
     {:noreply,
      state_set(socket, %{
@@ -479,7 +480,7 @@ defmodule CatenaryWeb.Live do
       shown_hash: Preferences.shown_hash(),
       store_hash: shash,
       store: si,
-      oases: Catenary.oasis_state(clump_id),
+      oases: Catenary.oasis_state(),
       # This is a place holder for interesting stats later
       # It is needed to make onboarding less confusing for now
       opened: Baby.Connection.Registry.active() |> Enum.count()
