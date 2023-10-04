@@ -18,7 +18,10 @@ defmodule Catenary.State do
   end
 
   def set_aliases(new_map) do
-    Agent.update(__MODULE__, fn s -> Map.merge(s, %{aliases: new_map}) end)
+    Agent.update(__MODULE__, fn s ->
+      %{aliases: prev} = s
+      Map.merge(s, %{aliases: Map.merge(prev, new_map)})
+    end)
   end
 
   def set_profile() do
