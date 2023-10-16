@@ -18,6 +18,7 @@ defmodule Catenary.Live.OasisExplorer do
 
   def render(%{nodes: []} = assigns) do
     ~L"""
+     <div id="oasisexplore-wrap" class="col-span-2 overflow-y-auto max-h-screen m-2 p-x-2">
     <div class="font-mono text-xs my-2">
       <div class="my-1 p-1 bg-slate-200 dark:bg-slate-700">
         No recent oases found.
@@ -29,11 +30,13 @@ defmodule Catenary.Live.OasisExplorer do
         <% end %>
       </div>
     </div>
+    </div>
     """
   end
 
   def render(assigns) do
     ~L"""
+     <div id="oasisexplore-wrap" class="col-span-2 overflow-y-auto max-h-screen m-2 p-x-2">
     <div class="font-mono text-xs py-2">
       <%= for {recent, index}  <- Enum.with_index(@nodes) do %>
         <div class="my-1 p-1 <%= case rem(index, 2)  do
@@ -52,6 +55,7 @@ defmodule Catenary.Live.OasisExplorer do
         </div>
       <% end %>
     </div>
+        </div>
     """
   end
 end
