@@ -128,6 +128,16 @@ defmodule CatenaryWeb.Live do
     """
   end
 
+  def render(%{view: :oases} = assigns) do
+    ~L"""
+       <%= explorebar(assigns) %>
+     <div class="max-h-screen w-100 grid grid-cols-3 gap-2 justify-center">
+       <%= live_component(Catenary.Live.OasisExplorer, id: :oases, oases: @oases, opened: @opened, aliases: @aliases) %>
+       <%= activitybar(assigns) %>
+     </div>
+    """
+  end
+
   def render(%{view: :entries} = assigns) do
     ~L"""
        <%= explorebar(assigns) %>
@@ -140,12 +150,16 @@ defmodule CatenaryWeb.Live do
 
   defp explorebar(assigns) do
     ~L"""
-        <div><button phx-click="toview" value="prefs"><%= @clump_id %></button> / <%= Display.linked_author(@identity, @aliases) %></div>
+        <div class="w-max p-5 flex flex-rows">
+        <div class="flex-auto"><button phx-click="toview" value="prefs"><%= @clump_id %></button> / <%= Display.linked_author(@identity, @aliases) %></div>
+        <div class-"flex-auto"><%= live_component(Catenary.Live.IndexStatus, id: :indices, indexing: @indexing) %></div>
+        </div>
         <div class="w-max explore grid grid-cols-12">
         <button value="unshown" phx-click="toview">◎</button>
         <button value="tags" phx-click="toview">#</button>
         <button value="aliases" phx-click="toview">~</button>
         <button value="images" phx-click="toview">҂</button>
+        <button value="oases" phx-click="toview">⇆</button>
         </div>
     """
   end
@@ -153,8 +167,6 @@ defmodule CatenaryWeb.Live do
   defp activitybar(assigns) do
     ~L"""
     <div>
-      <%= live_component(Catenary.Live.IndexStatus, id: :indices, indexing: @indexing) %>
-      <%= live_component(Catenary.Live.OasisBox, id: :recents, oases: @oases, opened: @opened, aliases: @aliases) %>
       <%= live_component(Catenary.Live.Navigation, id: :nav, uploads: @uploads, entry: @entry, extra_nav: @extra_nav, identity: @identity, view: @view, aliases: @aliases, entry_fore: @entry_fore, entry_back: @entry_back, clump_id: @clump_id) %>
     </div>
     """

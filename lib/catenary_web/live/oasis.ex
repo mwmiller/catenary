@@ -1,4 +1,4 @@
-defmodule Catenary.Live.OasisBox do
+defmodule Catenary.Live.OasisExplorer do
   use Phoenix.LiveComponent
   alias Catenary.Display
 
