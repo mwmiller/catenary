@@ -114,7 +114,9 @@ defmodule Catenary.Display do
     entry_title(n, data)
   end
 
-  def entry_title(type, data) when type in [:jpeg, :png, :gif], do: entry_title(:image, data)
+  @image_logs Catenary.image_logs()
+
+  def entry_title(type, data) when type in @image_logs, do: entry_title(:image, data)
   def entry_title(_type, %{"title" => ""}), do: wrap_added_title("untitled")
   def entry_title(_type, %{"title" => title}), do: title
   def entry_title(type, data), do: added_title(type, data)
