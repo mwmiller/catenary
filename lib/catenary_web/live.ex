@@ -150,16 +150,16 @@ defmodule CatenaryWeb.Live do
 
   defp explorebar(assigns) do
     ~L"""
-        <div class="w-max p-5 flex flex-rows">
+        <div class="mx-0.5 flex flex-rows">
         <div class="flex-auto"><button phx-click="toview" value="prefs"><%= @clump_id %></button> / <%= Display.linked_author(@identity, @aliases) %></div>
-        <div class-"flex-auto"><%= live_component(Catenary.Live.IndexStatus, id: :indices, indexing: @indexing) %></div>
-        </div>
-        <div class="w-max explore grid grid-cols-12">
+        <div class="flex-auto">
         <button value="unshown" phx-click="toview">◎</button>
         <button value="tags" phx-click="toview">#</button>
         <button value="aliases" phx-click="toview">~</button>
         <button value="images" phx-click="toview">҂</button>
         <button value="oases" phx-click="toview">⇆</button>
+        </div>
+        <div class-"flex-auto"><%= live_component(Catenary.Live.IndexStatus, id: :indices, indexing: @indexing) %></div>
         </div>
     """
   end
