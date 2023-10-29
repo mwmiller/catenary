@@ -172,7 +172,7 @@ defmodule CatenaryWeb.Live do
 
   defp activitybar(assigns) do
     ~L"""
-    <div>
+    <div class="mt-5">
       <%= live_component(Catenary.Live.Navigation, id: :nav, uploads: @uploads, entry: @entry, extra_nav: @extra_nav, identity: @identity, view: @view, aliases: @aliases, entry_fore: @entry_fore, entry_back: @entry_back, clump_id: @clump_id) %>
     </div>
     """
