@@ -109,7 +109,7 @@ defmodule Catenary.Live.EntryViewer do
   defp inna_box([], config, acc) do
     "<div class=\"p-3 m-5 border border-" <>
       Keyword.get(config, :border, "solid") <>
-      " grid " <> "grid-cols-" <> Keyword.get(config, :cols, "1") <> "\">" <> acc <> "</div>"
+      " flex flex-rows \">" <> acc <> "</div>"
   end
 
   defp inna_box(["" | rest], config, acc), do: inna_box(rest, config, acc)
@@ -155,7 +155,7 @@ defmodule Catenary.Live.EntryViewer do
             |> Enum.take(23)
             |> Enum.group_by(fn {_, l, _} -> Display.pretty_log_name(l) end)
             |> Enum.map(fn t -> group_list(t, settings) end)
-            |> inna_box(cols: "1", border: "dotted")
+            |> inna_box(border: "dotted")
 
           {groups, as_of}
       end
@@ -177,7 +177,7 @@ defmodule Catenary.Live.EntryViewer do
           items
           |> Enum.reduce([], fn {%{name: name}, [entry | _]}, a ->
             [
-              "<div class=\"p-1\"><button class=\"text-xs\" value=\"" <>
+              "<div class=\"flex-auto p-1\"><button class=\"text-xs\" value=\"" <>
                 Catenary.index_to_string(entry) <>
                 "\" phx-click=\"view-entry\">" <>
                 String.capitalize(Atom.to_string(name)) <> "</button></div>"
@@ -185,7 +185,7 @@ defmodule Catenary.Live.EntryViewer do
             ]
           end)
           |> Enum.reverse()
-          |> inna_box(cols: "5", border: "double")
+          |> inna_box(border: "double")
       end
 
     mentions =
@@ -595,7 +595,7 @@ defmodule Catenary.Live.EntryViewer do
           "\">" <> vals["title"] <> "</button></li>"
       end)
 
-    "<div class=\"min-w-full p-2\"><h4>" <> ln <> "</h4><ul>" <> recents <> "</ul></div>"
+    "<div class=\"flex-auto p-2\"><h4>" <> ln <> "</h4><ul>" <> recents <> "</ul></div>"
   end
 
   defp text_post(type, cbor) do
