@@ -64,7 +64,7 @@ defmodule Catenary.Live.Navigation do
         <div class="flex-auto p-1 text-center">
          <button value="prev-author" phx-click="nav">↥</button>
          <button value="prev-entry" phx-click="nav">⇜</button>
-         <button phx-click="toggle-stack">⍟</button>
+         <button phx-click="toggle-none">⍟</button>
          <button value="next-entry" phx-click="nav">⇝</button>
          <button value="next-author" phx-click="nav">↧</button>
        </div>
@@ -258,19 +258,7 @@ defmodule Catenary.Live.Navigation do
     """
   end
 
-  defp extra_nav(%{:extra_nav => :stack} = assigns) do
-    ~L"""
-    <div id="stack-nav" class="flex flex-row 5 mt-20">
-       <div class="flex-auto p-4 m-1 text-xl text-center <%= stack_color(@entry_back) %>" phx-click="nav-backward">⤶</div>
-       <div class="flex-auto p-4 m-1 text-xl text-center <%= stack_color(@entry_fore) %>" phx-click="nav-forward">⤷</div>
-    </div>
-    """
-  end
-
   defp extra_nav(_), do: ""
-
-  defp stack_color([]), do: "bg-zinc-50 dark:bg-gray-800"
-  defp stack_color(_), do: "bg-zinc-100 dark:bg-gray-900"
 
   @alias_logs QuaggaDef.logs_for_name(:alias)
 

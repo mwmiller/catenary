@@ -52,7 +52,7 @@ defmodule CatenaryWeb.Live do
          aliases: Catenary.alias_state(),
          profile_items: Catenary.profile_items_state(),
          view: view,
-         extra_nav: :stack,
+         extra_nav: :none,
          indexing: Catenary.Indices.status(),
          entry: entry,
          entry_fore: [],
@@ -153,6 +153,8 @@ defmodule CatenaryWeb.Live do
         <div class="mx-0.5 flex flex-rows">
         <div class="flex-auto"><button phx-click="toview" value="prefs"><%= @clump_id %></button> / <%= Display.linked_author(@identity, @aliases) %></div>
         <div class="flex-auto">
+        <button class="<%= stack_color(@entry_back) %>" phx-click="nav-backward">⤶</button>
+        <button class="<%= stack_color(@entry_fore) %>" phx-click="nav-forward">⤷</button>
         <button value="unshown" phx-click="toview">◎</button>
         <button value="tags" phx-click="toview">#</button>
         <button value="aliases" phx-click="toview">~</button>
@@ -161,8 +163,12 @@ defmodule CatenaryWeb.Live do
         </div>
         <div class-"flex-auto"><%= live_component(Catenary.Live.IndexStatus, id: :indices, indexing: @indexing) %></div>
         </div>
+      <hr/>
     """
   end
+
+  defp stack_color([]), do: "bg-zinc-50 dark:bg-gray-800"
+  defp stack_color(_), do: "bg-zinc-100 dark:bg-gray-900"
 
   defp activitybar(assigns) do
     ~L"""
@@ -379,7 +385,7 @@ defmodule CatenaryWeb.Live do
 
     show_now =
       case socket.assigns.extra_nav do
-        ^tog -> :stack
+        ^tog -> :none
         _ -> tog
       end
 
