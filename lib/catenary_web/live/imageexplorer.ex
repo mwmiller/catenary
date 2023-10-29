@@ -15,9 +15,7 @@ defmodule Catenary.Live.ImageExplorer do
 
   def render(assigns) do
     ~L"""
-     <div id="imageexplore-wrap" class="col-span-2 overflow-y-auto max-h-screen m-2 p-x-2">
-      <h1>Image Explorer</h1>
-      <hr/>
+    <%= Display.explore_wrap("image") %>
       <%= for a <- @card |> Map.keys |> Enum.sort do %>
         <button value="<%= a %>" phx-click="arrange" phx-target="<%= @myself %>"><p class="text-amber-900 dark:text-amber-100 <%= if @entry == a, do: "underline" %>"><%= a %></p></button>
 

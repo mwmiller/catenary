@@ -15,9 +15,7 @@ defmodule Catenary.Live.AliasExplorer do
 
   def render(assigns) do
     ~L"""
-     <div id="aliasexplore-wrap" class="col-span-2 overflow-y-auto max-h-screen m-2 p-x-2">
-      <h1 class="text=center">Alias Explorer</h1>
-      <hr/>
+    <%= Display.explore_wrap("alias") %>
       <div class="grid grid-cols-3 mt-10">
         <%= @card["aliases"] %>
       </div>

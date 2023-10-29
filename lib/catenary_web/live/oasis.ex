@@ -18,9 +18,7 @@ defmodule Catenary.Live.OasisExplorer do
 
   def render(%{nodes: []} = assigns) do
     ~L"""
-     <div id="oasisexplore-wrap" class="col-span-2 overflow-y-auto max-h-screen m-2 p-x-2">
-      <h1>Oasis Explorer</h1>
-      <hr/>
+    <%= Display.explore_wrap("Oasis") %>
     <div class="font-mono text-xs my-2">
       <div class="my-1 p-1 bg-slate-200 dark:bg-slate-700">
         No recent oases found.
