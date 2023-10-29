@@ -37,18 +37,15 @@ defmodule Catenary.IndexWorker.Images do
   defp files_to_entries([], acc), do: acc
 
   defp files_to_entries([file | rest], acc) do
-    file |> Path.relative_to(@img_cat)
+    with [clump_id, author, log_id, file] <- file |> Path.relative_to(@img_cat) |> Path.split(),
+         {l, ""} <- Integer.parse(log_id),
+         {e, ""} <- file |> Path.rootname() |> Integer.parse() do
+      entry = {author, l, e}
 
-    case file |> Path.relative_to(@img_cat) |> Path.split() do
-      [clump_id, author, log_id, file] ->
-        {l, ""} = Integer.parse(log_id)
-        {e, ""} = file |> Path.rootname() |> Integer.parse()
-        entry = {author, l, e}
-
-        files_to_entries(rest, [
-          {Catenary.image_src_for_entry(entry, clump_id), {author, l, e}} | acc
-        ])
-
+      files_to_entries(rest, [
+        {Catenary.image_src_for_entry(entry, clump_id), {author, l, e}} | acc
+      ])
+    else
       _ ->
         files_to_entries(rest, acc)
     end
