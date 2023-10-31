@@ -154,12 +154,12 @@ defmodule CatenaryWeb.Live do
         <div class="flex-auto"><button phx-click="toview" value="prefs"><%= @clump_id %></button> / <%= Display.linked_author(@identity, @aliases) %></div>
         <div class="flex-auto">
         <button class="<%= stack_color(@entry_back) %>" phx-click="nav-backward">⤶</button>
-        <button class="<%= stack_color(@entry_fore) %>" phx-click="nav-forward">⤷</button>
-        <button value="unshown" phx-click="toview">◎</button>
         <button value="tags" phx-click="toview">#</button>
+        <button value="oases" phx-click="toview">⇆</button>
+        <button value="unshown" phx-click="toview">◎</button>
         <button value="aliases" phx-click="toview">~</button>
         <button value="images" phx-click="toview">҂</button>
-        <button value="oases" phx-click="toview">⇆</button>
+        <button class="<%= stack_color(@entry_fore) %>" phx-click="nav-forward">⤷</button>
         </div>
         <div class-"flex-auto"><%= live_component(Catenary.Live.IndexStatus, id: :indices, indexing: @indexing) %></div>
         </div>
