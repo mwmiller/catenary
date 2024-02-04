@@ -163,17 +163,6 @@ defmodule Catenary.Display do
   end
 
   @doc """
-  Wrap Explorer items
-  """
-  def explore_wrap(which) do
-    ("<div id=\"" <>
-       which <>
-       "-explore-wrap\" class=\"col-span-2 overflow-y-auto max-h-screen m-2 p-x-2\">" <>
-       "<h1>" <> String.capitalize(which) <> " Explorer</h1><hr/>")
-    |> Phoenix.HTML.raw()
-  end
-
-  @doc """
   Return all known log types with an array of {pretty_string, atom}
   """
   def all_pretty_log_pairs() do

@@ -1,7 +1,6 @@
 defmodule Catenary.Live.TagExplorer do
   require Logger
   use Phoenix.LiveComponent
-  alias Catenary.Display
 
   @impl true
   def update(%{entry: which} = assigns, socket) do
@@ -14,12 +13,14 @@ defmodule Catenary.Live.TagExplorer do
   def render(%{card: :error} = assigns), do: Catenary.GeneriCard.error_card(assigns)
 
   def render(assigns) do
-    ~L"""
-    <%= Display.explore_wrap("tag") %>
-        <%= for g <-  @card["tags"] do %>
-      <div class="grid grid-cols-3 mt-10">
-        <%= g %>
-      </div>
+    ~H"""
+    <div id="tag-explore-wrap" class="col-span-2 overflow-y-auto max-h-screen m-2 p-x-2">
+      <h1>Tag Explorer</h1>
+      <hr />
+      <%= for g <-  @card["tags"] do %>
+        <div class="grid grid-cols-3 mt-10">
+          <%= g %>
+        </div>
       <% end %>
     </div>
     """

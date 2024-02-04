@@ -5,23 +5,24 @@ defmodule Catenary.GeneriCard do
   # lack of implementations
   @impl true
   def render(assigns) do
-    ~L"""
+    ~H"""
+
     """
   end
 
   def no_data_card(assigns) do
-    ~L"""
-      <div id="no-data" class="min-w-full font-sans col-span-2 max-h-screen m-2">
-        <h1>No data just yet</h1>
-      </div>
+    ~H"""
+    <div id="no-data" class="min-w-full font-sans col-span-2 max-h-screen m-2">
+      <h1>No data just yet</h1>
+    </div>
     """
   end
 
   def error_card(assigns) do
-    ~L"""
-      <div id="no-data" class="min-w-full font-sans col-span-2 max-h-screen m-2">
-        <h1>Unrenderable card</h1>
-      </div>
+    ~H"""
+    <div id="no-data" class="min-w-full font-sans col-span-2 max-h-screen m-2">
+      <h1>Unrenderable card</h1>
+    </div>
     """
   end
 end

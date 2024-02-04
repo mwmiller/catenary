@@ -15,18 +15,22 @@ defmodule Catenary.Live.UnshownExplorer do
   def render(%{card: :error} = assigns), do: Catenary.GeneriCard.error_card(assigns)
 
   def render(assigns) do
-    ~L"""
-    <%= Display.explore_wrap("unshown") %>
+    ~H"""
+    <div id="unshown-explore-wrap" class="col-span-2 overflow-y-auto max-h-screen m-2 p-x-2">
+      <h1>Unshown Explorer</h1>
+      <hr />
       <%= for {type, entries, estring, size} <- @card do %>
-        <h3 class="text-slate-600 dark:text-slate-300"><button phx-click="shown-set" value="<%= estring %>">∅</button>&nbsp;&nbsp;<%= type %></h3>
+        <h3 class="text-slate-600 dark:text-slate-300">
+          <button phx-click="shown-set" value="{ estring }">∅</button>&nbsp;&nbsp;<%= type %>
+        </h3>
         <div class="grid grid-cols-3 my-2">
-        <%= entries %>
-        <%= if size == :more do %>
-        <p class="text-xs">(◎+)</p>
-        <% end %>
+          <%= entries %>
+          <%= if size == :more do %>
+            <p class="text-xs">(◎+)</p>
+          <% end %>
         </div>
       <% end %>
-     </div>
+    </div>
     """
   end
 

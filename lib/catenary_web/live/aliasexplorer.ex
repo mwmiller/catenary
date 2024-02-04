@@ -14,8 +14,10 @@ defmodule Catenary.Live.AliasExplorer do
   def render(%{card: :error} = assigns), do: Catenary.GeneriCard.error_card(assigns)
 
   def render(assigns) do
-    ~L"""
-    <%= Display.explore_wrap("alias") %>
+    ~H"""
+    <div id="alias-explore-wrap" class="col-span-2 overflow-y-auto max-h-screen m-2 p-x-2">
+      <h1>Alias Explorer</h1>
+      <hr />
       <div class="grid grid-cols-3 mt-10">
         <%= @card["aliases"] %>
       </div>

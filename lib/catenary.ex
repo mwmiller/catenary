@@ -109,6 +109,8 @@ defmodule Catenary do
   def blocked?({a, _, _}, clump_id), do: Baobab.ClumpMeta.blocked?(a, clump_id)
   def blocked?(_, _), do: false
 
+  def about_key(dude, key) when is_atom(key), do: about_key(dude, Atom.to_string(key))
+
   def about_key(dude, key) do
     case :ets.lookup(:about, dude) do
       [{_, vals}] -> Map.get(vals, key, "")

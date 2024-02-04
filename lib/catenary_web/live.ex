@@ -69,111 +69,169 @@ defmodule CatenaryWeb.Live do
   end
 
   def render(%{view: :prefs} = assigns) do
-    ~L"""
-     <div class="max-h-screen w-100 grid grid-cols-3 gap-2 justify-center">
-       <%= live_component(Catenary.Live.PrefsManager, id: :prefs, clumps: @clumps, clump_id: @clump_id, identity: @identity, identities: @identities, store: @store, facet_id: @facet_id, aliases: @aliases) %>
-     </div>
+    ~H"""
+    <div class="max-h-screen w-100 grid grid-cols-3 gap-2 justify-center">
+      <.live_component
+        module={Catenary.Live.PrefsManager}
+        id={:prefs}
+        clumps={@clumps}
+        clump_id={@clump_id}
+        identity={@identity}
+        identities={@identities}
+        store={@store}
+        facet_id={@facet_id}
+        aliases={@aliases}
+      />
+    </div>
     """
   end
 
-  def render(%{view: :entries, entry: {:tag, tag}} = assigns) do
-    ~L"""
-     <%= explorebar(assigns) %>
-     <div class="max-h-screen w-100 grid grid-cols-3 gap-2 justify-center">
-       <%= live_component(Catenary.Live.TagViewer, id: :tags, entry: tag ) %>
-       <%= activitybar(assigns) %>
-     </div>
+  def render(%{view: :entries, entry: {:tag, _}} = assigns) do
+    ~H"""
+    <%= explorebar(assigns) %>
+    <div class="max-h-screen w-100 grid grid-cols-3 gap-2 justify-center">
+      <.live_component module={Catenary.Live.TagViewer} id={:tags} entry={elem(@entry, 1)} ) />
+      <%= activitybar(assigns) %>
+    </div>
     """
   end
 
   def render(%{view: :tags} = assigns) do
-    ~L"""
-     <%= explorebar(assigns) %>
-     <div class="max-h-screen w-100 grid grid-cols-3 gap-2 justify-center">
-       <%= live_component(Catenary.Live.TagExplorer, id: :tags, entry: @entry) %>
-       <%= activitybar(assigns) %>
-     </div>
+    ~H"""
+    <%= explorebar(assigns) %>
+    <div class="max-h-screen w-100 grid grid-cols-3 gap-2 justify-center">
+      <.live_component module={Catenary.Live.TagExplorer} id={:tags} entry={@entry} />
+      <%= activitybar(assigns) %>
+    </div>
     """
   end
 
   def render(%{view: :images} = assigns) do
-    ~L"""
-     <%= explorebar(assigns) %>
-     <div class="max-h-screen w-100 grid grid-cols-3 gap-2 justify-center">
-       <%= live_component(Catenary.Live.ImageExplorer, id: :images, entry: :poster, aliases: @aliases) %>
-       <%= activitybar(assigns) %>
-     </div>
+    ~H"""
+    <%= explorebar(assigns) %>
+    <div class="max-h-screen w-100 grid grid-cols-3 gap-2 justify-center">
+      <.live_component
+        module={Catenary.Live.ImageExplorer}
+        id={:images}
+        entry={:poster}
+        aliases={@aliases}
+      />
+      <%= activitybar(assigns) %>
+    </div>
     """
   end
 
   # shown_hash lets type-marking be reactive in the page
   # oases lets us know when thing might be moving
   def render(%{view: :unshown} = assigns) do
-    ~L"""
-     <%= explorebar(assigns) %>
-     <div class="max-h-screen w-100 grid grid-cols-3 gap-2 justify-center">
-       <%= live_component(Catenary.Live.UnshownExplorer, id: :unshown, which: @entry, clump_id: @clump_id, oases: @oases, shown_hash: @shown_hash) %>
-       <%= activitybar(assigns) %>
-     </div>
+    ~H"""
+    <%= explorebar(assigns) %>
+    <div class="max-h-screen w-100 grid grid-cols-3 gap-2 justify-center">
+      <.live_component
+        module={Catenary.Live.UnshownExplorer}
+        id={:unshown}
+        which={@entry}
+        clump_id={@clump_id}
+        oases={@oases}
+        shown_hash={@shown_hash}
+      />
+      <%= activitybar(assigns) %>
+    </div>
     """
   end
 
   def render(%{view: :aliases} = assigns) do
-    ~L"""
-       <%= explorebar(assigns) %>
-     <div class="max-h-screen w-100 grid grid-cols-3 gap-2 justify-center">
-       <%= live_component(Catenary.Live.AliasExplorer, id: :aliases, alias: :all, aliases: @aliases) %>
-       <%= activitybar(assigns) %>
-     </div>
+    ~H"""
+    <%= explorebar(assigns) %>
+    <div class="max-h-screen w-100 grid grid-cols-3 gap-2 justify-center">
+      <.live_component
+        module={Catenary.Live.AliasExplorer}
+        id={:aliases}
+        alias={:all}
+        aliases={@aliases}
+      />
+      <%= activitybar(assigns) %>
+    </div>
     """
   end
 
   def render(%{view: :oases} = assigns) do
-    ~L"""
-       <%= explorebar(assigns) %>
-     <div class="max-h-screen w-100 grid grid-cols-3 gap-2 justify-center">
-       <%= live_component(Catenary.Live.OasisExplorer, id: :oases, oases: @oases, opened: @opened, aliases: @aliases) %>
-       <%= activitybar(assigns) %>
-     </div>
+    ~H"""
+    <%= explorebar(assigns) %>
+    <div class="max-h-screen w-100 grid grid-cols-3 gap-2 justify-center">
+      <.live_component
+        module={Catenary.Live.OasisExplorer}
+        id={:oases}
+        oases={@oases}
+        opened={@opened}
+        aliases={@aliases}
+      />
+      <%= activitybar(assigns) %>
+    </div>
     """
   end
 
   def render(%{view: :entries} = assigns) do
-    ~L"""
-       <%= explorebar(assigns) %>
+    ~H"""
+    <%= explorebar(assigns) %>
     <div class="max-h-screen w-100 grid grid-cols-3 gap-2 justify-center">
-      <%= live_component(Catenary.Live.EntryViewer, id: :entry, store: @store, identity: @identity, entry: @entry, clump_id: @clump_id, aliases: @aliases) %>
+      <.live_component
+        module={Catenary.Live.EntryViewer}
+        id={:entry}
+        store={@store}
+        identity={@identity}
+        entry={@entry}
+        clump_id={@clump_id}
+        aliases={@aliases}
+      />
       <%= activitybar(assigns) %>
     </div>
     """
   end
 
   defp explorebar(assigns) do
-    ~L"""
-        <div class="mx-0.5 flex flex-rows">
-        <div class="flex-auto"><button phx-click="toview" value="prefs"><%= @clump_id %></button> / <%= Display.linked_author(@identity, @aliases) %></div>
-        <div class="flex-auto">
-        <button class="<%= stack_color(@entry_back) %>" phx-click="nav-backward">⤶</button>
+    ~H"""
+    <div class="mx-0.5 flex flex-rows">
+      <div class="flex-auto">
+        <button phx-click="toview" value="prefs"><%= @clump_id %></button>
+        / <%= Display.linked_author(@identity, @aliases) %>
+      </div>
+      <div class="flex-auto">
+        <button class="{ stack_color(@entry_back) }" phx-click="nav-backward">⤶</button>
         <button value="tags" phx-click="toview">#</button>
         <button value="oases" phx-click="toview">⇆</button>
         <button value="unshown" phx-click="toview">◎</button>
         <button value="aliases" phx-click="toview">~</button>
         <button value="images" phx-click="toview">҂</button>
-        <button class="<%= stack_color(@entry_fore) %>" phx-click="nav-forward">⤷</button>
-        </div>
-        <div class-"flex-auto"><%= live_component(Catenary.Live.IndexStatus, id: :indices, indexing: @indexing) %></div>
-        </div>
-      <hr/>
+        <button class="{ stack_color(@entry_fore) }" phx-click="nav-forward">⤷</button>
+      </div>
+      <div class="flex-auto">
+        <.live_component module={Catenary.Live.IndexStatus} id={:indices} indexing={@indexing} />
+      </div>
+    </div>
+    <hr />
     """
   end
 
-  defp stack_color([]), do: "bg-zinc-50 dark:bg-gray-800"
-  defp stack_color(_), do: "bg-zinc-100 dark:bg-gray-900"
+  def stack_color([]), do: "bg-zinc-50 dark:bg-gray-800"
+  def stack_color(_), do: "bg-zinc-100 dark:bg-gray-900"
 
   defp activitybar(assigns) do
-    ~L"""
+    ~H"""
     <div class="mt-5">
-      <%= live_component(Catenary.Live.Navigation, id: :nav, uploads: @uploads, entry: @entry, extra_nav: @extra_nav, identity: @identity, view: @view, aliases: @aliases, entry_fore: @entry_fore, entry_back: @entry_back, clump_id: @clump_id) %>
+      <.live_component
+        module={Catenary.Live.Navigation}
+        id={:nav}
+        uploads={@uploads}
+        entry={@entry}
+        extra_nav={@extra_nav}
+        identity={@identity}
+        view={@view}
+        aliases={@aliases}
+        entry_fore={@entry_fore}
+        entry_back={@entry_back}
+        clump_id={@clump_id}
+      />
     </div>
     """
   end

@@ -64,7 +64,7 @@ defmodule Catenary.Live.EntryViewer do
   def render(%{card: :error} = assigns), do: Catenary.GeneriCard.error_card(assigns)
 
   def render(%{card: :blocked} = assigns) do
-    ~L"""
+    ~H"""
       <div id="block-wrap" class="col-span-2 overflow-y-auto max-h-screen m-2 p-x-2">
       <div class="min-w-full font-sans row-span-full">
         <h1>Blocked</h1>
@@ -75,7 +75,7 @@ defmodule Catenary.Live.EntryViewer do
   end
 
   def render(assigns) do
-    ~L"""
+    ~H"""
       <div id="entryview-wrap" class="col-span-2 overflow-y-auto max-h-screen m-2 p-x-2">
         <div class="min-w-full font-sans row-span-full">
           <%= Display.scaled_avatar(@card["author"], 8, ["float-left",  "m-3"]) %>
