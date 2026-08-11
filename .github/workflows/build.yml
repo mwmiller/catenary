@@ -1,0 +1,157 @@
+name: build
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      draft:
+        description: "Draft a GitHub Release"
+        type: boolean
+        default: false
+
+env:
+  CARGO_TERM_COLOR: auto
+  MIX_ENV: prod
+
+jobs:
+  backend:
+    name: Elixir backend (Burrito) ${{ matrix.target }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { os: macos-14, target: macos, triple: aarch64-apple-darwin }
+          - { os: ubuntu-22.04, target: linux, triple: x86_64-unknown-linux-gnu }
+          - { os: macos-14, target: windows, triple: x86_64-pc-windows-msvc }
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Set up Elixir/Erlang/Zig/XZ via mise
+        uses: jdx/mise-action@v17
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          install: true
+          tools: |
+            elixir@1.20.3-otp-29
+            erlang@29.0.5
+            zig@0.16.0
+            xz
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.triple }}
+
+      - name: Configure Burrito target
+        run: echo "BURRITO_TARGET=${{ matrix.target }}" >> $GITHUB_ENV
+
+      - name: Install Hex + deps + deps unlock
+        run: |
+          mix local.hex --force
+          mix deps.get
+          mix deps.unlock --unused
+
+      - name: Compile + test + assets
+        run: |
+          mix compile --warnings-as-errors
+          mix test
+          mix assets.deploy
+
+      - name: Build Burrito release
+        run: mix release --overwrite
+
+      - name: Locate artifact
+        id: artifact
+        run: |
+          case "${{ matrix.target }}" in
+            macos)   a=burrito_out/catenary_macos ;;
+            linux)   a=burrito_out/catenary_linux ;;
+            windows) a=burrito_out/catenary_windows.exe ;;
+          esac
+          echo "artifact=$a" >> $GITHUB_OUTPUT
+          echo "name=catenary-${{ matrix.target }}" >> $GITHUB_OUTPUT
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: backend-${{ matrix.target }}
+          path: ${{ steps.artifact.outputs.artifact }}
+
+  shell:
+    name: Native shell (Tauri)
+    needs: backend
+    runs-on: macos-14
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Rust (stable)
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Install Tauri CLI
+        run: npm install -g @tauri-apps/cli@latest
+
+      - name: Set up build tools via mise
+        uses: jdx/mise-action@v17
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          install: true
+          tools: |
+            zig@0.16.0
+            xz
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: backend-macos
+          path: src-tauri/binaries
+
+      - name: Rename sidecar to the compile-time name Tauri expects
+        run: |
+          mv src-tauri/binaries/catenary_macos \
+             src-tauri/binaries/catenary-backend-aarch64-apple-darwin
+          chmod +x src-tauri/binaries/catenary-backend-aarch64-apple-darwin
+
+      - name: Build signed .app (when signing secrets are configured)
+        if: ${{ secrets.APPLE_CERTIFICATE != '' }}
+        env:
+          APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
+          APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+          APPLE_PROVISIONING_PROFILE: ${{ secrets.APPLE_PROVISIONING_PROFILE }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+        run: tauri build --bundles app
+
+      - name: Build unsigned .app
+        if: ${{ secrets.APPLE_CERTIFICATE == '' }}
+        run: tauri build --bundles app --no-sign
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: backend-linux
+          path: src-tauri/binaries
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: backend-windows
+          path: src-tauri/binaries
+
+      - name: Stage release assets
+        run: |
+          mkdir -p release
+          cp -R src-tauri/target/release/bundle/macos/Catenary.app release/
+          mv src-tauri/binaries/catenary_macos release/catenary-backend
+          [ -f src-tauri/binaries/catenary_linux ] && mv src-tauri/binaries/catenary_linux release/catenary-backend-linux
+          [ -f src-tauri/binaries/catenary_windows.exe ] && mv src-tauri/binaries/catenary_windows.exe release/catenary-backend-windows.exe
+          ls -la release
+
+      - name: Create GitHub Release
+        if: github.event_name == 'workflow_dispatch' && inputs.draft == true
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: "v${{ github.sha }}"
+          draft: true
+          files: release/*

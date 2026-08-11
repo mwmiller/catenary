@@ -28,9 +28,12 @@
   },
   "bundle": {
     "active": true,
-    "targets": ["app", "dmg"],
+    "targets": ["app"],
     "externalBin": ["binaries/catenary-backend"],
-    "icon": ["icons/icon.png", "icons/icon.icns"]
+    "icon": ["icons/icon.png", "icons/icon.icns"],
+    "macOS": {
+      "entitlements": "entitlements.plist"
+    }
   },
   "plugins": {}
 }
