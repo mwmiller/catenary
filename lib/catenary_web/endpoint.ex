@@ -1,5 +1,5 @@
 defmodule CatenaryWeb.Endpoint do
-  use Desktop.Endpoint, otp_app: :catenary
+  use Phoenix.Endpoint, otp_app: :catenary
 
   # The session will be stored in the cookie and signed,
   # this means its contents can be read but not tampered with.

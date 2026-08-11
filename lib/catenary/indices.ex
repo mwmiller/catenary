@@ -1,5 +1,4 @@
 defmodule Catenary.Indices do
-  require Logger
   alias Catenary.IndexWorker.Status
 
   @moduledoc """

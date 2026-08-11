@@ -4,7 +4,6 @@ defmodule Catenary.Application do
   @moduledoc false
 
   alias Catenary.Preferences
-  require Catenary.MenuMaker
 
   use Application
 
@@ -42,8 +41,6 @@ defmodule Catenary.Application do
 
     File.mkdir_p(Path.join([img_root, "identicons"]))
 
-    winsize = Preferences.get(:winsize)
-
     children = [
       {Baby.Application, spool_dir: spool_dir(), clumps: clumps},
       # Start the Telemetry supervisor
@@ -52,17 +49,6 @@ defmodule Catenary.Application do
       {Phoenix.PubSub, name: Catenary.PubSub},
       # Start the Endpoint (http/https)
       CatenaryWeb.Endpoint,
-      # Start a worker by calling: Catenary.Worker.start_link(arg)
-      # {Catenary.Worker, arg}
-      {Desktop.Window,
-       [
-         app: :catenary,
-         title: "Catenary",
-         size: winsize,
-         id: CatenaryWindow,
-         menubar: prepare_menubar("MenuBar", menu_structure()),
-         url: &CatenaryWeb.Endpoint.url/0
-       ]},
       Catenary.IndexSup,
       Catenary.State
     ]
@@ -90,45 +76,5 @@ defmodule Catenary.Application do
   def config_change(changed, _new, removed) do
     CatenaryWeb.Endpoint.config_change(changed, removed)
     :ok
-  end
-
-  def prepare_menubar(name, structure) do
-    full_name = Module.concat("Catenary", name)
-    Catenary.MenuMaker.generate(full_name, structure)
-
-    case Code.ensure_compiled(full_name) do
-      {:module, module} -> module
-      {:error, why} -> raise(why)
-    end
-  end
-
-  defp menu_structure do
-    [
-      {"File",
-       [
-         %{label: "Dashboard", command: "dashboard", action: %{view: :dashboard, entry: :none}},
-         %{label: "Preferences...", command: "prefs", action: %{view: :prefs, entry: :none}},
-         :rule,
-         %{label: "Reset view", command: "reset"},
-         :rule,
-         %{label: "Quit", command: "quit"}
-       ]},
-      {"Explore",
-       [
-         %{label: "Unshown", command: "unshown", action: %{view: :unshown, entry: :all}},
-         %{label: "Tags", command: "tag", action: %{view: :tags, entry: :all}},
-         %{label: "Aliases", command: "alias", action: %{view: :aliases, entry: :all}},
-         %{label: "Images", command: "image", action: %{view: :images, entry: :all}},
-         :rule,
-         %{label: "Journals", command: "journal", action: %{view: :entries, entry: :journal}},
-         %{label: "Replies", command: "reply", action: %{view: :entries, entry: :reply}},
-         %{label: "Reactions", command: "react", action: %{view: :entries, entry: :react}},
-         %{label: "Mentions", command: "mention", action: %{view: :entries, entry: :mention}},
-         :rule,
-         %{label: "Test posts", command: "test", action: %{view: :entries, entry: :test}},
-         :rule,
-         %{label: "Oases", command: "oasis", action: %{view: :entries, entry: :oasis}}
-       ]}
-    ]
   end
 end

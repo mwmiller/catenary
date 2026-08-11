@@ -1,14 +1,14 @@
 defmodule CatenaryWeb do
   @moduledoc """
   The entrypoint for defining your web interface, such
-  as controllers, views, channels and so on.
+  as controllers, live views, live components and so on.
 
   This can be used in your application as:
 
       use CatenaryWeb, :controller
-      use CatenaryWeb, :view
+      use CatenaryWeb, :live_view
 
-  The definitions below will be executed for every view,
+  The definitions below will be executed for every live view,
   controller, etc, so keep them short and clean, focused
   on imports, uses and aliases.
 
@@ -19,34 +19,18 @@ defmodule CatenaryWeb do
 
   def controller do
     quote do
-      use Phoenix.Controller, namespace: CatenaryWeb
+      use Phoenix.Controller, formats: [html: "HTML", json: "JSON"]
 
       import Plug.Conn
-      import CatenaryWeb.Gettext
+      use Gettext, backend: CatenaryWeb.Gettext
       import Phoenix.LiveView.Controller
-      alias CatenaryWeb.Router.Helpers, as: Routes
-    end
-  end
-
-  def view do
-    quote do
-      use Phoenix.View,
-        root: "lib/catenary_web/templates",
-        namespace: CatenaryWeb
-
-      # Import convenience functions from controllers
-      import Phoenix.Controller,
-        only: [get_flash: 1, get_flash: 2, view_module: 1, view_template: 1]
-
-      # Include shared imports and aliases for views
-      unquote(view_helpers())
     end
   end
 
   def live_view do
     quote do
       use Phoenix.LiveView,
-        layout: {CatenaryWeb.LayoutView, :live}
+        layout: {CatenaryWeb.Layouts, :live}
 
       unquote(view_helpers())
     end
@@ -70,27 +54,53 @@ defmodule CatenaryWeb do
     end
   end
 
+  def html do
+    quote do
+      use Phoenix.Component
+
+      # Import convenience functions from controllers
+      import Phoenix.HTML
+
+      # Include shared imports and aliases for views
+      unquote(html_helpers())
+    end
+  end
+
+  defp html_helpers do
+    quote do
+      # Routes generation with the ~p sigil
+      unquote(verified_routes())
+
+      use Gettext, backend: CatenaryWeb.Gettext
+    end
+  end
+
+  def verified_routes do
+    quote do
+      use Phoenix.VerifiedRoutes,
+        endpoint: CatenaryWeb.Endpoint,
+        router: CatenaryWeb.Router,
+        as: :Routes,
+        statics: ~w(assets)
+    end
+  end
+
   def channel do
     quote do
       use Phoenix.Channel
-      import CatenaryWeb.Gettext
+      use Gettext, backend: CatenaryWeb.Gettext
     end
   end
 
   defp view_helpers do
     quote do
-      # Use all HTML functionality (forms, tags, etc)
-      use Phoenix.HTML
+      # Import LiveView helpers (live_render, live_patch, <.form>, etc)
+      import Phoenix.LiveView
 
-      # Import LiveView and .heex helpers (live_render, live_patch, <.form>, etc)
-      import Phoenix.Component
+      # Routes generation with the ~p sigil
+      unquote(verified_routes())
 
-      # Import basic rendering functionality (render, render_layout, etc)
-      import Phoenix.View
-
-      import CatenaryWeb.ErrorHelpers
-      import CatenaryWeb.Gettext
-      alias CatenaryWeb.Router.Helpers, as: Routes
+      use Gettext, backend: CatenaryWeb.Gettext
     end
   end
 

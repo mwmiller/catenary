@@ -13,7 +13,6 @@ defmodule Catenary.IndexWorker.Common do
 
     quote do
       use GenServer
-      require Logger
       alias Catenary.{Preferences, Indices}
       alias Catenary.IndexWorker.Status
 
