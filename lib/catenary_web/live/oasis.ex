@@ -48,25 +48,21 @@ defmodule Catenary.Live.OasisExplorer do
       <div class="font-mono text-xs py-2">
         <%= for {recent, index}  <- Enum.with_index(@nodes) do %>
           <div
-            class="my-1 p-1"
-            { case rem(index, 2) do
-                0 -> :off
-               1 -> :on
-              end}
-            %
+            class={"my-1 p-1 " <> if(rem(index, 2) == 0, do: @off, else: @on)}
           >
-            <%= if op = recent["operator"],
-              do: Display.scaled_avatar(op, 1, ["m-1", "float-left", "align-middle"]) %>
-            <%= Display.scaled_avatar(elem(recent.id, 0), 2, ["m-1", "float-right", "align-middle"]) %>
+            <%= if op = recent["operator"] do
+              Phoenix.HTML.raw(Display.scaled_avatar(op, 1, ["m-1", "float-left", "align-middle"]))
+            end %>
+            <%= Phoenix.HTML.raw(Display.scaled_avatar(elem(recent.id, 0), 2, ["m-1", "float-right", "align-middle"])) %>
             <p>
-              <%= recent["name"] %> (<%= Display.linked_author(elem(recent.id, 0), @aliases) %>)
+              <%= recent["name"] %> (<%= Phoenix.HTML.raw(Display.linked_author(elem(recent.id, 0), @aliases)) %>)
               <%= if recent.connected do %>
                 ⥀
               <% else %>
                 <button
                   phx-click="connect"
                   phx-disable-with="↯"
-                  value="{Catenary.index_to_string(recent.id)}"
+                  value={Catenary.index_to_string(recent.id)}
                 >
                   ⇆
                 </button>

@@ -108,13 +108,13 @@ defmodule Catenary.Live.Navigation do
       <form method="post" id="alias-form" phx-submit="new-entry">
         <input type="hidden" name="log_id" value="53" />
         <%= if displayed_matches([:log], @displayed_info) do %>
-          <input type="hidden" name="ref" value="{ Catenary.index_to_string(@entry) }" />
+          <input type="hidden" name="ref" value={Catenary.index_to_string(@entry)} />
         <% end %>
-        <input type="hidden" name="whom" value="{ @whom }" />
+        <input type="hidden" name="whom" value={@whom} />
         <%= Display.scaled_avatar(@whom, 4, ["mx-auto"]) |> Phoenix.HTML.raw() %>
         <h3><%= Display.short_id(@whom, @aliases) %></h3>
         <label for="alias">～</label>
-        <input class="bg-white dark:bg-black" name="alias" value="{ @ali }" type="text" size="16" />
+        <input class="bg-white dark:bg-black" name="alias" value={@ali} type="text" size="16" />
         <%= Display.log_submit_button() %>
       </form>
     </div>
@@ -133,9 +133,9 @@ defmodule Catenary.Live.Navigation do
         <input type="hidden" name="log_id" value="1337" />
         <input type="hidden" name="action" value="unblock" />
         <%= if displayed_matches([:log], @displayed_info) do %>
-          <input type="hidden" name="ref" value="{Catenary.index_to_string(@recent.id)}" />
+          <input type="hidden" name="ref" value={Catenary.index_to_string(@recent.id)} />
         <% end %>
-        <input type="hidden" name="whom" value="{ @whom }" />
+        <input type="hidden" name="whom" value={@whom} />
         <div class="w-100 grid grid-cols-3">
           <div>Unblock:</div>
           <div><%= Display.scaled_avatar(@whom, 2) %></div>
@@ -162,9 +162,9 @@ defmodule Catenary.Live.Navigation do
         <input type="hidden" name="log_id" value="1337" />
         <input type="hidden" name="action" value="block" />
         <%= if displayed_matches([:log], @displayed_info) do %>
-          <input type="hidden" name="ref" value="{Catenary.index_to_string(@entry)}" />
+          <input type="hidden" name="ref" value={Catenary.index_to_string(@entry)} />
         <% end %>
-        <input type="hidden" name="whom" value="{ @whom }" />
+        <input type="hidden" name="whom" value={@whom} />
         <div class="w-100 grid grid-cols-3">
           <div>Block:</div>
           <div><%= Display.scaled_avatar(@whom, 2) |> Phoenix.HTML.raw() %></div>
@@ -192,7 +192,7 @@ defmodule Catenary.Live.Navigation do
                 type="text"
                 class="bg-white dark:bg-black"
                 name="name"
-                value="{ Catenary.about_key(@identity, :name) }"
+                value={Catenary.about_key(@identity, :name)}
               />
             </td>
           </tr>
@@ -223,7 +223,7 @@ defmodule Catenary.Live.Navigation do
       <form method="post" id="mention-form" phx-submit="new-entry">
         <input type="hidden" name="log_id" value="121" />
         <%= if displayed_matches([:log], @displayed_info) do %>
-          <input type="hidden" name="ref" value="{ Catenary.index_to_string(@entry) }" />
+          <input type="hidden" name="ref" value={Catenary.index_to_string(@entry)} />
         <% end %>
         <%= mention_inputs(4) %>
         <%= Display.log_submit_button() %>
@@ -240,7 +240,7 @@ defmodule Catenary.Live.Navigation do
       <%= if displayed_matches([:log], @displayed_info) do %>
         <form method="post" id="tag-form" phx-submit="new-entry">
           <input type="hidden" name="log_id" value="749" />
-          <input type="hidden" name="ref" value="{ Catenary.index_to_string(@entry) }" />
+          <input type="hidden" name="ref" value={Catenary.index_to_string(@entry)} />
           <p>
             <%= tag_inputs(4) %>
           </p>
@@ -257,9 +257,9 @@ defmodule Catenary.Live.Navigation do
       <%= if displayed_matches([:log], @displayed_info) do %>
         <form method="post" id="reaction-form" phx-submit="new-entry">
           <input type="hidden" name="log_id" value="101" />
-          <input type="hidden" name="ref" value="{ Catenary.index_to_string(@entry) }" />
+          <input type="hidden" name="ref" value={Catenary.index_to_string(@entry)} />
           <%= for e <- Catenary.Reactions.available() do %>
-            <input class="bg-white dark:bg-black" type="checkbox" name="reaction-{ e }" value="{ e }" />
+            <input class="bg-white dark:bg-black" type="checkbox" name={"reaction-" <> e} value={e} />
             <%= e %><br />
           <% end %>
           <br />
@@ -276,7 +276,7 @@ defmodule Catenary.Live.Navigation do
       <%= if displayed_matches(Catenary.image_logs(), @displayed_info) do %>
         <form id="set-avatar-form" phx-submit="new-entry">
           <input type="hidden" name="log_id" value="360" />
-          <input type="hidden" name="avatar" value="{ Catenary.index_to_string(@entry) }" />
+          <input type="hidden" name="avatar" value={Catenary.index_to_string(@entry)} />
           <h4>Set this image as your avatar</h4>
           <%= Display.log_submit_button() %>
         </form>
@@ -330,13 +330,13 @@ defmodule Catenary.Live.Navigation do
 
     ~H"""
     <form method="post" id="posting-form" phx-submit="new-entry">
-      <input type="hidden" name="log_id" value="{ QuaggaDef.base_log(which) }" />
+      <input type="hidden" name="log_id" value={QuaggaDef.base_log(@which)} />
       <%= if @which == :reply do %>
-        <input type="hidden" name="ref" value="{ Catenary.index_to_string(@entry) }" />
+        <input type="hidden" name="ref" value={Catenary.index_to_string(@entry)} />
       <% end %>
       <br />
       <label for="title"><%= posting_icon(@which) %></label>
-      <input class="bg-white dark:bg-black" type="text" value="{ @st }" name="title" />
+      <input class="bg-white dark:bg-black" type="text" value={@st} name="title" />
       <br />
       <textarea class="bg-white dark:bg-black" name="body" rows="8" cols="35"></textarea>
       <p>
@@ -368,13 +368,7 @@ defmodule Catenary.Live.Navigation do
   defp posting_icon(:journal), do: "✎̟"
   defp posting_icon(:image), do: "̟҂"
 
-  defp displayed_matches(list, displayed), do: displayed_matches(list, displayed, false)
-
-  defp displayed_matches([], _, false), do: false
-  defp displayed_matches(_, _, true), do: true
-
-  defp displayed_matches([this | rest], displayed, acc),
-    do: displayed_matches(rest, displayed, acc or displayed_match(this, displayed))
+  defp displayed_matches(list, displayed), do: Enum.any?(list, &displayed_match(&1, displayed))
 
   defp displayed_match(desired, displayed) do
     # This is intended to simplify checks elsewhere

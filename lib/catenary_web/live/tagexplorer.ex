@@ -1,5 +1,4 @@
 defmodule Catenary.Live.TagExplorer do
-  require Logger
   use Phoenix.LiveComponent
 
   @impl true

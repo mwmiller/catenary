@@ -20,24 +20,15 @@ defmodule CatenaryWeb.Live do
 
     facet_id = Preferences.get(:facet_id)
 
-    # Enable context menu in webview
-    # Its nice enough I guess, but mostly here as a reminder
-    # that I want to figure out how to enable my unicode keyboard
-    # and other conveniences.
-    :wx.set_env(Desktop.Env.wx_env())
-
-    CatenaryWindow
-    |> Desktop.Window.webview()
-    |> :wxWebView.enableContextMenu()
-
-    # At present this only happens in the profile page
-    # It might be better to have this and the associate logic there
-    # But my previous factorings have evertyhign here, so this one is too for now
-
     upsock =
       socket
       |> assign(:uploaded_files, [])
       |> allow_upload(:image, accept: ~w(.jpg .jpeg .png .gif), max_entries: 1)
+
+    if connected?(socket) do
+      {w, h} = Preferences.get(:winsize)
+      push_event(upsock, "window-init", %{"width" => w, "height" => h})
+    end
 
     if Preferences.get(:autosync) and connected?(socket), do: Process.send(self(), :sync, [])
 
@@ -88,27 +79,27 @@ defmodule CatenaryWeb.Live do
 
   def render(%{view: :entries, entry: {:tag, _}} = assigns) do
     ~H"""
-    <%= explorebar(assigns) %>
+    {explorebar(assigns)}
     <div class="max-h-screen w-100 grid grid-cols-3 gap-2 justify-center">
       <.live_component module={Catenary.Live.TagViewer} id={:tags} entry={elem(@entry, 1)} ) />
-      <%= activitybar(assigns) %>
+      {activitybar(assigns)}
     </div>
     """
   end
 
   def render(%{view: :tags} = assigns) do
     ~H"""
-    <%= explorebar(assigns) %>
+    {explorebar(assigns)}
     <div class="max-h-screen w-100 grid grid-cols-3 gap-2 justify-center">
       <.live_component module={Catenary.Live.TagExplorer} id={:tags} entry={@entry} />
-      <%= activitybar(assigns) %>
+      {activitybar(assigns)}
     </div>
     """
   end
 
   def render(%{view: :images} = assigns) do
     ~H"""
-    <%= explorebar(assigns) %>
+    {explorebar(assigns)}
     <div class="max-h-screen w-100 grid grid-cols-3 gap-2 justify-center">
       <.live_component
         module={Catenary.Live.ImageExplorer}
@@ -116,7 +107,7 @@ defmodule CatenaryWeb.Live do
         entry={:poster}
         aliases={@aliases}
       />
-      <%= activitybar(assigns) %>
+      {activitybar(assigns)}
     </div>
     """
   end
@@ -125,7 +116,7 @@ defmodule CatenaryWeb.Live do
   # oases lets us know when thing might be moving
   def render(%{view: :unshown} = assigns) do
     ~H"""
-    <%= explorebar(assigns) %>
+    {explorebar(assigns)}
     <div class="max-h-screen w-100 grid grid-cols-3 gap-2 justify-center">
       <.live_component
         module={Catenary.Live.UnshownExplorer}
@@ -135,14 +126,14 @@ defmodule CatenaryWeb.Live do
         oases={@oases}
         shown_hash={@shown_hash}
       />
-      <%= activitybar(assigns) %>
+      {activitybar(assigns)}
     </div>
     """
   end
 
   def render(%{view: :aliases} = assigns) do
     ~H"""
-    <%= explorebar(assigns) %>
+    {explorebar(assigns)}
     <div class="max-h-screen w-100 grid grid-cols-3 gap-2 justify-center">
       <.live_component
         module={Catenary.Live.AliasExplorer}
@@ -150,14 +141,14 @@ defmodule CatenaryWeb.Live do
         alias={:all}
         aliases={@aliases}
       />
-      <%= activitybar(assigns) %>
+      {activitybar(assigns)}
     </div>
     """
   end
 
   def render(%{view: :oases} = assigns) do
     ~H"""
-    <%= explorebar(assigns) %>
+    {explorebar(assigns)}
     <div class="max-h-screen w-100 grid grid-cols-3 gap-2 justify-center">
       <.live_component
         module={Catenary.Live.OasisExplorer}
@@ -166,7 +157,7 @@ defmodule CatenaryWeb.Live do
         opened={@opened}
         aliases={@aliases}
       />
-      <%= activitybar(assigns) %>
+      {activitybar(assigns)}
     </div>
     """
   end
@@ -197,13 +188,13 @@ defmodule CatenaryWeb.Live do
         / <%= Display.linked_author(@identity, @aliases) %>
       </div>
       <div class="flex-auto">
-        <button class="{ stack_color(@entry_back) }" phx-click="nav-backward">⤶</button>
+        <button class={stack_color(@entry_back)} phx-click="nav-backward">⤶</button>
         <button value="tags" phx-click="toview">#</button>
         <button value="oases" phx-click="toview">⇆</button>
         <button value="unshown" phx-click="toview">◎</button>
         <button value="aliases" phx-click="toview">~</button>
         <button value="images" phx-click="toview">҂</button>
-        <button class="{ stack_color(@entry_fore) }" phx-click="nav-forward">⤷</button>
+        <button class={stack_color(@entry_fore)} phx-click="nav-forward">⤷</button>
       </div>
       <div class="flex-auto">
         <.live_component module={Catenary.Live.IndexStatus} id={:indices} indexing={@indexing} />
@@ -245,7 +236,7 @@ defmodule CatenaryWeb.Live do
   end
 
   def handle_info(%{view: :dashboard}, socket) do
-    {:noreply, push_redirect(socket, to: Routes.live_dashboard_path(socket, :home))}
+    {:noreply, push_navigate(socket, to: ~p"/dashboard")}
   end
 
   def handle_info(%{view: view, entry: which}, socket) do
@@ -518,6 +509,42 @@ defmodule CatenaryWeb.Live do
     {:noreply, state_set(socket, Navigation.move_to(motion, :current, socket.assigns))}
   end
 
+  # Menu selections from the native (Tauri) menu bar.
+  def handle_event("menu", %{"view" => "dashboard"}, socket) do
+    {:noreply, push_navigate(socket, to: ~p"/dashboard")}
+  end
+
+  def handle_event("menu", %{"view" => view, "entry" => entry}, socket) do
+    {:noreply,
+     state_set(
+       socket,
+       Navigation.move_to(
+         "specified",
+         %{view: String.to_existing_atom(view), entry: menu_entry(entry)},
+         socket.assigns
+       )
+     )}
+  end
+
+  def handle_event("menu", _, socket), do: {:noreply, socket}
+
+  # The native window reports its size back so we can remember it.
+  def handle_event("window-resize", %{"width" => width, "height" => height}, socket) do
+    with {w, ""} <- Integer.parse(width),
+         {h, ""} <- Integer.parse(height),
+         true <- w > 0 and h > 0 do
+      Preferences.set(:winsize, {w, h})
+    end
+
+    {:noreply, socket}
+  end
+
+  def handle_event("window-resize", _, socket), do: {:noreply, socket}
+
+  defp menu_entry("none"), do: :none
+  defp menu_entry("all"), do: :all
+  defp menu_entry(entry) when is_binary(entry), do: String.to_existing_atom(entry)
+
   @prefs_keys Preferences.keys()
   defp do_prefs([]), do: :ok
 
@@ -530,10 +557,7 @@ defmodule CatenaryWeb.Live do
 
   defp state_set(socket, from_caller) do
     full_socket = assign(socket, from_caller)
-    # We get winsize too often, but
-    #  - cannot find an exvent for change
-    #  - preferences get auto-updated here
-    do_prefs(Map.merge(from_caller, %{winsize: get_winsize()}) |> Map.to_list())
+    do_prefs(from_caller |> Map.to_list())
     state = full_socket.assigns
     clump_id = state.clump_id
     shash = Baobab.Persistence.content_hash(clump_id)
@@ -568,10 +592,5 @@ defmodule CatenaryWeb.Live do
       identity: Catenary.id_for_key(socket.assigns.identity),
       clump_id: socket.assigns.clump_id
     )
-  end
-
-  defp get_winsize() do
-    :wx.set_env(Desktop.Env.wx_env())
-    Desktop.Window.webview(CatenaryWindow) |> :wxWindow.getSize()
   end
 end

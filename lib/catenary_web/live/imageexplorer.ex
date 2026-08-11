@@ -1,5 +1,4 @@
 defmodule Catenary.Live.ImageExplorer do
-  require Logger
   use Phoenix.LiveComponent
   alias Catenary.Display
 
@@ -21,13 +20,13 @@ defmodule Catenary.Live.ImageExplorer do
       <h1>Image Explorer</h1>
       <hr />
       <%= for a <- @card |> Map.keys |> Enum.sort do %>
-        <button value="{ a }" phx-click="arrange" phx-target="{ @myself }">
-          <p class="text-amber-900 dark:text-amber-100 {if @entry == a, do: @ul, else: @nl}">
+        <button value={a} phx-click="arrange" phx-target={@myself}>
+          <p class={"text-amber-900 dark:text-amber-100 #{if @entry == a, do: @ul, else: @nl}"}>
             <%= a %>
           </p>
         </button>
       <% end %>
-      <%= for {t, g} <-  @card[@entry] |> Enum.sort do %>
+      <%= for {t, g} <- @card[@entry] |> Enum.sort do %>
         <h4><%= t %></h4>
         <div class="flex flex-row flex-wrap mt-7 mx-auto">
           <%= for i <- g do %>

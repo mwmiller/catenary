@@ -1,6 +1,5 @@
 defmodule Catenary.Live.PrefsManager do
   use Phoenix.LiveComponent
-  use Phoenix.HTML
   alias Catenary.Display
 
   @impl true
@@ -35,14 +34,12 @@ defmodule Catenary.Live.PrefsManager do
     <div id="preferences-view">
       <div id="identview-wrap" class="col-span-full overflow-y-auto max-h-screen m-2 p-x-2">
         <div class="my-2 text-center min-w-full">
-          <a href="/authors/{ @identity }"><%= Display.scaled_avatar(@identity, 8, ["mx-auto"]) %></a>
+          <a href={"/authors/" <> @identity}><%= Phoenix.HTML.raw(Display.scaled_avatar(@identity, 8, ["mx-auto"])) %></a>
         </div>
         <form method="post" id="clump-form" phx-change="clump-change">
           <label for="clump_id">🎋</label>
           <select name="clump_id" class="bg-white dark:bg-black">
-            <%= for {c, _} <- @clumps do
-              option_value(c, @clump_id)
-            end %>
+            <%= for {c, _} <- @clumps, do: Phoenix.HTML.raw(option_value(c, @clump_id)) %>
           </select>
         </form>
         <p class="m-1 text-xs">
@@ -62,28 +59,28 @@ defmodule Catenary.Live.PrefsManager do
             </thead>
             <tbody class="text-center">
               <%= for {n, k} <- @identities do %>
-                <tr class="my-10 border {if k == @identity, do: @picked, else: @unpicked}">
+                <tr class={"my-10 border #{if k == @identity, do: @picked, else: @unpicked}"}>
                   <td class="py-5">
-                    <%= radio_value(k, @identity, "selection") %>
+                    <%= Phoenix.HTML.raw(radio_value(k, @identity, "selection")) %>
                   </td>
                   <td>
                     <input
                       class="bg-white dark:bg-black"
                       type="text"
                       size="16"
-                      id="{ n }"
-                      value="{ n }"
-                      phx-blur="rename-id-{ n }"
+                      id={n}
+                      value={n}
+                      phx-blur={"rename-id-" <> n}
                     />
                   </td>
-                  <td><%= Display.scaled_avatar(k, 4, ["mx-auto"]) %></td>
-                  <td><%= Display.linked_author(k, @aliases, :href) %></td>
-                  <td><%= log_info_string(@store, k) %></td>
+                  <td><%= Phoenix.HTML.raw(Display.scaled_avatar(k, 4, ["mx-auto"])) %></td>
+                  <td><%= Phoenix.HTML.raw(Display.linked_author(k, @aliases, :href)) %></td>
+                  <td><%= Phoenix.HTML.raw(log_info_string(@store, k)) %></td>
                   <td>
                     <%= if k == @identity do %>
                       ⛒
                     <% else %>
-                      <input type="radio" name="drop" value="{ n }" />
+                      <input type="radio" name="drop" value={n} />
                     <% end %>
                   </td>
                 </tr>
@@ -113,7 +110,7 @@ defmodule Catenary.Live.PrefsManager do
             type="numeric"
             name="facet_id"
             size="3"
-            value="{ @facet_id }"
+            value={@facet_id}
           />
         </form>
       </div>
@@ -124,13 +121,13 @@ defmodule Catenary.Live.PrefsManager do
             class="bg-white dark:bg-black"
             type="checkbox"
             name="automention"
-            { if Catenary.Preferences.get(:automention), do: "checked" }
+            checked={Catenary.Preferences.get(:automention)}
           /> Auto-mention
           <input
             class="bg-white dark:bg-black"
             type="checkbox"
             name="autosync"
-            { if Catenary.Preferences.get(:autosync), do: "checked" }
+            checked={Catenary.Preferences.get(:autosync)}
           /> Auto-sync
         </form>
       </div>
@@ -141,10 +138,10 @@ defmodule Catenary.Live.PrefsManager do
           <input type="hidden" name="listed" value="accept" />
           <div class="grid grid-cols-3">
             <%= for {s, a} <- Display.all_pretty_log_pairs do %>
-              <div><%= log_accept_input(a, @blocked) |> Phoenix.HTML.raw() %>&nbsp;<%= s %></div>
+              <div>{log_accept_input(a, @blocked) |> Phoenix.HTML.raw()}&nbsp;<%= s %></div>
             <% end %>
           </div>
-          <%= Display.log_submit_button() %>
+          <%= Phoenix.HTML.raw(Display.log_submit_button()) %>
         </form>
       </div>
       <div class="flex flex-row min-w-full">

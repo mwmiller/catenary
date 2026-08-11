@@ -10,14 +10,17 @@ import Config
 # Configures the endpoint
 config :catenary, CatenaryWeb.Endpoint,
   url: [host: "localhost"],
-  render_errors: [view: CatenaryWeb.ErrorView, accepts: ~w(html json), layout: false],
+  render_errors: [
+    formats: [html: CatenaryWeb.ErrorHTML, json: CatenaryWeb.ErrorJSON],
+    layout: false
+  ],
   pubsub_server: Catenary.PubSub,
   http: [ip: {127, 0, 0, 1}, port: 0],
   server: true,
   live_view: [signing_salt: "7c42r28o"]
 
 config :tailwind,
-  version: "3.0.24",
+  version: "3.4.17",
   default: [
     args: ~w(
     --config=tailwind.config.js
@@ -32,7 +35,7 @@ config :swoosh, :api_client, false
 
 # Configure esbuild (the version is required)
 config :esbuild,
-  version: "0.12.18",
+  version: "0.25.9",
   default: [
     args: ~w(js/app.js --bundle --target=es2016 --outdir=../priv/static/assets),
     cd: Path.expand("../assets", __DIR__),

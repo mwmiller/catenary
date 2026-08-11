@@ -78,12 +78,10 @@ defmodule Catenary.Live.EntryViewer do
     ~H"""
     <div id="entryview-wrap" class="col-span-2 overflow-y-auto max-h-screen m-2 p-x-2">
       <div class="min-w-full font-sans row-span-full">
-        <%= Display.scaled_avatar(@card["author"], 8, ["float-left", "m-3"]) %>
+        <%= Phoenix.HTML.raw(Display.scaled_avatar(@card["author"], 8, ["float-left", "m-3"])) %>
         <h1><%= @card["title"] %></h1>
         <p class="text-sm font-light">
-          <%= Display.linked_author(@card["author"], @aliases) %> &mdash; <%= nice_time(
-            @card["published"]
-          ) %>
+          <%= Phoenix.HTML.raw(Display.linked_author(@card["author"], @aliases)) %> &mdash; <%= nice_time(@card["published"]) %>
         </p>
         <p>
           <%= icon_entries(@card["back-refs"]) %>&nbsp;↹&nbsp;<%= icon_entries(@card["fore-refs"]) %>
@@ -134,8 +132,8 @@ defmodule Catenary.Live.EntryViewer do
             end
 
           desc =
-            case aboot |> Map.get("description", "") |> Earmark.as_html() do
-              {:ok, html, _} -> html
+            case aboot |> Map.get("description", "") |> MDEx.to_html() do
+              {:ok, html} -> html
               _ -> ""
             end
 
@@ -611,7 +609,7 @@ defmodule Catenary.Live.EntryViewer do
       Map.merge(data, %{
         "title" => Display.entry_title(type, data),
         "back-refs" => maybe_refs(data["references"]),
-        "body" => data["body"] |> Earmark.as_html!() |> Phoenix.HTML.raw()
+        "body" => data["body"] |> MDEx.to_html!() |> Phoenix.HTML.raw()
       })
     rescue
       e -> malformed(e, cbor)

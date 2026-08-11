@@ -1,5 +1,4 @@
 defmodule Catenary.Live.TagViewer do
-  require Logger
   use Phoenix.LiveComponent
   alias Catenary.Display
 
@@ -17,7 +16,7 @@ defmodule Catenary.Live.TagViewer do
     ~H"""
     <div id="tagview-wrap" class="col-span-2 overflow-y-auto max-h-screen m-2 p-x-2">
       <div class="min-w-full font-sans row-span-full">
-        <h1 class="text=center">Entries tagged with "<%= @tag %>"</h1>
+        <h1 class="text=center">Entries tagged with &quot;<%= @tag %>&quot;</h1>
         <hr />
         <%= for {type, entries} <- @card do %>
           <h3 class="pt-5 text-slate-600 dark:text-slate-300"><%= type %></h3>

@@ -1,5 +1,4 @@
 defmodule Catenary.Live.AliasExplorer do
-  require Logger
   use Phoenix.LiveComponent
   alias Catenary.Display
 
