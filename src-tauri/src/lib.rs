@@ -53,7 +53,7 @@ fn build_menu(app: &tauri::App) -> tauri::Result<()> {
 fn start_backend(app: &tauri::AppHandle) {
     let handle = app.clone();
     std::thread::spawn(move || {
-        let command = match handle.shell().sidecar("binaries/catenary-backend") {
+        let command = match handle.shell().sidecar("catenary-backend") {
             Ok(command) => command.arg("--no-halt"),
             Err(err) => {
                 eprintln!("[catenary] unable to resolve the backend sidecar: {err}");

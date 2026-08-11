@@ -61,16 +61,18 @@ chmod +x "src-tauri/binaries/catenary-backend-${triple}"
 
 cargo_release_bin="src-tauri/target/release/catenary"
 if [ -x "$cargo_release_bin" ]; then
-  # (2) Runtime location: Tauri resolves the sidecar next to the shell binary.
-  mkdir -p src-tauri/target/release/binaries
-  cp -f "$backend_artifact" src-tauri/target/release/binaries/catenary-backend
-  chmod +x src-tauri/target/release/binaries/catenary-backend
+  # (2) Runtime location: Tauri resolves the sidecar relative to the shell
+  # binary's own directory (e.g. target/release/ or the .app/Contents/MacOS),
+  # so place it there with the bare name.
+  mkdir -p src-tauri/target/release
+  cp -f "$backend_artifact" src-tauri/target/release/catenary-backend
+  chmod +x src-tauri/target/release/catenary-backend
 else
-  # Build the shell (this is where tauri-build also validates the sidecar above).
+  # Build the shell (tauri-build also validates src-tauri/binaries at compile).
   ( cd src-tauri && cargo build --release )
-  mkdir -p src-tauri/target/release/binaries
-  cp -f "$backend_artifact" src-tauri/target/release/binaries/catenary-backend
-  chmod +x src-tauri/target/release/binaries/catenary-backend
+  mkdir -p src-tauri/target/release
+  cp -f "$backend_artifact" src-tauri/target/release/catenary-backend
+  chmod +x src-tauri/target/release/catenary-backend
 fi
 
 echo
