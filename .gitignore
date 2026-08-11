@@ -35,3 +35,10 @@ catenary-*.tar
 npm-debug.log
 /assets/node_modules/
 
+# Tauri (native shell) build artifacts.
+/src-tauri/target/
+/src-tauri/binaries/
+/src-tauri/gen/
+/dist/
+/burrito_out/
+
