@@ -368,29 +368,26 @@ defmodule Catenary.Live.Navigation do
   defp posting_icon(:journal), do: "✎̟"
   defp posting_icon(:image), do: "̟҂"
 
-  defp displayed_matches(list, displayed), do: Enum.any?(list, &displayed_match(&1, displayed))
+  @doc """
+  Returns true if any of the `list` of desired views matches the `displayed`
+  view.
+
+  `displayed` may be either a bare view atom (`:log`, `:entries`, …) or a
+  tagged tuple (`{:log, _}`, `{:pseudo, _}`, `{:view, _}`); a bare `desired`
+  matches its own tag OR the bare displayed value.
+  """
+  def displayed_matches(list, displayed), do: Enum.any?(list, &displayed_match(&1, displayed))
 
   defp displayed_match(desired, displayed) do
-    # This is intended to simplify checks elsewhere
-    # It also might introduce some ambiguity when
-    # the :view looks like an :entries type
-    # If this bit you, feel free to curse at me.
-    # You might resolve it by using a fully explicit check
-    # Or you can improve the logic or naming
-    case {desired, displayed} do
-      {^desired, ^desired} -> true
-      {:log, {:log, _}} -> true
-      {:log, _} -> false
-      {:pseudo, {:pseudo, _}} -> true
-      {:pseudo, _} -> false
-      {:view, {:view, _}} -> true
-      {:view, _} -> false
-      {^desired, {:log, ^desired}} -> true
-      {^desired, {:pseudo, ^desired}} -> true
-      {^desired, {:view, ^desired}} -> true
-      _ -> false
-    end
+    same?(desired, displayed) or tagged_match?(desired, displayed)
   end
+
+  defp same?(d, d), do: true
+  defp same?(_, _), do: false
+
+  defp tagged_match?(d, {tag, _inner}) when d in [:log, :pseudo, :view] and tag == d, do: true
+  defp tagged_match?(d, {tag, inner}) when d not in [:log, :pseudo, :view] and tag in [:log, :pseudo, :view] and d == inner, do: true
+  defp tagged_match?(_, _), do: false
 
   defp tag_inputs(count), do: make_tag_inputs(count, [])
 
