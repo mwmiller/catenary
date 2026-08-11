@@ -1,4 +1,5 @@
 defmodule Catenary.LogWriter do
+  require Logger
   alias Catenary.{Indices, Preferences}
 
   @moduledoc """
@@ -322,7 +323,7 @@ defmodule Catenary.LogWriter do
   def new_entry(assigns, socket) do
     # This is a debug line I keep creating, so I am
     # going to leave it here for a while.
-    IO.inspect(assigns)
+    Logger.debug(fn -> inspect(assigns) end)
     {:profile, socket.assigns.identity}
   end
 
@@ -371,15 +372,9 @@ defmodule Catenary.LogWriter do
           |> Enum.map(fn s -> String.replace(s, "~", "") end)
 
         mentioned =
-          Enum.reduce(aliases, [], fn {k, v}, a ->
-            case v in found do
-              true ->
-                [k | a]
-
-              false ->
-                a
-            end
-          end)
+          aliases
+          |> Enum.filter(fn {_k, v} -> v in found end)
+          |> Enum.map(fn {k, _v} -> k end)
 
         mentions_entry =
           new_entry(

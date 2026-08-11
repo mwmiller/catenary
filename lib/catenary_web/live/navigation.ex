@@ -284,7 +284,7 @@ defmodule Catenary.Live.Navigation do
       <% end %>
       <form id="imageupload-form" phx-submit="image-save" phx-change="image-validate">
         <h4>Publish a new image</h4>
-        <%= live_file_input(@uploads.image) %>
+        <.live_file_input upload={@uploads.image} />
         <%= Display.log_submit_button() %>
       </form>
       <p class="py-5">Please be considerate with file sizes.</p>

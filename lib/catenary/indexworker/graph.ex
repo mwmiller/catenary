@@ -118,14 +118,12 @@ defmodule Catenary.IndexWorker.Graph do
   defp apply_operations([], _), do: :ok
 
   defp apply_operations([{"block", blockees} | rest], clump_id) do
-    blockees
-    |> Enum.map(fn a -> Baobab.ClumpMeta.block(a, clump_id) end)
-
+    Enum.each(blockees, &Baobab.ClumpMeta.block(&1, clump_id))
     apply_operations(rest, clump_id)
   end
 
   defp apply_operations([{"unblock", backees} | rest], clump_id) do
-    backees |> Enum.map(fn a -> Baobab.ClumpMeta.unblock(a, clump_id) end)
+    Enum.each(backees, &Baobab.ClumpMeta.unblock(&1, clump_id))
     apply_operations(rest, clump_id)
   end
 
@@ -133,7 +131,7 @@ defmodule Catenary.IndexWorker.Graph do
     oks
     |> Enum.reduce([], fn n, a -> a ++ QuaggaDef.logs_for_name(String.to_atom(n)) end)
     |> Enum.sort()
-    |> Enum.map(fn l -> Baobab.ClumpMeta.unblock(l, clump_id) end)
+    |> Enum.each(&Baobab.ClumpMeta.unblock(&1, clump_id))
 
     apply_operations(rest, clump_id)
   end
@@ -142,7 +140,7 @@ defmodule Catenary.IndexWorker.Graph do
     bads
     |> Enum.reduce([], fn n, a -> a ++ QuaggaDef.logs_for_name(String.to_atom(n)) end)
     |> Enum.sort()
-    |> Enum.map(fn l -> Baobab.ClumpMeta.block(l, clump_id) end)
+    |> Enum.each(&Baobab.ClumpMeta.block(&1, clump_id))
 
     apply_operations(rest, clump_id)
   end
