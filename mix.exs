@@ -85,6 +85,11 @@ defmodule Catenary.MixProject do
   defp aliases do
     [
       setup: ["deps.get"],
+      precommit: [
+        "format --check-formatted",
+        "credo --strict",
+        "compile --force --warnings-as-errors"
+      ],
       "assets.deploy": ["tailwind default --minify", "esbuild default --minify", "phx.digest"]
     ]
   end
