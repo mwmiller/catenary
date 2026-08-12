@@ -52,7 +52,7 @@
   "png": {:hex, :png, "0.2.1", "b25c17c8dcdc40096d46ae2d7c2777c63fede48fa8c8312cc708c88554049d3b", [:rebar3], [], "hexpm", "279345e07108c604871a21f1c91f716810ab559af2b20d6f302e0a98265ef72e"},
   "poly1305": {:hex, :poly1305, "1.0.4", "7cdc8961a0a6e00a764835918cdb8ade868044026df8ef5d718708ea6cc06611", [:mix], [{:chacha20, "~> 1.0", [hex: :chacha20, repo: "hexpm", optional: false]}, {:equivalex, "~> 1.0", [hex: :equivalex, repo: "hexpm", optional: false]}], "hexpm", "e14e684661a5195e149b3139db4a1693579d4659d65bba115a307529c47dbc3b"},
   "primacy": {:hex, :primacy, "0.1.0", "c76a2e9a8928ab0713a31dfeb709e3853a0492b5d5764cbb0d86aa392d22b5f1", [:mix], [], "hexpm", "8de0f3b3b4badc459dca3b32c1dc4c00a72cde58d062ea35376eade893e24e6b"},
-  "quagga_def": {:hex, :quagga_def, "0.8.0", "8bfc5d3759677eb7f14ce961fd1044172c00bc892435d33147b81d14391200a3", [:mix], [], "hexpm", "886f1fba512db380b954320c0b726757601ba1c2f829b47a2b18ff031e3d5bf2"},
+  "quagga_def": {:hex, :quagga_def, "0.8.1", "4d0c02afdf53fab2f1b470f95efb5afcaf58b29700fd8aa93428afbb46859337", [:mix], [], "hexpm", "c9112f2f9b0fbdd102c6a9e66e24f1021aa117c2d12d195b957ce0447813eee5"},
   "quic": {:hex, :quic, "1.8.0", "7b074fc6f8a13b4a81e4e11254bf061db61c5c07b4366d568a79a38c5e8bb5f3", [:rebar3], [], "hexpm", "6b1f8f08a45412ac503bc6771efb8edc696bb14079bc48d2ca960b92933da8a4"},
   "ranch": {:hex, :ranch, "1.8.1", "208169e65292ac5d333d6cdbad49388c1ae198136e4697ae2f474697140f201c", [:make, :rebar3], [], "hexpm", "aed58910f4e21deea992a67bf51632b6d60114895eb03bb392bb733064594dd0"},
   "replayq": {:hex, :replayq, "0.3.12", "152b0a3603e87b3adbafe21ff77fccbde8b9dd0f43dafb9081d2d27f5b0fd8f4", [:rebar3], [], "hexpm", "d7581afb44ffed42a17d2182c13ebf3129cb75e861d5a5d8c93b84a90a10c742"},

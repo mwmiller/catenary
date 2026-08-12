@@ -29,7 +29,7 @@ defmodule Catenary.Live.OasisExplorer do
           No recent oases found.
           <%= if @opened == 0 do %>
             <button phx-click="init-connect" phx-disable-with="↯ trying ↯">
-              ⇆ try fallback host ⇆
+              ⇆ try bootstrap node ⇆
             </button>
           <% else %>
             ⥀ attempting sync ⥀

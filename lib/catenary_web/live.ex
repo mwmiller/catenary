@@ -485,12 +485,8 @@ defmodule CatenaryWeb.Live do
   end
 
   def handle_event("init-connect", _, socket) do
-    clumps = Application.get_env(:catenary, :clumps)
-    this_clump = Map.get(clumps, socket.assigns.clump_id)
-
-    which = Keyword.get(this_clump, :fallback_node)
-
-    connector_wrap(Keyword.get(which, :host), Keyword.get(which, :port), socket)
+    {host, port} = QuaggaDef.bootstrap_node()
+    connector_wrap(host, port, socket)
     {:noreply, state_set(socket, %{})}
   end
 
