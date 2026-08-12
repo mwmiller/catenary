@@ -56,29 +56,21 @@ defmodule Catenary.Live.Navigation do
   def render(assigns) do
     ~H"""
     <div class="min-w-full">
-      <div class="flex flex-wrap items-center justify-center gap-1 text-xl px-2 py-1">
+      <div class="flex flex-col items-center gap-2 text-xl px-2 py-2">
         <div class="flex items-center gap-1">
-          <button value="origin" phx-click="nav" title="Home">
-            {Display.scaled_avatar(@identity, 2) |> Phoenix.HTML.raw()}
-          </button>
           <%= if displayed_matches([:log, :profile], @displayed_info) do %>
             {post_button_for(:graph)}
             {post_button_for(:alias)}
           <% end %>
         </div>
         <div class="flex items-center gap-1">
-          <button value="prev-author" phx-click="nav" title="Prev author">↥</button>
-          <button value="prev-entry" phx-click="nav" title="Prev entry">⇜</button>
-          <button phx-click="toggle-none" title="None">⍟</button>
-          <button value="next-entry" phx-click="nav" title="Next entry">⇝</button>
-          <button value="next-author" phx-click="nav" title="Next author">↧</button>
-        </div>
-        <div class="flex items-center gap-1">
           {for post_type <- [:journal, :image], do: post_button_for(post_type)}
-          <%= if displayed_matches([:log], @displayed_info) do %>
-            {for post_type <- [:reply, :react, :tag, :mention], do: post_button_for(post_type)}
-          <% end %>
         </div>
+        <%= if displayed_matches([:log], @displayed_info) do %>
+          <div class="flex items-center gap-1">
+            {for post_type <- [:reply, :react, :tag, :mention], do: post_button_for(post_type)}
+          </div>
+        <% end %>
       </div>
       {@lower_nav}
     </div>

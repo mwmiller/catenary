@@ -65,7 +65,8 @@ defmodule CatenaryWeb.Live do
   def render(%{view: :prefs} = assigns) do
     ~H"""
     {explorebar(assigns)}
-    <div class="max-h-screen w-full flex justify-center px-2 py-2">
+    <div class="max-h-screen w-full flex justify-center px-2 py-2 gap-3">
+      {timeline_nav(assigns)}
       <div class="w-full max-w-4xl">
         <.live_component
           module={Catenary.Live.PrefsManager}
@@ -79,6 +80,7 @@ defmodule CatenaryWeb.Live do
           aliases={@aliases}
         />
       </div>
+      {activitybar(assigns)}
     </div>
     """
   end
@@ -87,6 +89,7 @@ defmodule CatenaryWeb.Live do
     ~H"""
     {explorebar(assigns)}
     <div class="max-h-screen w-full flex justify-center px-2 py-2 gap-3">
+      {timeline_nav(assigns)}
       <div class="w-full max-w-xl flex-shrink-0">
         <.live_component module={Catenary.Live.TagViewer} id={:tags} entry={elem(@entry, 1)} ) />
       </div>
@@ -99,6 +102,7 @@ defmodule CatenaryWeb.Live do
     ~H"""
     {explorebar(assigns)}
     <div class="max-h-screen w-full flex justify-center px-2 py-2 gap-3">
+      {timeline_nav(assigns)}
       <div class="w-full max-w-xl flex-shrink-0">
         <.live_component module={Catenary.Live.TagExplorer} id={:tags} entry={@entry} />
       </div>
@@ -111,6 +115,7 @@ defmodule CatenaryWeb.Live do
     ~H"""
     {explorebar(assigns)}
     <div class="max-h-screen w-full flex justify-center px-2 py-2 gap-3">
+      {timeline_nav(assigns)}
       <div class="w-full max-w-xl flex-shrink-0">
         <.live_component
           module={Catenary.Live.ImageExplorer}
@@ -130,6 +135,7 @@ defmodule CatenaryWeb.Live do
     ~H"""
     {explorebar(assigns)}
     <div class="max-h-screen w-full flex justify-center px-2 py-2 gap-3">
+      {timeline_nav(assigns)}
       <div class="w-full max-w-xl flex-shrink-0">
         <.live_component
           module={Catenary.Live.UnshownExplorer}
@@ -149,6 +155,7 @@ defmodule CatenaryWeb.Live do
     ~H"""
     {explorebar(assigns)}
     <div class="max-h-screen w-full flex justify-center px-2 py-2 gap-3">
+      {timeline_nav(assigns)}
       <div class="w-full max-w-xl flex-shrink-0">
         <.live_component
           module={Catenary.Live.AliasExplorer}
@@ -166,6 +173,7 @@ defmodule CatenaryWeb.Live do
     ~H"""
     {explorebar(assigns)}
     <div class="max-h-screen w-full flex justify-center px-2 py-2 gap-3">
+      {timeline_nav(assigns)}
       <div class="w-full max-w-xl flex-shrink-0">
         <.live_component
           module={Catenary.Live.OasisExplorer}
@@ -184,6 +192,7 @@ defmodule CatenaryWeb.Live do
     ~H"""
     {explorebar(assigns)}
     <div class="max-h-screen w-full flex justify-center px-2 py-2 gap-3">
+      {timeline_nav(assigns)}
       <div class="w-full max-w-xl flex-shrink-0">
         <.live_component
           module={Catenary.Live.EntryViewer}
@@ -204,8 +213,11 @@ defmodule CatenaryWeb.Live do
     ~H"""
     <div class="sticky top-0 z-10 bg-white dark:bg-gray-950 border-b border-stone-200 dark:border-stone-800">
       <div class="flex items-center justify-between min-w-0 px-2 py-1 gap-1">
-        <!-- Left: clump + identity -->
+        <!-- Left: identicon + clump + identity -->
         <div class="flex items-center gap-1 shrink-0 text-sm font-mono">
+          <button value="origin" phx-click="nav" title="Home">
+            {Display.scaled_avatar(@identity, 2) |> Phoenix.HTML.raw()}
+          </button>
           <button phx-click="toview" value="prefs" class="hover:text-amber-700 dark:hover:text-amber-400 transition-colors">
             {@clump_id}
           </button>
@@ -259,6 +271,18 @@ defmodule CatenaryWeb.Live do
         entry_back={@entry_back}
         clump_id={@clump_id}
       />
+    </div>
+    """
+  end
+
+  defp timeline_nav(assigns) do
+    ~H"""
+    <div class="flex flex-col items-center gap-1 pt-4">
+      <button value="prev-author" phx-click="nav" title="Prev author">↥</button>
+      <button value="prev-entry" phx-click="nav" title="Prev entry">⇜</button>
+      <button phx-click="toggle-none" title="None">⍟</button>
+      <button value="next-entry" phx-click="nav" title="Next entry">⇝</button>
+      <button value="next-author" phx-click="nav" title="Next author">↧</button>
     </div>
     """
   end
@@ -592,7 +616,7 @@ defmodule CatenaryWeb.Live do
 
   defp do_prefs([_ | rest]), do: do_prefs(rest)
 
-  defp state_set(socket, from_caller) do
+  defp state_set(socket, from_caller) when is_map(from_caller) do
     full_socket = assign(socket, from_caller)
     do_prefs(from_caller |> Map.to_list())
     state = full_socket.assigns
@@ -623,6 +647,8 @@ defmodule CatenaryWeb.Live do
       opened: Baby.Connection.Registry.active() |> Enum.count()
     )
   end
+
+  defp state_set(socket, _from_caller), do: socket
 
   defp connector_wrap(host, port, socket) do
     Baby.connect(host, port,
