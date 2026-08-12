@@ -325,25 +325,47 @@ defmodule Catenary.Live.Navigation do
   defp source_title(_, _), do: ""
 
   defp log_posting_form(assigns, which, suggested_title) do
-    assigns = assign(assigns, st: suggested_title, which: which)
+    entry = assigns.entry
+    st = suggested_title
 
-    ~H"""
-    <form method="post" id="posting-form" phx-submit="new-entry">
-      <input type="hidden" name="log_id" value={QuaggaDef.base_log(@which)} />
-      <%= if @which == :reply do %>
-        <input type="hidden" name="ref" value={Catenary.index_to_string(@entry)} />
-      <% end %>
-      <br />
-      <label for="title">{posting_icon(@which)}</label>
-      <input class="bg-white dark:bg-black" type="text" value={@st} name="title" />
-      <br />
-      <textarea class="bg-white dark:bg-black" name="body" rows="8" cols="35"></textarea>
-      <p>
-        {if Preferences.accept_log_name?(:tag), do: tag_inputs(2)}
-      </p>
-      {Display.log_submit_button()}
-    </form>
-    """
+    ref_input =
+      if which == :reply do
+        ~s(<input type="hidden" name="ref" value="#{Catenary.index_to_string(entry)}" /><br />)
+      else
+        ""
+      end
+
+    tag_html =
+      if Preferences.accept_log_name?(:tag) do
+        tag_inputs(2)
+      else
+        ""
+      end
+
+    submit_btn = Display.log_submit_button()
+
+    parts = [
+      ~s(<form method="post" id="posting-form" phx-submit="new-entry">),
+      ~s(<input type="hidden" name="log_id" value="#{QuaggaDef.base_log(which)}" />),
+      ref_input,
+      "<br /><label for=\"title\">#{posting_icon(which)}</label>",
+      ~s(<input class="bg-white dark:bg-black" type="text" value="#{st}" name="title" />),
+      "<br />",
+      ~s(<textarea class="bg-white dark:bg-black" name="body" rows="8" cols="35"></textarea>),
+      "<p>",
+      tag_html,
+      "</p>",
+      submit_btn,
+      "</form>"
+    ]
+
+    safe_binary =
+      Enum.reduce(parts, "", fn
+        {:safe, bin}, acc -> acc <> bin
+        bin, acc when is_binary(bin) -> acc <> bin
+      end)
+
+    {:safe, safe_binary} |> Phoenix.HTML.raw()
   end
 
   defp post_button_for(which) do

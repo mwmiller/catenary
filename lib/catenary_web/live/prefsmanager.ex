@@ -7,7 +7,17 @@ defmodule Catenary.Live.PrefsManager do
 
   @impl true
   def update(assigns, socket) do
-    {:ok, assign(socket, Map.merge(assigns, %{:blocked => blocked_map_set(assigns.clump_id)}))}
+    {ac, lc, ec} = Catenary.clump_stats(assigns.clump_id)
+
+    {:ok,
+     assign(socket, Map.merge(assigns, %{
+       blocked: blocked_map_set(assigns.clump_id),
+       ac: ac,
+       lc: lc,
+       ec: ec,
+       picked: "bg-slate-300 border-stone-400 dark:bg-stone-600 dark:border-slate-900",
+       unpicked: " border-slate-200 dark:border-slate-800"
+     }))}
   end
 
   def option_value(i, selected_i) do
@@ -22,17 +32,6 @@ defmodule Catenary.Live.PrefsManager do
 
   @impl true
   def render(assigns) do
-    {ac, lc, ec} = Catenary.clump_stats(assigns.clump_id)
-
-    assigns =
-      assign(assigns,
-        ac: ac,
-        lc: lc,
-        ec: ec,
-        picked: "bg-slate-300 border-stone-400 dark:bg-stone-600 dark:border-slate-900",
-        unpicked: " border-slate-200 dark:border-slate-800"
-      )
-
     ~H"""
     <div id="preferences-view">
       <div id="identview-wrap" class="col-span-full overflow-y-auto max-h-screen m-2 p-x-2">

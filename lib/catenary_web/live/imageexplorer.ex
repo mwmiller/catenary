@@ -7,7 +7,13 @@ defmodule Catenary.Live.ImageExplorer do
 
   @impl true
   def update(%{entry: which, aliases: aliases} = assigns, socket) do
-    {:ok, assign(socket, Map.merge(assigns, %{entry: which, card: extract(aliases)}))}
+    {:ok,
+     assign(socket, Map.merge(assigns, %{
+       entry: which,
+       card: extract(aliases),
+       ul: "underline",
+       nl: ""
+     }))}
   end
 
   @impl true
@@ -16,8 +22,6 @@ defmodule Catenary.Live.ImageExplorer do
   def render(%{card: :error} = assigns), do: Catenary.GeneriCard.error_card(assigns)
 
   def render(assigns) do
-    assigns = assign(assigns, ul: "underline", nl: "")
-
     ~H"""
     <div id="image-explore-wrap" class="col-span-2 overflow-y-auto max-h-screen m-2 p-x-2">
       <h1>Image Explorer</h1>

@@ -13,7 +13,9 @@ defmodule Catenary.Live.OasisExplorer do
      assign(socket,
        aliases: assigns.aliases,
        nodes: nodes,
-       opened: assigns.opened
+       opened: assigns.opened,
+       off: "bg-zinc-200 dark:bg-stone-700",
+       on: "bg-slate-200 dark:bg-slate-700"
      )}
   end
 
@@ -42,9 +44,6 @@ defmodule Catenary.Live.OasisExplorer do
   end
 
   def render(assigns) do
-    assigns =
-      assign(assigns, off: "bg-zinc-200 dark:bg-stone-700", on: "bg-slate-200 dark:bg-slate-700")
-
     ~H"""
     <div id="oasisexplore-wrap" class="col-span-2 overflow-y-auto max-h-screen m-2 p-x-2">
       <h1>Oasis Explorer</h1>
