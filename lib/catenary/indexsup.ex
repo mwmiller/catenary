@@ -2,18 +2,22 @@ defmodule Catenary.IndexSup do
   use Supervisor
 
   alias Catenary.IndexWorker.{
-    Status,
+    About,
+    Aliases,
     Graph,
     Images,
-    Tags,
     Mentions,
-    Aliases,
+    Oases,
     Reactions,
     References,
-    Timelines,
-    About,
-    Oases
+    Status,
+    Tags,
+    Timelines
   }
+
+  @moduledoc """
+  Supervisor for the Catenary index workers, started in conversion order.
+  """
 
   def start_link(init_arg) do
     Supervisor.start_link(__MODULE__, init_arg, name: __MODULE__)

@@ -122,87 +122,10 @@ defmodule Catenary.Live.EntryViewer do
   def extract({:profile, a} = entry, settings) do
     clump_id = Keyword.get(settings, :clump_id)
 
-    about =
-      case :ets.lookup(:about, a) do
-        [{^a, aboot}] ->
-          name =
-            case aboot |> Map.get("name") do
-              nil -> ""
-              n -> "<h1>" <> n <> "</h1>"
-            end
-
-          desc =
-            case aboot |> Map.get("description", "") |> MDEx.to_html() do
-              {:ok, html} -> html
-              _ -> ""
-            end
-
-          [name, desc]
-
-        _ ->
-          []
-      end
-      |> inna_box(cols: "1", border: "dashed")
-
-    {timeline, as_of} =
-      case from_ets(a, :timelines) do
-        [] ->
-          {"", :latest}
-
-        activity ->
-          rev_order = activity |> Enum.reverse()
-          # We extract this one twice.  But maybe there is a filter later
-          %{"published" => as_of} = rev_order |> hd |> then(fn e -> extract(e, settings) end)
-
-          groups =
-            rev_order
-            |> Enum.take(23)
-            |> Enum.group_by(fn {_, l, _} -> Display.pretty_log_name(l) end)
-            |> Enum.map(fn t -> group_list(t, settings) end)
-            |> inna_box(border: "dotted")
-
-          {groups, as_of}
-      end
-
-    items =
-      settings
-      |> Keyword.get(:store)
-      |> Enum.filter(fn {author, _, _} -> author == a end)
-      |> Enum.group_by(fn {_, l, _} -> QuaggaDef.log_def(l) end)
-      |> Enum.reject(fn {ldef, _} -> ldef == %{} end)
-      |> Enum.filter(fn {%{name: name}, _} -> Preferences.accept_log_name?(name) end)
-
-    others =
-      case length(items) do
-        0 ->
-          ""
-
-        _ ->
-          items
-          |> Enum.reduce([], fn {%{name: name}, [entry | _]}, a ->
-            [
-              "<div class=\"flex-auto p-1\"><button class=\"text-xs\" value=\"" <>
-                Catenary.index_to_string(entry) <>
-                "\" phx-click=\"view-entry\">" <>
-                String.capitalize(Atom.to_string(name)) <> "</button></div>"
-              | a
-            ]
-          end)
-          |> Enum.reverse()
-          |> inna_box(border: "double")
-      end
-
-    mentions =
-      case from_ets({"", a}, :mentions) |> Enum.reject(&Preferences.shown?/1) do
-        [] ->
-          ""
-
-        entries ->
-          {:safe, icons} = entries |> Enum.reverse() |> icon_entries
-
-          "<h4 class=\"mt-5\">Unshown mentions</h4><div class=\"p-2 flex flex-row\">" <>
-            icons <> "</div>"
-      end
+    about = profile_about(a)
+    {timeline, as_of} = profile_timeline(a, settings)
+    others = profile_others(settings, a)
+    mentions = profile_mentions(a)
 
     Preferences.mark_entry(:shown, entry)
 
@@ -228,46 +151,17 @@ defmodule Catenary.Live.EntryViewer do
     lname = ldef.name
 
     try do
-      payload =
-        case lname in @image_logs do
-          true ->
-            Catenary.image_src_for_entry(entry, clump_id)
+      payload = payload_for({a, l, e}, lname, clump_id)
 
-          false ->
-            case Baobab.log_entry(a, e, log_id: l, clump_id: clump_id) do
-              %Baobab.Entry{payload: pl} ->
-                pl
-
-              _ ->
-                :missing
-            end
-        end
-
-      tags =
-        case Preferences.accept_log_name?(:tag) do
-          true -> from_ets(entry, :tags)
-          false -> []
-        end
-
-      reactions =
-        case Preferences.accept_log_name?(:react) do
-          true -> from_ets(entry, :reactions)
-          false -> []
-        end
+      tags = accepted(Preferences.accept_log_name?(:tag), entry, :tags)
+      reactions = accepted(Preferences.accept_log_name?(:react), entry, :reactions)
 
       mentions =
-        case Preferences.accept_log_name?(:mention) do
-          true -> from_ets(entry, :mentions)
-          false -> []
-        end
+        accepted(Preferences.accept_log_name?(:mention), entry, :mentions)
         |> Enum.map(fn k -> Display.entry_icon_link({:profile, k}, 2) end)
 
       all_refs = from_refs(entry)
-
-      case Preferences.shown?(entry) do
-        false -> Preferences.mark_entries(:shown, [entry | all_refs["refs"]])
-        true -> :ok
-      end
+      mark_shown(entry, all_refs)
 
       base =
         Map.merge(
@@ -285,6 +179,120 @@ defmodule Catenary.Live.EntryViewer do
       e ->
         Logger.warning(e)
         :error
+    end
+  end
+
+  defp payload_for({a, l, e}, lname, clump_id) do
+    case lname in @image_logs do
+      true ->
+        Catenary.image_src_for_entry({a, l, e}, clump_id)
+
+      false ->
+        case Baobab.log_entry(a, e, log_id: l, clump_id: clump_id) do
+          %Baobab.Entry{payload: pl} ->
+            pl
+
+          _ ->
+            :missing
+        end
+    end
+  end
+
+  defp accepted(true, entry, rel), do: from_ets(entry, rel)
+  defp accepted(false, _entry, _rel), do: []
+
+  defp mark_shown(entry, all_refs) do
+    case Preferences.shown?(entry) do
+      false -> Preferences.mark_entries(:shown, [entry | all_refs["refs"]])
+      true -> :ok
+    end
+  end
+
+  defp profile_about(a) do
+    about =
+      case :ets.lookup(:about, a) do
+        [{^a, aboot}] ->
+          name =
+            case aboot |> Map.get("name") do
+              nil -> ""
+              n -> "<h1>" <> n <> "</h1>"
+            end
+
+          desc =
+            case aboot |> Map.get("description", "") |> MDEx.to_html() do
+              {:ok, html} -> html
+              _ -> ""
+            end
+
+          [name, desc]
+
+        _ ->
+          []
+      end
+
+    inna_box(about, cols: "1", border: "dashed")
+  end
+
+  defp profile_timeline(a, settings) do
+    case from_ets(a, :timelines) do
+      [] ->
+        {"", :latest}
+
+      activity ->
+        rev_order = activity |> Enum.reverse()
+        # We extract this one twice.  But maybe there is a filter later
+        %{"published" => as_of} = rev_order |> hd |> then(fn e -> extract(e, settings) end)
+
+        groups =
+          rev_order
+          |> Enum.take(23)
+          |> Enum.group_by(fn {_, l, _} -> Display.pretty_log_name(l) end)
+          |> Enum.map(fn t -> group_list(t, settings) end)
+          |> inna_box(border: "dotted")
+
+        {groups, as_of}
+    end
+  end
+
+  defp profile_others(settings, a) do
+    items =
+      settings
+      |> Keyword.get(:store)
+      |> Enum.filter(fn {author, _, _} -> author == a end)
+      |> Enum.group_by(fn {_, l, _} -> QuaggaDef.log_def(l) end)
+      |> Enum.reject(fn {ldef, _} -> ldef == %{} end)
+      |> Enum.filter(fn {%{name: name}, _} -> Preferences.accept_log_name?(name) end)
+
+    case length(items) do
+      0 ->
+        ""
+
+      _ ->
+        items
+        |> Enum.reduce([], fn {%{name: name}, [entry | _]}, acc ->
+          [
+            "<div class=\"flex-auto p-1\"><button class=\"text-xs\" value=\"" <>
+              Catenary.index_to_string(entry) <>
+              "\" phx-click=\"view-entry\">" <>
+              String.capitalize(Atom.to_string(name)) <> "</button></div>"
+            | acc
+          ]
+        end)
+        |> Enum.reverse()
+        |> inna_box(border: "double")
+    end
+  end
+
+  defp profile_mentions(a) do
+    case from_ets({"", a}, :mentions) |> Enum.reject(&Preferences.shown?/1) do
+      [] ->
+        ""
+
+      entries ->
+        {:safe, icons} = entries |> Enum.reverse() |> icon_entries
+
+        "<h4 class=\"mt-5\">Unshown mentions</h4><div class=\"p-2 flex flex-row\">" <>
+          icons <> "</div>"
     end
   end
 
