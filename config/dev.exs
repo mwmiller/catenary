@@ -65,5 +65,9 @@ config :phoenix, :stacktrace_depth, 20
 # Initialize plugs at runtime for faster development compilation
 config :phoenix, :plug_init_mode, :runtime
 
+config :phoenix_live_view,
+  debug_heex_annotations: true,
+  debug_attributes: true
+
 config :catenary,
   application_dir: "~/.catenary"
