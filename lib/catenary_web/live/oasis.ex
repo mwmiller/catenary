@@ -1,4 +1,7 @@
 defmodule Catenary.Live.OasisExplorer do
+  @moduledoc """
+  LiveComponent rendering an oasis entry card (running peer nodes).
+  """
   use Phoenix.LiveComponent
   alias Catenary.Display
 

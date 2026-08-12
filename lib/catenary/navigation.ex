@@ -1,5 +1,5 @@
 defmodule Catenary.Navigation do
-  alias Catenary.{Timeline, Authorline, Tagline}
+  alias Catenary.{Authorline, Tagline, Timeline}
 
   @moduledoc """
   Functions to move between entries along different lines

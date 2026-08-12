@@ -34,13 +34,11 @@ defmodule Catenary.IndexWorker.About do
   defp process_entries([], acc), do: acc
 
   defp process_entries([curr | rest], acc) do
-    try do
-      %Baobab.Entry{payload: payload} = curr
-      {:ok, data, ""} = CBOR.decode(payload)
-      process_entries(rest, [{data["published"], data} | acc])
-    rescue
-      _ -> process_entries(rest, acc)
-    end
+    %Baobab.Entry{payload: payload} = curr
+    {:ok, data, ""} = CBOR.decode(payload)
+    process_entries(rest, [{data["published"], data} | acc])
+  rescue
+    _ -> process_entries(rest, acc)
   end
 
   defp build_index([], _cid), do: :ok

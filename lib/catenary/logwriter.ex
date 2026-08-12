@@ -215,7 +215,7 @@ defmodule Catenary.LogWriter do
         socket
       ) do
     # We want to know about which logs we knew at the time of
-    # message creation, that way we don't need to make suppositions at 
+    # message creation, that way we don't need to make suppositions at
     # message read time
     fl = QuaggaDef.log_defs() |> Enum.map(fn {_k, v} -> Atom.to_string(v.name) end)
 

@@ -4,7 +4,7 @@ defmodule Catenary.Preferences do
   """
 
   # When adding a key here be sure to create function
-  # heads for is_valid? to maintain the sanity of the store
+  # heads for valid? to maintain the sanity of the store
   # Provide resonable defaults. We'd prefer not to use these
   # defaults as "unset" signals.. just working values.
   @keys [
@@ -19,7 +19,7 @@ defmodule Catenary.Preferences do
     :autosync,
     :winsize
   ]
-  def keys(), do: @keys
+  def keys, do: @keys
 
   defp default(:identity) do
     # It's hard to get into a state where this is unset and
@@ -50,41 +50,41 @@ defmodule Catenary.Preferences do
   defp default(:winsize), do: {1193, 787}
 
   # `:identity` should in the known list when it is set
-  defp is_valid?(identity, :identity),
+  defp valid?(identity, :identity),
     do: is_binary(identity) && Enum.any?(Baobab.Identity.list(), fn {_, k} -> k == identity end)
 
-  defp is_valid?(am, :automention), do: is_boolean(am)
-  defp is_valid?(as, :autosync), do: is_boolean(as)
+  defp valid?(am, :automention), do: is_boolean(am)
+  defp valid?(as, :autosync), do: is_boolean(as)
 
   # `:shown` should be a map of mapsets.
   # We'll hope they keep the values sane on their own
-  defp is_valid?(val, :shown) when is_map(val), do: true
-  defp is_valid?(_, :shown), do: false
+  defp valid?(val, :shown) when is_map(val), do: true
+  defp valid?(_, :shown), do: false
 
   # `:reject` should be a map of mapsets.
   # We'll hope they keep the values sane on their own
-  defp is_valid?(val, :reject) when is_map(val), do: true
-  defp is_valid?(_, :reject), do: false
+  defp valid?(val, :reject) when is_map(val), do: true
+  defp valid?(_, :reject), do: false
 
   # This is all confused at present, so assume it's fine.
-  defp is_valid?(_, :entry), do: true
+  defp valid?(_, :entry), do: true
 
-  defp is_valid?(clump_id, :clump_id),
+  defp valid?(clump_id, :clump_id),
     do: Map.has_key?(Application.get_env(:catenary, :clumps), clump_id)
 
   # Views are always atoms, for now
-  defp is_valid?(view, :view), do: is_atom(view)
+  defp valid?(view, :view), do: is_atom(view)
 
-  defp is_valid?(facet_id, :facet_id)
+  defp valid?(facet_id, :facet_id)
        when is_integer(facet_id) and facet_id >= 0 and facet_id <= 255,
        do: true
 
-  defp is_valid?(_, :facet_id), do: false
+  defp valid?(_, :facet_id), do: false
 
-  defp is_valid?({w, h}, :winsize) when is_integer(w) and is_integer(h) and w > 0 and h > 0,
+  defp valid?({w, h}, :winsize) when is_integer(w) and is_integer(h) and w > 0 and h > 0,
     do: true
 
-  defp is_valid?(_, :winsize), do: false
+  defp valid?(_, :winsize), do: false
 
   def get(key) when key in @keys do
     Catenary.dets_open(:prefs)
@@ -95,7 +95,7 @@ defmodule Catenary.Preferences do
           default(key)
 
         [{^key, val}] ->
-          case is_valid?(val, key) do
+          case valid?(val, key) do
             true -> val
             false -> default(key)
           end
@@ -108,7 +108,7 @@ defmodule Catenary.Preferences do
   def get(_, _), do: {:error, "No such key"}
 
   def set(key, value) when key in @keys do
-    case is_valid?(value, key) do
+    case valid?(value, key) do
       false ->
         {:error, "Improper value for key"}
 
@@ -167,9 +167,9 @@ defmodule Catenary.Preferences do
     end)
   end
 
-  defp this_clump_shown_set(), do: get(:shown) |> Map.get(get(:clump_id), MapSet.new())
+  defp this_clump_shown_set, do: get(:shown) |> Map.get(get(:clump_id), MapSet.new())
 
-  def shown_hash(),
+  def shown_hash,
     do:
       this_clump_shown_set()
       |> :erlang.term_to_binary()

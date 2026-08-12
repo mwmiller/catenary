@@ -47,13 +47,11 @@ defmodule Catenary.IndexWorker.Graph do
   defp process_entries([], acc), do: acc
 
   defp process_entries([curr | rest], acc) do
-    try do
-      %Baobab.Entry{payload: payload} = curr
-      {:ok, data, ""} = CBOR.decode(payload)
-      process_entries(rest, [{data["published"], data} | acc])
-    rescue
-      _ -> process_entries(rest, acc)
-    end
+    %Baobab.Entry{payload: payload} = curr
+    {:ok, data, ""} = CBOR.decode(payload)
+    process_entries(rest, [{data["published"], data} | acc])
+  rescue
+    _ -> process_entries(rest, acc)
   end
 
   defp note_operations(ops, acc \\ [])
@@ -74,7 +72,7 @@ defmodule Catenary.IndexWorker.Graph do
   # and return a list of tuples, so this convenience function
   defp reduce_operations(list), do: reduce_operations(list, %{})
   defp reduce_operations([], acc), do: acc |> Map.to_list()
-  # We shouldn't ever need these times after sorting, but I 
+  # We shouldn't ever need these times after sorting, but I
   # have maintained it for now in case I am proved wrong
   defp reduce_operations([{_t, %{"action" => "block", "whom" => whom}} | rest], acc) do
     um =

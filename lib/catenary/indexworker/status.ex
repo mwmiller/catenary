@@ -1,4 +1,7 @@
 defmodule Catenary.IndexWorker.Status do
+  @moduledoc """
+  Agent-backed status store for catenary's indexing progress.
+  """
   use Agent
 
   def start_link(_args) do

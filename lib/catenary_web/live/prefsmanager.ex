@@ -1,4 +1,7 @@
 defmodule Catenary.Live.PrefsManager do
+  @moduledoc """
+  LiveComponent for managing and displaying user preferences.
+  """
   use Phoenix.LiveComponent
   alias Catenary.Display
 
@@ -187,7 +190,7 @@ defmodule Catenary.Live.PrefsManager do
 
   defp log_accept_input(name, blocked) do
     logs = QuaggaDef.logs_for_name(name) |> MapSet.new()
-    # We'll assume that if any one is blocked we meant 
+    # We'll assume that if any one is blocked we meant
     # to block them all.
     checked =
       case MapSet.intersection(blocked, logs) |> Enum.count() do
@@ -197,8 +200,8 @@ defmodule Catenary.Live.PrefsManager do
 
     ln = Atom.to_string(name)
 
-    "<input class=\"bg-white dark:bg-black\" type=\"checkbox\"  name=\"log_name-" <>
-      ln <> "\" value=\"" <> ln <> "\"" <> checked <> "/>"
+    ~s(<input class="bg-white dark:bg-black" type="checkbox"  name="log_name-) <>
+      ln <> ~s(" value=") <> ln <> "\"" <> checked <> "/>"
   end
 
   defp blocked_map_set(clump_id) do

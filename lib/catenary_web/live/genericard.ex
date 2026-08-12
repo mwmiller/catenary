@@ -1,4 +1,7 @@
 defmodule Catenary.GeneriCard do
+  @moduledoc """
+  Generic LiveComponent surface used to frame a rendered entry card.
+  """
   use Phoenix.LiveComponent
 
   # I just want the sigil, but the compiler complains about

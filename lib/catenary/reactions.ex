@@ -11,5 +11,5 @@ defmodule Catenary.Reactions do
   # any "web" forms.
   @producible ["🫖", "💎", "🦓", "⚽️", "💧", "🚦", "🌍"]
 
-  def available(), do: @producible
+  def available, do: @producible
 end

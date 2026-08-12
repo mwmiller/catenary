@@ -165,7 +165,7 @@ defmodule Catenary.Display do
   @doc """
   Return all known log types with an array of {pretty_string, atom}
   """
-  def all_pretty_log_pairs() do
+  def all_pretty_log_pairs do
     QuaggaDef.log_defs()
     |> Enum.map(fn {_id, %{name: n}} -> {cap_atom_string(n), n} end)
   end

@@ -1,4 +1,7 @@
 defmodule Catenary.Live.UnshownExplorer do
+  @moduledoc """
+  LiveComponent rendering an explorer of unshown entries.
+  """
   use Phoenix.LiveComponent
   alias Catenary.Display
 

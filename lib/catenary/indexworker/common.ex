@@ -1,4 +1,7 @@
 defmodule Catenary.IndexWorker.Common do
+  @moduledoc """
+  Common.__using__/1 setup shared by all index worker GenServers: table names, the :logs_of_interest module attribute, start_link, and index/init plumbing.
+  """
   def extract_opts(opts) do
     name_atom = Keyword.get(opts, :name_atom)
     {running, idle} = Keyword.get(opts, :indica)
@@ -13,8 +16,9 @@ defmodule Catenary.IndexWorker.Common do
 
     quote do
       use GenServer
-      alias Catenary.{Preferences, Indices}
       alias Catenary.IndexWorker.Status
+      alias Catenary.Indices
+      alias Catenary.Preferences
 
       @logs_of_interest unquote(loi)
 

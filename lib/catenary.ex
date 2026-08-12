@@ -41,11 +41,11 @@ defmodule Catenary do
     ])
   end
 
-  def alias_state(), do: {:ok, Catenary.State.get(:aliases)}
+  def alias_state, do: {:ok, Catenary.State.get(:aliases)}
 
-  def profile_items_state(), do: {:ok, Catenary.State.get(:profile)}
+  def profile_items_state, do: {:ok, Catenary.State.get(:profile)}
 
-  def oasis_state() do
+  def oasis_state do
     oasis_items =
       Catenary.State.get(:oases)
       |> Enum.map(fn m -> Map.put(m, :connected, Baby.is_connected?({m["host"], m["port"]})) end)
@@ -102,7 +102,7 @@ defmodule Catenary do
 
   @timeline_logs [:journal, :reply]
   def timeline_logs, do: @timeline_logs
-  def random_timeline_log(), do: @timeline_logs |> Enum.random()
+  def random_timeline_log, do: @timeline_logs |> Enum.random()
 
   # This should use the local indices eventually
   def blocked?({:profile, a}, clump_id), do: Baobab.ClumpMeta.blocked?(a, clump_id)

@@ -27,21 +27,19 @@ defmodule Catenary.IndexWorker.Oases do
   defp extract_recents([], _, acc), do: acc
 
   defp extract_recents([{a, l, e} | rest], clump_id, acc) do
-    try do
-      %Baobab.Entry{payload: payload} =
-        Baobab.log_entry(a, e, log_id: l, clump_id: clump_id)
+    %Baobab.Entry{payload: payload} =
+      Baobab.log_entry(a, e, log_id: l, clump_id: clump_id)
 
-      {:ok, map, ""} = CBOR.decode(payload)
+    {:ok, map, ""} = CBOR.decode(payload)
 
-      case map do
-        %{"running" => _} ->
-          extract_recents(rest, clump_id, [Map.merge(map, %{:id => {a, l, e}}) | acc])
+    case map do
+      %{"running" => _} ->
+        extract_recents(rest, clump_id, [Map.merge(map, %{:id => {a, l, e}}) | acc])
 
-        _ ->
-          extract_recents(rest, clump_id, acc)
-      end
-    rescue
-      _ -> extract_recents(rest, clump_id, acc)
+      _ ->
+        extract_recents(rest, clump_id, acc)
     end
+  rescue
+    _ -> extract_recents(rest, clump_id, acc)
   end
 end

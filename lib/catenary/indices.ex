@@ -21,7 +21,7 @@ defmodule Catenary.Indices do
   ]
   @table_options [:public, :named_table]
 
-  def status(), do: Status.get_all()
+  def status, do: Status.get_all()
 
   def update(indices \\ @indices)
   def update(index) when not is_list(index), do: update([index])
@@ -32,7 +32,7 @@ defmodule Catenary.Indices do
     update(rest)
   end
 
-  def reset() do
+  def reset do
     empty_tables(@indices)
   end
 

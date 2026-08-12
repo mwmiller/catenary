@@ -1,4 +1,7 @@
 defmodule Catenary.Live.TagViewer do
+  @moduledoc """
+  LiveComponent rendering a single tag entry card.
+  """
   use Phoenix.LiveComponent
   alias Catenary.Display
 

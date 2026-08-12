@@ -1,4 +1,7 @@
 defmodule Catenary.Live.TagExplorer do
+  @moduledoc """
+  LiveComponent rendering an explorer of tag entries.
+  """
   use Phoenix.LiveComponent
 
   @impl true
@@ -42,10 +45,10 @@ defmodule Catenary.Live.TagExplorer do
   defp to_links(tags) do
     tags
     |> Enum.map(fn {t, _c} ->
-      "<div><button value=\"" <>
+      ~s(<div><button value=") <>
         t <>
-        "\" phx-click=\"view-tag\"><p class=\"tighter text-amber-900 dark:text-amber-100\">" <>
-        t <> "</p></button></div>"
+        ~s(" phx-click="view-tag"><p class="tighter text-amber-900 dark:text-amber-100">) <>
+        t <> ~s(</p></button></div>)
     end)
     |> Phoenix.HTML.raw()
   end

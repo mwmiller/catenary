@@ -1,4 +1,7 @@
 defmodule Catenary.Live.IndexStatus do
+  @moduledoc """
+  LiveComponent rendering the current indexing status.
+  """
   use Phoenix.LiveComponent
   @impl true
   def update(assigns, socket) do

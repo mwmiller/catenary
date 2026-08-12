@@ -1,6 +1,9 @@
 defmodule Catenary.Live.Navigation do
+  @moduledoc """
+  LiveComponent rendering the header, navigation controls, and current-entry context for a view.
+  """
   use Phoenix.LiveComponent
-  alias Catenary.{Preferences, Display}
+  alias Catenary.{Display, Preferences}
 
   @impl true
 
@@ -298,29 +301,25 @@ defmodule Catenary.Live.Navigation do
 
   # We're looking at someone else's alias info, let's offer to use it
   defp alias_info({a, l, e}, clump_id) when l in @alias_logs do
-    try do
-      %Baobab.Entry{payload: payload} = Baobab.log_entry(a, e, log_id: l, clump_id: clump_id)
-      {:ok, data, ""} = CBOR.decode(payload)
-      {data["whom"], data["alias"]}
-    rescue
-      _ -> {a, ""}
-    end
+    %Baobab.Entry{payload: payload} = Baobab.log_entry(a, e, log_id: l, clump_id: clump_id)
+    {:ok, data, ""} = CBOR.decode(payload)
+    {data["whom"], data["alias"]}
+  rescue
+    _ -> {a, ""}
   end
 
   defp alias_info({:profile, a}, _), do: {a, Catenary.about_key(a, "name")}
   defp alias_info({a, _, _}, _), do: {a, ""}
   defp alias_info(_, _), do: {"", ""}
 
-  # show 
+  # show
   defp source_title({a, l, e}, clump_id) do
-    try do
-      %Baobab.Entry{payload: payload} = Baobab.log_entry(a, e, log_id: l, clump_id: clump_id)
+    %Baobab.Entry{payload: payload} = Baobab.log_entry(a, e, log_id: l, clump_id: clump_id)
 
-      {:ok, data, ""} = CBOR.decode(payload)
-      data["title"]
-    rescue
-      _ -> ""
-    end
+    {:ok, data, ""} = CBOR.decode(payload)
+    data["title"]
+  rescue
+    _ -> ""
   end
 
   defp source_title(_, _), do: ""

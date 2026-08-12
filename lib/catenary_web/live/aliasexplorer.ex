@@ -1,4 +1,7 @@
 defmodule Catenary.Live.AliasExplorer do
+  @moduledoc """
+  LiveComponent rendering an explorer for an alias entry.
+  """
   use Phoenix.LiveComponent
   alias Catenary.Display
 

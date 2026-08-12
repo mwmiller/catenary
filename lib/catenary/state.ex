@@ -11,7 +11,7 @@ defmodule Catenary.State do
     Agent.start_link(fn -> @clean_state end, name: __MODULE__)
   end
 
-  def reset(), do: Agent.update(__MODULE__, fn _ -> @clean_state end)
+  def reset, do: Agent.update(__MODULE__, fn _ -> @clean_state end)
 
   def get(which) do
     Agent.get(__MODULE__, fn s -> Map.get(s, which) end)
@@ -24,7 +24,7 @@ defmodule Catenary.State do
     end)
   end
 
-  def set_profile() do
+  def set_profile do
     # This might become more complicated and inclusive later
     whoami = Catenary.Preferences.get(:identity)
 

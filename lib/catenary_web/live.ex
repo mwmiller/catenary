@@ -1,7 +1,10 @@
 defmodule CatenaryWeb.Live do
+  @moduledoc """
+  Catenary's top-level Phoenix LiveView: mounting assigns, routing between views, and wiring the entry/navigation card components.
+  """
   use CatenaryWeb, :live_view
   require Logger
-  alias Catenary.{Display, Navigation, LogWriter, Preferences}
+  alias Catenary.{Display, LogWriter, Navigation, Preferences}
 
   def mount(_params, session, socket) do
     # Making sure these exist, but also faux docs

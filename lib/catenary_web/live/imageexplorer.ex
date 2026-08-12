@@ -1,4 +1,7 @@
 defmodule Catenary.Live.ImageExplorer do
+  @moduledoc """
+  LiveComponent rendering an explorer of image entries.
+  """
   use Phoenix.LiveComponent
   alias Catenary.Display
 

@@ -1,7 +1,11 @@
 defmodule Catenary.Live.EntryViewer do
+  @moduledoc """
+  LiveComponent that renders a single entry as a card: profile, text posts, media, aliases, tags, reactions, and mentions.
+  """
   require Logger
   use Phoenix.LiveComponent
-  alias Catenary.{Preferences, Display}
+  alias Catenary.{Display, Preferences}
+  alias Timex.Format.DateTime.Formatter
 
   @image_logs Catenary.image_logs()
   @impl true
@@ -152,36 +156,34 @@ defmodule Catenary.Live.EntryViewer do
     ldef = l |> QuaggaDef.base_log() |> QuaggaDef.log_def()
     lname = ldef.name
 
-    try do
-      payload = payload_for({a, l, e}, lname, clump_id)
+    payload = payload_for({a, l, e}, lname, clump_id)
 
-      tags = accepted(Preferences.accept_log_name?(:tag), entry, :tags)
-      reactions = accepted(Preferences.accept_log_name?(:react), entry, :reactions)
+    tags = accepted(Preferences.accept_log_name?(:tag), entry, :tags)
+    reactions = accepted(Preferences.accept_log_name?(:react), entry, :reactions)
 
-      mentions =
-        accepted(Preferences.accept_log_name?(:mention), entry, :mentions)
-        |> Enum.map(fn k -> Display.entry_icon_link({:profile, k}, 2) end)
+    mentions =
+      accepted(Preferences.accept_log_name?(:mention), entry, :mentions)
+      |> Enum.map(fn k -> Display.entry_icon_link({:profile, k}, 2) end)
 
-      all_refs = from_refs(entry)
-      mark_shown(entry, all_refs)
+    all_refs = from_refs(entry)
+    mark_shown(entry, all_refs)
 
-      base =
-        Map.merge(
-          %{
-            "author" => a,
-            "tags" => tags,
-            "reactions" => reactions,
-            "mentions" => mentions
-          },
-          all_refs
-        )
+    base =
+      Map.merge(
+        %{
+          "author" => a,
+          "tags" => tags,
+          "reactions" => reactions,
+          "mentions" => mentions
+        },
+        all_refs
+      )
 
-      Map.merge(extract_type(payload, ldef), base)
-    rescue
-      e ->
-        Logger.warning(e)
-        :error
-    end
+    Map.merge(extract_type(payload, ldef), base)
+  rescue
+    e ->
+      Logger.warning(e)
+      :error
   end
 
   defp payload_for({a, l, e}, lname, clump_id) do
@@ -273,9 +275,9 @@ defmodule Catenary.Live.EntryViewer do
         items
         |> Enum.reduce([], fn {%{name: name}, [entry | _]}, acc ->
           [
-            "<div class=\"flex-auto p-1\"><button class=\"text-xs\" value=\"" <>
+            ~s(<div class="flex-auto p-1"><button class="text-xs" value=") <>
               Catenary.index_to_string(entry) <>
-              "\" phx-click=\"view-entry\">" <>
+              ~s(" phx-click="view-entry">) <>
               String.capitalize(Atom.to_string(name)) <> "</button></div>"
             | acc
           ]
@@ -293,7 +295,7 @@ defmodule Catenary.Live.EntryViewer do
       entries ->
         {:safe, icons} = entries |> Enum.reverse() |> icon_entries
 
-        "<h4 class=\"mt-5\">Unshown mentions</h4><div class=\"p-2 flex flex-row\">" <>
+        ~s(<h4 class="mt-5">Unshown mentions</h4><div class="p-2 flex flex-row">) <>
           icons <> "</div>"
     end
   end
@@ -335,156 +337,141 @@ defmodule Catenary.Live.EntryViewer do
   end
 
   defp extract_type(cbor, %{name: :alias}) do
-    try do
-      {:ok, data, ""} = CBOR.decode(cbor)
+    {:ok, data, ""} = CBOR.decode(cbor)
 
-      Map.merge(data, %{
-        "title" => Display.entry_title(:alias, data),
-        "body" => Phoenix.HTML.raw(key_link(data["whom"])),
-        "back-refs" => maybe_refs(data["references"])
-      })
-    rescue
-      e -> malformed(e, cbor)
-    end
+    Map.merge(data, %{
+      "title" => Display.entry_title(:alias, data),
+      "body" => Phoenix.HTML.raw(key_link(data["whom"])),
+      "back-refs" => maybe_refs(data["references"])
+    })
+  rescue
+    e -> malformed(e, cbor)
   end
 
   defp extract_type(cbor, %{name: :about}) do
-    try do
-      {:ok, data, ""} = CBOR.decode(cbor)
+    {:ok, data, ""} = CBOR.decode(cbor)
 
-      Map.merge(data, %{
-        "title" => Display.entry_title(:about, data),
-        "body" =>
-          Phoenix.HTML.raw(
-            "Visit profile for latest view.  Maybe this will show the update someday."
-          ),
-        "back-refs" => maybe_refs(data["references"])
-      })
-    rescue
-      e -> malformed(e, cbor)
-    end
+    Map.merge(data, %{
+      "title" => Display.entry_title(:about, data),
+      "body" =>
+        Phoenix.HTML.raw(
+          "Visit profile for latest view.  Maybe this will show the update someday."
+        ),
+      "back-refs" => maybe_refs(data["references"])
+    })
+  rescue
+    e -> malformed(e, cbor)
   end
 
   defp extract_type(cbor, %{name: :mention}) do
-    try do
-      {:ok, data, ""} = CBOR.decode(cbor)
+    {:ok, data, ""} = CBOR.decode(cbor)
 
-      keys = data["mentions"] |> Enum.join(", ")
+    keys = data["mentions"] |> Enum.join(", ")
 
-      Map.merge(data, %{
-        "title" => Display.entry_title(:mention, data),
-        "body" => Phoenix.HTML.raw("Keys: " <> keys),
-        "back-refs" => maybe_refs(data["references"])
-      })
-    rescue
-      e -> malformed(e, cbor)
-    end
+    Map.merge(data, %{
+      "title" => Display.entry_title(:mention, data),
+      "body" => Phoenix.HTML.raw("Keys: " <> keys),
+      "back-refs" => maybe_refs(data["references"])
+    })
+  rescue
+    e -> malformed(e, cbor)
   end
 
   defp extract_type(cbor, %{name: :graph}) do
-    try do
-      {:ok, data, ""} = CBOR.decode(cbor)
-      action = data["action"]
+    {:ok, data, ""} = CBOR.decode(cbor)
+    action = data["action"]
 
-      common =
-        Map.merge(data, %{
-          "title" => Display.entry_title(:graph, data),
-          "back-refs" => maybe_refs(data["references"])
+    common =
+      Map.merge(data, %{
+        "title" => Display.entry_title(:graph, data),
+        "back-refs" => maybe_refs(data["references"])
+      })
+
+    case action do
+      "block" ->
+        Map.merge(common, %{
+          "body" =>
+            Phoenix.HTML.raw(
+              key_link(data["whom"]) <> "<div class=\"mt-5\">" <> data["reason"] <> "</div>"
+            )
         })
 
-      case action do
-        "block" ->
-          Map.merge(common, %{
-            "body" =>
-              Phoenix.HTML.raw(
-                key_link(data["whom"]) <> "<div class=\"mt-5\">" <> data["reason"] <> "</div>"
-              )
-          })
+      "unblock" ->
+        Map.merge(common, %{
+          "body" =>
+            Phoenix.HTML.raw(
+              key_link(data["whom"]) <> "<div class=\"mt-5\">" <> data["reason"] <> "</div>"
+            )
+        })
 
-        "unblock" ->
-          Map.merge(common, %{
-            "body" =>
-              Phoenix.HTML.raw(
-                key_link(data["whom"]) <> "<div class=\"mt-5\">" <> data["reason"] <> "</div>"
-              )
-          })
-
-        "logs" ->
-          Map.merge(common, %{
-            "body" =>
-              Phoenix.HTML.raw(
-                "Accept: " <>
-                  Enum.join(data["accept"], ", ") <>
-                  "<br/>Reject: " <> Enum.join(data["reject"], ", ")
-              )
-          })
-      end
-    rescue
-      e -> malformed(e, cbor)
+      "logs" ->
+        Map.merge(common, %{
+          "body" =>
+            Phoenix.HTML.raw(
+              "Accept: " <>
+                Enum.join(data["accept"], ", ") <>
+                "<br/>Reject: " <> Enum.join(data["reject"], ", ")
+            )
+        })
     end
+  rescue
+    e -> malformed(e, cbor)
   end
 
   defp extract_type(cbor, %{name: :react}) do
-    try do
-      {:ok, data, ""} = CBOR.decode(cbor)
+    {:ok, data, ""} = CBOR.decode(cbor)
 
-      Map.merge(data, %{
-        "title" => Display.entry_title(:react, data),
-        "body" => Enum.join(data["reactions"], " "),
-        "back-refs" => maybe_refs(data["references"])
-      })
-    rescue
-      e -> malformed(e, cbor)
-    end
+    Map.merge(data, %{
+      "title" => Display.entry_title(:react, data),
+      "body" => Enum.join(data["reactions"], " "),
+      "back-refs" => maybe_refs(data["references"])
+    })
+  rescue
+    e -> malformed(e, cbor)
   end
 
   defp extract_type(cbor, %{name: :oasis}) do
-    try do
-      {:ok, data, ""} = CBOR.decode(cbor)
+    {:ok, data, ""} = CBOR.decode(cbor)
 
-      body =
-        case {"<p>" <>
-                data["host"] <> ":" <> Integer.to_string(data["port"]) <> "</p>",
-              data["operator"]} do
-          {b, nil} -> b
-          {b, op} -> b <> "<p>operated by:</p><p>" <> key_link(op) <> "</p>"
-        end
+    body =
+      case {"<p>" <>
+              data["host"] <> ":" <> Integer.to_string(data["port"]) <> "</p>", data["operator"]} do
+        {b, nil} -> b
+        {b, op} -> b <> "<p>operated by:</p><p>" <> key_link(op) <> "</p>"
+      end
 
-      %{
-        "title" => Display.entry_title(:oasis, data),
-        "body" => Phoenix.HTML.raw(body),
-        "back-refs" => maybe_refs(data["references"]),
-        "published" => data["running"]
-      }
-    rescue
-      e -> malformed(e, cbor)
-    end
+    %{
+      "title" => Display.entry_title(:oasis, data),
+      "body" => Phoenix.HTML.raw(body),
+      "back-refs" => maybe_refs(data["references"]),
+      "published" => data["running"]
+    }
+  rescue
+    e -> malformed(e, cbor)
   end
 
   defp extract_type(cbor, %{name: type}) when type in [:journal, :reply],
     do: text_post(type, cbor)
 
   defp extract_type(cbor, %{name: :tag}) do
-    try do
-      {:ok, data, ""} = CBOR.decode(cbor)
+    {:ok, data, ""} = CBOR.decode(cbor)
 
-      tagdivs =
-        data["tags"]
-        |> Enum.map(fn t ->
-          "<div class=\"text-amber-900 dark:text-amber-100\"><button value=\"" <>
-            t <> "\" phx-click=\"view-tag\">" <> t <> "</button></div>"
-        end)
+    tagdivs =
+      data["tags"]
+      |> Enum.map(fn t ->
+        "<div class=\"text-amber-900 dark:text-amber-100\"><button value=\"" <>
+          t <> "\" phx-click=\"view-tag\">" <> t <> "</button></div>"
+      end)
 
-      body = "<div>" <> Enum.join(tagdivs, "") <> "</div>"
+    body = "<div>" <> Enum.join(tagdivs, "") <> "</div>"
 
-      Map.merge(data, %{
-        "title" => Display.entry_title(:tag, data),
-        "back-refs" => maybe_refs(data["references"]),
-        "body" => Phoenix.HTML.raw(body)
-      })
-    rescue
-      e -> malformed(e, cbor)
-    end
+    Map.merge(data, %{
+      "title" => Display.entry_title(:tag, data),
+      "back-refs" => maybe_refs(data["references"]),
+      "body" => Phoenix.HTML.raw(body)
+    })
+  rescue
+    e -> malformed(e, cbor)
   end
 
   defp key_link(key),
@@ -497,7 +484,7 @@ defmodule Catenary.Live.EntryViewer do
     t
     |> Timex.parse!("{ISO:Extended}")
     |> Timex.Timezone.convert(Timex.Timezone.local())
-    |> Timex.Format.DateTime.Formatter.format!("{YYYY}-{0M}-{0D} {kitchen}")
+    |> Formatter.format!("{YYYY}-{0M}-{0D} {kitchen}")
   end
 
   defp malformed(error, body) do
@@ -570,12 +557,13 @@ defmodule Catenary.Live.EntryViewer do
       t,
       "tags",
       acc <>
-        "<div class=\"auto text-xs text-orange-600 dark:text-amber-200\"><button value=\"prev-tag-" <>
+        ~s(<div class="auto text-xs text-orange-600 dark:text-amber-200"><button value="prev-tag-) <>
         h <>
-        "\" phx-click=\"nav\">«</button> <button value=\"" <>
+        ~s(" phx-click="nav">«</button> <button value=") <>
         h <>
-        "\"  phx-click=\"view-tag\">" <>
-        h <> "</button> <button value=\"next-tag-" <> h <> "\" phx-click=\"nav\">»</button></div>"
+        ~s("  phx-click="view-tag">) <>
+        h <>
+        ~s(</button> <button value="next-tag-) <> h <> ~s(" phx-click="nav">»</button></div>")
     )
   end
 
@@ -604,7 +592,7 @@ defmodule Catenary.Live.EntryViewer do
         acc <>
           "<li><button class=\"" <>
           Enum.join(Display.maybe_border(e), " ") <>
-          "\" phx-click=\"view-entry\" value=\"" <>
+          ~s(" phx-click="view-entry" value=") <>
           Catenary.index_to_string(e) <>
           "\">" <> vals["title"] <> "</button></li>"
       end)
@@ -613,16 +601,14 @@ defmodule Catenary.Live.EntryViewer do
   end
 
   defp text_post(type, cbor) do
-    try do
-      {:ok, data, ""} = CBOR.decode(cbor)
+    {:ok, data, ""} = CBOR.decode(cbor)
 
-      Map.merge(data, %{
-        "title" => Display.entry_title(type, data),
-        "back-refs" => maybe_refs(data["references"]),
-        "body" => data["body"] |> MDEx.to_html!() |> Phoenix.HTML.raw()
-      })
-    rescue
-      e -> malformed(e, cbor)
-    end
+    Map.merge(data, %{
+      "title" => Display.entry_title(type, data),
+      "back-refs" => maybe_refs(data["references"]),
+      "body" => data["body"] |> MDEx.to_html!() |> Phoenix.HTML.raw()
+    })
+  rescue
+    e -> malformed(e, cbor)
   end
 end
