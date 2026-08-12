@@ -64,18 +64,21 @@ defmodule CatenaryWeb.Live do
 
   def render(%{view: :prefs} = assigns) do
     ~H"""
-    <div class="max-h-screen w-100 grid grid-cols-3 gap-2 justify-center">
-      <.live_component
-        module={Catenary.Live.PrefsManager}
-        id={:prefs}
-        clumps={@clumps}
-        clump_id={@clump_id}
-        identity={@identity}
-        identities={@identities}
-        store={@store}
-        facet_id={@facet_id}
-        aliases={@aliases}
-      />
+    {explorebar(assigns)}
+    <div class="max-h-screen w-full flex justify-center px-2 py-2">
+      <div class="w-full max-w-4xl">
+        <.live_component
+          module={Catenary.Live.PrefsManager}
+          id={:prefs}
+          clumps={@clumps}
+          clump_id={@clump_id}
+          identity={@identity}
+          identities={@identities}
+          store={@store}
+          facet_id={@facet_id}
+          aliases={@aliases}
+        />
+      </div>
     </div>
     """
   end
@@ -83,8 +86,10 @@ defmodule CatenaryWeb.Live do
   def render(%{view: :entries, entry: {:tag, _}} = assigns) do
     ~H"""
     {explorebar(assigns)}
-    <div class="max-h-screen w-100 grid grid-cols-3 gap-2 justify-center">
-      <.live_component module={Catenary.Live.TagViewer} id={:tags} entry={elem(@entry, 1)} ) />
+    <div class="max-h-screen w-full flex justify-center px-2 py-2 gap-3">
+      <div class="w-full max-w-xl flex-shrink-0">
+        <.live_component module={Catenary.Live.TagViewer} id={:tags} entry={elem(@entry, 1)} ) />
+      </div>
       {activitybar(assigns)}
     </div>
     """
@@ -93,8 +98,10 @@ defmodule CatenaryWeb.Live do
   def render(%{view: :tags} = assigns) do
     ~H"""
     {explorebar(assigns)}
-    <div class="max-h-screen w-100 grid grid-cols-3 gap-2 justify-center">
-      <.live_component module={Catenary.Live.TagExplorer} id={:tags} entry={@entry} />
+    <div class="max-h-screen w-full flex justify-center px-2 py-2 gap-3">
+      <div class="w-full max-w-xl flex-shrink-0">
+        <.live_component module={Catenary.Live.TagExplorer} id={:tags} entry={@entry} />
+      </div>
       {activitybar(assigns)}
     </div>
     """
@@ -103,13 +110,15 @@ defmodule CatenaryWeb.Live do
   def render(%{view: :images} = assigns) do
     ~H"""
     {explorebar(assigns)}
-    <div class="max-h-screen w-100 grid grid-cols-3 gap-2 justify-center">
-      <.live_component
-        module={Catenary.Live.ImageExplorer}
-        id={:images}
-        entry={:poster}
-        aliases={@aliases}
-      />
+    <div class="max-h-screen w-full flex justify-center px-2 py-2 gap-3">
+      <div class="w-full max-w-xl flex-shrink-0">
+        <.live_component
+          module={Catenary.Live.ImageExplorer}
+          id={:images}
+          entry={:poster}
+          aliases={@aliases}
+        />
+      </div>
       {activitybar(assigns)}
     </div>
     """
@@ -120,15 +129,17 @@ defmodule CatenaryWeb.Live do
   def render(%{view: :unshown} = assigns) do
     ~H"""
     {explorebar(assigns)}
-    <div class="max-h-screen w-100 grid grid-cols-3 gap-2 justify-center">
-      <.live_component
-        module={Catenary.Live.UnshownExplorer}
-        id={:unshown}
-        which={@entry}
-        clump_id={@clump_id}
-        oases={@oases}
-        shown_hash={@shown_hash}
-      />
+    <div class="max-h-screen w-full flex justify-center px-2 py-2 gap-3">
+      <div class="w-full max-w-xl flex-shrink-0">
+        <.live_component
+          module={Catenary.Live.UnshownExplorer}
+          id={:unshown}
+          which={@entry}
+          clump_id={@clump_id}
+          oases={@oases}
+          shown_hash={@shown_hash}
+        />
+      </div>
       {activitybar(assigns)}
     </div>
     """
@@ -137,13 +148,15 @@ defmodule CatenaryWeb.Live do
   def render(%{view: :aliases} = assigns) do
     ~H"""
     {explorebar(assigns)}
-    <div class="max-h-screen w-100 grid grid-cols-3 gap-2 justify-center">
-      <.live_component
-        module={Catenary.Live.AliasExplorer}
-        id={:aliases}
-        alias={:all}
-        aliases={@aliases}
-      />
+    <div class="max-h-screen w-full flex justify-center px-2 py-2 gap-3">
+      <div class="w-full max-w-xl flex-shrink-0">
+        <.live_component
+          module={Catenary.Live.AliasExplorer}
+          id={:aliases}
+          alias={:all}
+          aliases={@aliases}
+        />
+      </div>
       {activitybar(assigns)}
     </div>
     """
@@ -152,14 +165,16 @@ defmodule CatenaryWeb.Live do
   def render(%{view: :oases} = assigns) do
     ~H"""
     {explorebar(assigns)}
-    <div class="max-h-screen w-100 grid grid-cols-3 gap-2 justify-center">
-      <.live_component
-        module={Catenary.Live.OasisExplorer}
-        id={:oases}
-        oases={@oases}
-        opened={@opened}
-        aliases={@aliases}
-      />
+    <div class="max-h-screen w-full flex justify-center px-2 py-2 gap-3">
+      <div class="w-full max-w-xl flex-shrink-0">
+        <.live_component
+          module={Catenary.Live.OasisExplorer}
+          id={:oases}
+          oases={@oases}
+          opened={@opened}
+          aliases={@aliases}
+        />
+      </div>
       {activitybar(assigns)}
     </div>
     """
@@ -168,16 +183,18 @@ defmodule CatenaryWeb.Live do
   def render(%{view: :entries} = assigns) do
     ~H"""
     {explorebar(assigns)}
-    <div class="max-h-screen w-100 grid grid-cols-3 gap-2 justify-center">
-      <.live_component
-        module={Catenary.Live.EntryViewer}
-        id={:entry}
-        store={@store}
-        identity={@identity}
-        entry={@entry}
-        clump_id={@clump_id}
-        aliases={@aliases}
-      />
+    <div class="max-h-screen w-full flex justify-center px-2 py-2 gap-3">
+      <div class="w-full max-w-xl flex-shrink-0">
+        <.live_component
+          module={Catenary.Live.EntryViewer}
+          id={:entry}
+          store={@store}
+          identity={@identity}
+          entry={@entry}
+          clump_id={@clump_id}
+          aliases={@aliases}
+        />
+      </div>
       {activitybar(assigns)}
     </div>
     """
@@ -185,25 +202,41 @@ defmodule CatenaryWeb.Live do
 
   defp explorebar(assigns) do
     ~H"""
-    <div class="mx-0.5 flex flex-rows">
-      <div class="flex-auto">
-        <button phx-click="toview" value="prefs">{@clump_id}</button>
-        / {Display.linked_author(@identity, @aliases)}
-      </div>
-      <div class="flex-auto">
-        <button class={stack_color(@entry_back)} phx-click="nav-backward">⤶</button>
-        <button value="tags" phx-click="toview">#</button>
-        <button value="oases" phx-click="toview">⇆</button>
-        <button value="unshown" phx-click="toview">◎</button>
-        <button value="aliases" phx-click="toview">~</button>
-        <button value="images" phx-click="toview">҂</button>
-        <button class={stack_color(@entry_fore)} phx-click="nav-forward">⤷</button>
-      </div>
-      <div class="flex-auto">
-        <.live_component module={Catenary.Live.IndexStatus} id={:indices} indexing={@indexing} />
+    <div class="sticky top-0 z-10 bg-white dark:bg-gray-950 border-b border-stone-200 dark:border-stone-800">
+      <div class="flex items-center justify-between min-w-0 px-2 py-1 gap-1">
+        <!-- Left: clump + identity -->
+        <div class="flex items-center gap-1 shrink-0 text-sm font-mono">
+          <button phx-click="toview" value="prefs" class="hover:text-amber-700 dark:hover:text-amber-400 transition-colors">
+            {@clump_id}
+          </button>
+          <span class="text-stone-400 dark:text-stone-600 select-none">/</span>
+          <span class="truncate">{Display.linked_author(@identity, @aliases)}</span>
+        </div>
+
+        <!-- Center: nav buttons -->
+        <div class="flex items-center gap-0.5 overflow-x-auto flex-1 justify-center min-w-0 scrollbar-hide">
+          <button class={stack_color(@entry_back)} phx-click="nav-backward" title="Back"
+            class="px-2 py-1 rounded hover:bg-stone-200 dark:hover:bg-stone-800 transition-colors text-lg leading-none">⤶</button>
+          <button value="tags" phx-click="toview" title="Tags"
+            class="px-2 py-1 rounded hover:bg-stone-200 dark:hover:bg-stone-800 transition-colors text-lg leading-none">#</button>
+          <button value="oases" phx-click="toview" title="Peers"
+            class="px-2 py-1 rounded hover:bg-stone-200 dark:hover:bg-stone-800 transition-colors text-lg leading-none">⇆</button>
+          <button value="unshown" phx-click="toview" title="Unread"
+            class="px-2 py-1 rounded hover:bg-stone-200 dark:hover:bg-stone-800 transition-colors text-lg leading-none">◎</button>
+          <button value="aliases" phx-click="toview" title="Aliases"
+            class="px-2 py-1 rounded hover:bg-stone-200 dark:hover:bg-stone-800 transition-colors text-lg leading-none">~</button>
+          <button value="images" phx-click="toview" title="Images"
+            class="px-2 py-1 rounded hover:bg-stone-200 dark:hover:bg-stone-800 transition-colors text-lg leading-none">҂</button>
+          <button class={stack_color(@entry_fore)} phx-click="nav-forward" title="Forward"
+            class="px-2 py-1 rounded hover:bg-stone-200 dark:hover:bg-stone-800 transition-colors text-lg leading-none">⤷</button>
+        </div>
+
+        <!-- Right: index status -->
+        <div class="shrink-0">
+          <.live_component module={Catenary.Live.IndexStatus} id={:indices} indexing={@indexing} />
+        </div>
       </div>
     </div>
-    <hr />
     """
   end
 

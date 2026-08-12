@@ -55,10 +55,10 @@ defmodule Catenary.Live.Navigation do
   @impl true
   def render(assigns) do
     ~H"""
-    <div class="align-top min-w-full">
-      <div class="flex flex-row-3 text-xl">
-        <div class="flex-auto p-1 text-center">
-          <button value="origin" phx-click="nav">
+    <div class="min-w-full">
+      <div class="flex flex-wrap items-center justify-center gap-1 text-xl px-2 py-1">
+        <div class="flex items-center gap-1">
+          <button value="origin" phx-click="nav" title="Home">
             {Display.scaled_avatar(@identity, 2) |> Phoenix.HTML.raw()}
           </button>
           <%= if displayed_matches([:log, :profile], @displayed_info) do %>
@@ -66,14 +66,14 @@ defmodule Catenary.Live.Navigation do
             {post_button_for(:alias)}
           <% end %>
         </div>
-        <div class="flex-auto p-1 text-center">
-          <button value="prev-author" phx-click="nav">↥</button>
-          <button value="prev-entry" phx-click="nav">⇜</button>
-          <button phx-click="toggle-none">⍟</button>
-          <button value="next-entry" phx-click="nav">⇝</button>
-          <button value="next-author" phx-click="nav">↧</button>
+        <div class="flex items-center gap-1">
+          <button value="prev-author" phx-click="nav" title="Prev author">↥</button>
+          <button value="prev-entry" phx-click="nav" title="Prev entry">⇜</button>
+          <button phx-click="toggle-none" title="None">⍟</button>
+          <button value="next-entry" phx-click="nav" title="Next entry">⇝</button>
+          <button value="next-author" phx-click="nav" title="Next author">↧</button>
         </div>
-        <div class="flex-auto p-1 text-center">
+        <div class="flex items-center gap-1">
           {for post_type <- [:journal, :image], do: post_button_for(post_type)}
           <%= if displayed_matches([:log], @displayed_info) do %>
             {for post_type <- [:reply, :react, :tag, :mention], do: post_button_for(post_type)}
