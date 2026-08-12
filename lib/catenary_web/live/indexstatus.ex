@@ -10,7 +10,7 @@ defmodule Catenary.Live.IndexStatus do
     ~H"""
     <div class="status flex flex-row font-mono text-xs text-center mx-1 w-max">
       <%= for s <- @indexing do %>
-        <div class="flex-auto p-1"><%= s %></div>
+        <div class="flex-auto p-1">{s}</div>
       <% end %>
     </div>
     """

@@ -78,25 +78,27 @@ defmodule Catenary.Live.EntryViewer do
     ~H"""
     <div id="entryview-wrap" class="col-span-2 overflow-y-auto max-h-screen m-2 p-x-2">
       <div class="min-w-full font-sans row-span-full">
-        <%= Phoenix.HTML.raw(Display.scaled_avatar(@card["author"], 8, ["float-left", "m-3"])) %>
-        <h1><%= @card["title"] %></h1>
+        {Phoenix.HTML.raw(Display.scaled_avatar(@card["author"], 8, ["float-left", "m-3"]))}
+        <h1>{@card["title"]}</h1>
         <p class="text-sm font-light">
-          <%= Phoenix.HTML.raw(Display.linked_author(@card["author"], @aliases)) %> &mdash; <%= nice_time(@card["published"]) %>
+          {Phoenix.HTML.raw(Display.linked_author(@card["author"], @aliases))} &mdash; {nice_time(
+            @card["published"]
+          )}
         </p>
         <p>
-          <%= icon_entries(@card["back-refs"]) %>&nbsp;↹&nbsp;<%= icon_entries(@card["fore-refs"]) %>
+          {icon_entries(@card["back-refs"])}&nbsp;↹&nbsp;{icon_entries(@card["fore-refs"])}
         </p>
         <hr class="mb-3" />
         <div class="font-light">
-          <%= @card["body"] %>
+          {@card["body"]}
         </div>
       </div>
       <%= if is_tuple(@entry) && tuple_size(@entry) == 3 do %>
         <div class="flex flex-row">
-          <%= metabox(@card, "mentions") %>
-          <%= metabox(@card, "tags") %>
-          <%= metabox(@card, "reactions") %>
-          <%= metabox(@card, "refs") %>
+          {metabox(@card, "mentions")}
+          {metabox(@card, "tags")}
+          {metabox(@card, "reactions")}
+          {metabox(@card, "refs")}
         </div>
       <% end %>
     </div>

@@ -164,7 +164,7 @@ defmodule CatenaryWeb.Live do
 
   def render(%{view: :entries} = assigns) do
     ~H"""
-    <%= explorebar(assigns) %>
+    {explorebar(assigns)}
     <div class="max-h-screen w-100 grid grid-cols-3 gap-2 justify-center">
       <.live_component
         module={Catenary.Live.EntryViewer}
@@ -175,7 +175,7 @@ defmodule CatenaryWeb.Live do
         clump_id={@clump_id}
         aliases={@aliases}
       />
-      <%= activitybar(assigns) %>
+      {activitybar(assigns)}
     </div>
     """
   end
@@ -184,8 +184,8 @@ defmodule CatenaryWeb.Live do
     ~H"""
     <div class="mx-0.5 flex flex-rows">
       <div class="flex-auto">
-        <button phx-click="toview" value="prefs"><%= @clump_id %></button>
-        / <%= Display.linked_author(@identity, @aliases) %>
+        <button phx-click="toview" value="prefs">{@clump_id}</button>
+        / {Display.linked_author(@identity, @aliases)}
       </div>
       <div class="flex-auto">
         <button class={stack_color(@entry_back)} phx-click="nav-backward">⤶</button>

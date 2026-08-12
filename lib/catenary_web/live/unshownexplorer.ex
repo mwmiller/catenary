@@ -20,10 +20,10 @@ defmodule Catenary.Live.UnshownExplorer do
       <hr />
       <%= for {type, entries, estring, size} <- @card do %>
         <h3 class="text-slate-600 dark:text-slate-300">
-          <button phx-click="shown-set" value={estring}>∅</button>&nbsp;&nbsp;<%= type %>
+          <button phx-click="shown-set" value={estring}>∅</button>&nbsp;&nbsp;{type}
         </h3>
         <div class="grid grid-cols-3 my-2">
-          <%= entries %>
+          {entries}
           <%= if size == :more do %>
             <p class="text-xs">(◎+)</p>
           <% end %>

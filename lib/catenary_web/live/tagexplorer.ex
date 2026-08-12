@@ -18,7 +18,7 @@ defmodule Catenary.Live.TagExplorer do
       <hr />
       <%= for g <-  @card["tags"] do %>
         <div class="grid grid-cols-3 mt-10">
-          <%= g %>
+          {g}
         </div>
       <% end %>
     </div>

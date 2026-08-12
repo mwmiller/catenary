@@ -16,12 +16,12 @@ defmodule Catenary.Live.TagViewer do
     ~H"""
     <div id="tagview-wrap" class="col-span-2 overflow-y-auto max-h-screen m-2 p-x-2">
       <div class="min-w-full font-sans row-span-full">
-        <h1 class="text=center">Entries tagged with &quot;<%= @tag %>&quot;</h1>
+        <h1 class="text=center">Entries tagged with &quot;{@tag}&quot;</h1>
         <hr />
         <%= for {type, entries} <- @card do %>
-          <h3 class="pt-5 text-slate-600 dark:text-slate-300"><%= type %></h3>
+          <h3 class="pt-5 text-slate-600 dark:text-slate-300">{type}</h3>
           <div class="grid grid-cols-3 my-2">
-            <%= entries %>
+            {entries}
           </div>
         <% end %>
         <div class="mt-10 text-center"><button phx-click="tag-explorer">⧟ ### ⧟</button></div>

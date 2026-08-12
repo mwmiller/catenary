@@ -26,7 +26,8 @@ defmodule CatenaryWeb.Live.NavigationTest do
 
     for {desired, displayed, expected} <- where do
       test "displayed_matches(#{inspect(desired)}, #{inspect(displayed)}) == #{inspect(expected)}" do
-        assert Navigation.displayed_matches([unquote(desired)], unquote(displayed)) == unquote(expected)
+        assert Navigation.displayed_matches([unquote(desired)], unquote(displayed)) ==
+                 unquote(expected)
       end
     end
 

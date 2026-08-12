@@ -73,7 +73,13 @@ defmodule Catenary.Navigation do
   # same current entry is a no-op (no history is recorded); a supplied
   # `from` argument is treated as the new destination and always records the
   # current location onto the back stack.
-  defp new_path(next, from, _sent, %{view: view, entry: entry, entry_back: back, entry_fore: fore, store: store}, check_existence?) do
+  defp new_path(
+         next,
+         from,
+         _sent,
+         %{view: view, entry: entry, entry_back: back, entry_fore: fore, store: store},
+         check_existence?
+       ) do
     at = %{view: view, entry: entry, entry_back: back, entry_fore: fore}
     to = if check_existence?, do: maybe_wrap(next, store), else: next
 

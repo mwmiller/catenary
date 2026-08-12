@@ -18,7 +18,7 @@ defmodule Catenary.Live.AliasExplorer do
       <h1>Alias Explorer</h1>
       <hr />
       <div class="grid grid-cols-3 mt-10">
-        <%= @card["aliases"] %>
+        {@card["aliases"]}
       </div>
     </div>
     """
