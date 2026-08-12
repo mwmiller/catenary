@@ -213,16 +213,16 @@ defmodule CatenaryWeb.Live do
     ~H"""
     <div class="sticky top-0 z-10 bg-white dark:bg-gray-950 border-b border-stone-200 dark:border-stone-800">
       <div class="flex items-center justify-between min-w-0 px-2 py-1 gap-1">
-        <!-- Left: identicon + clump + identity -->
+        <!-- Left: clump + identity -->
         <div class="flex items-center gap-1 shrink-0 text-sm font-mono">
-          <button value="origin" phx-click="nav" title="Home">
-            {Display.scaled_avatar(@identity, 2) |> Phoenix.HTML.raw()}
-          </button>
           <button phx-click="toview" value="prefs" class="hover:text-amber-700 dark:hover:text-amber-400 transition-colors">
             {@clump_id}
           </button>
           <span class="text-stone-400 dark:text-stone-600 select-none">/</span>
-          <span class="truncate">{Display.linked_author(@identity, @aliases)}</span>
+          <button value="origin" phx-click="nav" title="Home" class="flex items-center gap-1 hover:text-amber-700 dark:hover:text-amber-400 transition-colors">
+            {Display.scaled_avatar(@identity, 2) |> Phoenix.HTML.raw()}
+            <span class="truncate">{Display.linked_author(@identity, @aliases)}</span>
+          </button>
         </div>
 
         <!-- Center: nav buttons -->
@@ -257,7 +257,7 @@ defmodule CatenaryWeb.Live do
 
   defp activitybar(assigns) do
     ~H"""
-    <div class="mt-5">
+    <div class="mt-5 min-h-[400px]">
       <.live_component
         module={Catenary.Live.Navigation}
         id={:nav}

@@ -55,8 +55,8 @@ defmodule Catenary.Live.Navigation do
   @impl true
   def render(assigns) do
     ~H"""
-    <div class="min-w-full">
-      <div class="flex flex-col items-center gap-2 text-xl px-2 py-2">
+    <div class="min-w-full flex flex-col items-center">
+      <div class="flex flex-col items-center gap-2 text-xl px-2 py-2 w-full">
         <div class="flex items-center gap-1">
           <%= if displayed_matches([:log, :profile], @displayed_info) do %>
             {post_button_for(:graph)}
@@ -72,7 +72,9 @@ defmodule Catenary.Live.Navigation do
           </div>
         <% end %>
       </div>
-      {@lower_nav}
+      <div class="w-full flex justify-center mt-2">
+        {@lower_nav}
+      </div>
     </div>
     """
   end
