@@ -32,6 +32,18 @@ defmodule Catenary.Indices do
     update(rest)
   end
 
+  # Cast :update to every index worker, bypassing the store-hash gate used
+  # by update/0/1. Used once at startup after Baobab's Log.Acceptor has had
+  # time to populate :status dets, so workers index against the live store.
+  def force_update(indices \\ @indices)
+  def force_update(index) when not is_list(index), do: force_update([index])
+  def force_update([]), do: :ok
+
+  def force_update([index | rest]) do
+    GenServer.cast(index, :update)
+    force_update(rest)
+  end
+
   def reset do
     empty_tables(@indices)
   end

@@ -10,6 +10,7 @@ defmodule Catenary.MixProject do
       start_permanent: Mix.env() == :prod,
       releases: releases(),
       aliases: aliases(),
+      listeners: [Phoenix.CodeReloader],
       deps: deps()
     ]
   end

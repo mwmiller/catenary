@@ -29,7 +29,7 @@ defmodule Catenary.Live.ImageExplorer do
           </p>
         </button>
       <% end %>
-      <%= for {t, g} <- @card[@entry] |> Enum.sort do %>
+      <%= for {t, g} <- (@card[@entry] || []) |> Enum.sort do %>
         <h4>{t}</h4>
         <div class="flex flex-row flex-wrap mt-7 mx-auto">
           <%= for i <- g do %>
@@ -49,7 +49,7 @@ defmodule Catenary.Live.ImageExplorer do
   defp extract(aliases) do
     case :ets.lookup(:images, :map) do
       [{:map, full_map}] -> full(Map.to_list(full_map), aliases)
-      _ -> {"none", []}
+      _ -> :none
     end
   end
 

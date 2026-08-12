@@ -23,12 +23,13 @@ defmodule Catenary.Live.OasisExplorer do
     ~H"""
     <div id="oasis-explore-wrap" class="col-span-2 overflow-y-auto max-h-screen m-2 p-x-2">
       <h1>Oasis Explorer</h1>
+      <button class="text-xs" phx-click="clear-oases" phx-disable-with="↯" title="Clear oases">✕</button>
       <hr />
       <div class="font-mono text-xs my-2">
         <div class="my-1 p-1 bg-slate-200 dark:bg-slate-700">
           No recent oases found.
           <%= if @opened == 0 do %>
-            <button phx-click="init-connect" phx-disable-with="↯ trying ↯">
+            <button phx-click="init-connect" phx-disable-with="↯ trying ↯" title="Connect to bootstrap node">
               ⇆ try bootstrap node ⇆
             </button>
           <% else %>
@@ -47,6 +48,7 @@ defmodule Catenary.Live.OasisExplorer do
     ~H"""
     <div id="oasisexplore-wrap" class="col-span-2 overflow-y-auto max-h-screen m-2 p-x-2">
       <h1>Oasis Explorer</h1>
+      <button class="text-xs" phx-click="clear-oases" phx-disable-with="↯" title="Clear oases">✕</button>
       <hr />
       <div class="font-mono text-xs py-2">
         <%= for {recent, index}  <- Enum.with_index(@nodes) do %>
@@ -66,6 +68,7 @@ defmodule Catenary.Live.OasisExplorer do
                   phx-click="connect"
                   phx-disable-with="↯"
                   value={Catenary.index_to_string(recent.id)}
+                  title="Connect to oasis"
                 >
                   ⇆
                 </button>

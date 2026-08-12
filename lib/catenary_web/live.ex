@@ -485,8 +485,13 @@ defmodule CatenaryWeb.Live do
   end
 
   def handle_event("init-connect", _, socket) do
-    {host, port} = QuaggaDef.bootstrap_node()
+    {host, port} = Catenary.bootstrap_node(socket.assigns.clump_id)
     connector_wrap(host, port, socket)
+    {:noreply, state_set(socket, %{})}
+  end
+
+  def handle_event("clear-oases", _, socket) do
+    Catenary.remove_oasis_logs()
     {:noreply, state_set(socket, %{})}
   end
 

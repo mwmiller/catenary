@@ -37,6 +37,8 @@ defmodule Catenary.State do
     Agent.update(__MODULE__, fn s -> Map.merge(s, %{profile: profile_items}) end)
   end
 
+  def clear_oases, do: Agent.update(__MODULE__, fn s -> %{s | oases: []} end)
+
   def update_oases(recents) do
     Agent.update(__MODULE__, fn s ->
       %{oases: prev} = s

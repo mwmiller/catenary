@@ -53,6 +53,26 @@ defmodule Catenary do
     {:ok, oasis_items}
   end
 
+  @doc """
+  Remove the `:oasis` log type entirely for the current clump.
+
+  The mesh has changed, so we drop every `:oasis` log entry (all facet
+  variants, every author) rather than trying to prune individual nodes.
+  Other log types are left intact. The in-memory oasis list and the
+  `:oases` index are reset so the UI reflects the removal.
+  """
+  def remove_oasis_logs do
+    clump_id = Catenary.Preferences.get(:clump_id)
+
+    for log_id <- QuaggaDef.logs_for_name(:oasis) do
+      Baobab.purge(:all, log_id: log_id, clump_id: clump_id)
+    end
+
+    Catenary.State.clear_oases()
+    Catenary.Indices.reset()
+    :ok
+  end
+
   def id_for_key(key), do: find_id_for_key(Baobab.Identity.list(), key)
   defp find_id_for_key([], key), do: {:error, "No identity found for key " <> key}
   defp find_id_for_key([{ali, key} | _], key), do: ali
@@ -146,5 +166,22 @@ defmodule Catenary do
       {{ac + author_inc, lc + 1, pc + e}, MapSet.put(as, a)}
     end)
     |> then(fn {counts, _} -> counts end)
+  end
+
+  # The bootstrap node for a clump.
+  #
+  # A clump may override the canonical `QuaggaDef.bootstrap_node/0` with a
+  # `bootstrap_node: [host: "...", port: N]` entry in its config, which is how
+  # a deployment points the client at its own infrastructure.
+  def bootstrap_node(clump_id) do
+    clump = Application.get_env(:catenary, :clumps, %{}) |> Map.get(clump_id, [])
+
+    case Keyword.get(clump, :bootstrap_node) do
+      [host: host, port: port] when is_binary(host) and is_integer(port) ->
+        {host, port}
+
+      _ ->
+        QuaggaDef.bootstrap_node()
+    end
   end
 end

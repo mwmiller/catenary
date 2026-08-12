@@ -10,8 +10,14 @@ defmodule Catenary.IndexWorker.Oases do
 
   @display_count 4
 
-  def do_index(todo, clump_id) do
-    todo
+  def do_index(_todo, clump_id) do
+    # Rebuild from the full store rather than just the incremental diff.
+    # The index worker's initial :continue load can race Baobab's async
+    # :status load, so a diff against the cold store would index nothing
+    # and never refresh (Indices.update/0 only re-casts on a hash change).
+    clump_id
+    |> Baobab.stored_info()
+    |> Enum.filter(fn {_a, l, _e} -> l in @logs_of_interest end)
     |> extract_recents(clump_id, [])
     |> build_index(@display_count)
     |> Catenary.State.update_oases()

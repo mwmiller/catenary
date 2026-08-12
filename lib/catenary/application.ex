@@ -54,7 +54,18 @@ defmodule Catenary.Application do
     ]
 
     opts = [strategy: :one_for_one, name: Catenary.Supervisor]
-    Supervisor.start_link(children, opts)
+    {:ok, sup} = Supervisor.start_link(children, opts)
+
+    # Baobab's Log.Acceptor populates :status dets asynchronously, so the
+    # index workers' initial loads can run against a cold store. Force a
+    # re-index once it has had a chance to load so workers (e.g. :oases)
+    # rebuild from the populated store rather than staying empty.
+    Task.start(fn ->
+      Process.sleep(3000)
+      Catenary.Indices.force_update()
+    end)
+
+    {:ok, sup}
   end
 
   def spool_dir do
