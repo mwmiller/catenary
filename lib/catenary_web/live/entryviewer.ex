@@ -563,7 +563,7 @@ defmodule Catenary.Live.EntryViewer do
         h <>
         ~s("  phx-click="view-tag">) <>
         h <>
-        ~s(</button> <button value="next-tag-) <> h <> ~s(" phx-click="nav">»</button></div>")
+        ~s(</button> <button value="next-tag-) <> h <> ~s(" phx-click="nav">»</button></div>)
     )
   end
 

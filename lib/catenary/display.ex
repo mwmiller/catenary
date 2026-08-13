@@ -139,10 +139,7 @@ defmodule Catenary.Display do
   The standard button which indicates a log entry will be created.
   """
   def log_submit_button do
-    """
-    <hr/>
-    <button phx-disable-with="𝄇" type="submit">➲</button>
-    """
+    ~s(<button phx-disable-with="𝄇" type="submit" class="w-full rounded-md bg-amber-600 hover:bg-amber-500 active:bg-amber-700 dark:bg-amber-500 dark:hover:bg-amber-400 dark:active:bg-amber-600 text-white dark:text-stone-900 text-sm font-semibold px-4 py-1.5 shadow-sm transition-colors">➲</button>)
     |> Phoenix.HTML.raw()
   end
 

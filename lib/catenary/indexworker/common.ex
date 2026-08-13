@@ -41,14 +41,14 @@ defmodule Catenary.IndexWorker.Common do
       end
 
       def update_from_logs(%{indexed: seen} = state) do
-        Status.set(unquote(na), unquote(run))
+        Status.set(unquote(na), unquote(run), :running)
         clump_id = Preferences.get(:clump_id)
         current = clump_id |> Baobab.stored_info()
 
         {mapped_curr, todo} = updated_logs(current, seen, {%{}, []})
         do_index(todo, clump_id)
 
-        Status.set(unquote(na), unquote(idle))
+        Status.set(unquote(na), unquote(idle), :idle)
         {:noreply, %{state | indexed: mapped_curr}}
       end
 

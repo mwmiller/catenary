@@ -55,7 +55,7 @@ defmodule Catenary.Live.Navigation do
   @impl true
   def render(assigns) do
     ~H"""
-    <div class="min-w-full flex flex-col items-center">
+    <div class="min-w-full w-56 flex flex-col items-center">
       <div class="flex flex-col items-center gap-2 text-xl px-2 py-2 w-full">
         <div class="flex items-center gap-1">
           <%= if displayed_matches([:log, :profile], @displayed_info) do %>
@@ -72,7 +72,7 @@ defmodule Catenary.Live.Navigation do
           </div>
         <% end %>
       </div>
-      <div class="w-full flex justify-center mt-2">
+      <div class="w-full flex justify-center mt-2 px-2 overflow-x-auto">
         {@lower_nav}
       </div>
     </div>
@@ -81,7 +81,7 @@ defmodule Catenary.Live.Navigation do
 
   defp extra_nav(%{:extra_nav => :reply} = assigns) do
     ~H"""
-    <div id="posting" class="font-sans">
+    <div id="posting" class={panel_cls()}>
       <%= if displayed_matches([:log], @displayed_info) do %>
         {log_posting_form(assigns, :reply, source_title(@entry, @clump_id))}
       <% end %>
@@ -91,7 +91,7 @@ defmodule Catenary.Live.Navigation do
 
   defp extra_nav(%{:extra_nav => :journal} = assigns) do
     ~H"""
-    <div id="posting" class="font-sans">
+    <div id="posting" class={panel_cls()}>
       {log_posting_form(assigns, :journal, "")}
     </div>
     """
@@ -101,17 +101,20 @@ defmodule Catenary.Live.Navigation do
 
   defp extra_nav(%{:extra_nav => :alias} = assigns) do
     ~H"""
-    <div id="aliases">
-      <form method="post" id="alias-form" phx-submit="new-entry">
+    <div id="aliases" class={panel_cls()}>
+      <form method="post" id="alias-form" phx-submit="new-entry" class="flex flex-col gap-3">
         <input type="hidden" name="log_id" value="53" />
         <%= if displayed_matches([:log], @displayed_info) do %>
           <input type="hidden" name="ref" value={Catenary.index_to_string(@entry)} />
         <% end %>
         <input type="hidden" name="whom" value={@whom} />
-        {Display.scaled_avatar(@whom, 4, ["mx-auto"]) |> Phoenix.HTML.raw()}
-        <h3>{Display.short_id(@whom, @aliases)}</h3>
-        <label for="alias">～</label>
-        <input class="bg-white dark:bg-black" name="alias" value={@ali} type="text" size="16" />
+        <div class="flex items-center gap-2">
+          {Display.scaled_avatar(@whom, 4, ["flex-none"]) |> Phoenix.HTML.raw()}
+          <div class="min-w-0">
+            <label for="alias" class={label_cls()}>Alias</label>
+            <input class={input_cls()} name="alias" value={@ali} type="text" />
+          </div>
+        </div>
         {Display.log_submit_button()}
       </form>
     </div>
@@ -122,25 +125,22 @@ defmodule Catenary.Live.Navigation do
 
   defp extra_nav(%{:extra_nav => :graph, :blocked => true} = assigns) do
     ~H"""
-    <div id="block">
-      <p class="my-5">You may unblock by submitting this form.  It will publish a
-        public log entry to that effect.  Including a reason is optional.</p>
-      <br />
-      <form method="post" id="block-form" phx-submit="new-entry">
+    <div id="block" class={panel_cls()}>
+      {help_text("You may unblock by submitting this form. It will publish a public log entry to that effect. Including a reason is optional.")}
+      <form method="post" id="block-form" phx-submit="new-entry" class="flex flex-col gap-3 mt-3">
         <input type="hidden" name="log_id" value="1337" />
         <input type="hidden" name="action" value="unblock" />
         <%= if displayed_matches([:log], @displayed_info) do %>
           <input type="hidden" name="ref" value={Catenary.index_to_string(@recent.id)} />
         <% end %>
         <input type="hidden" name="whom" value={@whom} />
-        <div class="w-100 grid grid-cols-3">
-          <div>Unblock:</div>
-          <div>{Display.scaled_avatar(@whom, 2)}</div>
-          <div>{Display.short_id(@whom, @aliases)}</div>
-          <div>Reason:</div>
-          <div class="grid-cols=2">
-            <textarea class="bg-white dark:bg-black" name="reason" rows="4" cols="20"></textarea>
-          </div>
+        <div class="flex items-center gap-2">
+          {Display.scaled_avatar(@whom, 2) |> Phoenix.HTML.raw()}
+          <span class="truncate">{Display.short_id(@whom, @aliases)}</span>
+        </div>
+        <div>
+          <label for="reason" class={label_cls()}>Reason</label>
+          <textarea class={input_cls()} id="reason" name="reason" rows="4"></textarea>
         </div>
         {Display.log_submit_button()}
       </form>
@@ -150,26 +150,22 @@ defmodule Catenary.Live.Navigation do
 
   defp extra_nav(%{:extra_nav => :graph} = assigns) do
     ~H"""
-    <div id="block">
-      <p class="my-5">Blocking will be published on a public log.
-        This can have negative social implications.
-        A block cannot disappear from your history.</p>
-      <br />
-      <form method="post" id="block-form" phx-submit="new-entry">
+    <div id="block" class={panel_cls()}>
+      {help_text("Blocking will be published on a public log. This can have negative social implications. A block cannot disappear from your history.")}
+      <form method="post" id="block-form" phx-submit="new-entry" class="flex flex-col gap-3 mt-3">
         <input type="hidden" name="log_id" value="1337" />
         <input type="hidden" name="action" value="block" />
         <%= if displayed_matches([:log], @displayed_info) do %>
           <input type="hidden" name="ref" value={Catenary.index_to_string(@entry)} />
         <% end %>
         <input type="hidden" name="whom" value={@whom} />
-        <div class="w-100 grid grid-cols-3">
-          <div>Block:</div>
-          <div>{Display.scaled_avatar(@whom, 2) |> Phoenix.HTML.raw()}</div>
-          <div>{Display.short_id(@whom, @aliases)}</div>
-          <div>Reason:</div>
-          <div class="grid-cols=2">
-            <textarea class="bg-white dark:bg-black" name="reason" rows="4" cols="20"></textarea>
-          </div>
+        <div class="flex items-center gap-2">
+          {Display.scaled_avatar(@whom, 2) |> Phoenix.HTML.raw()}
+          <span class="truncate">{Display.short_id(@whom, @aliases)}</span>
+        </div>
+        <div>
+          <label for="reason" class={label_cls()}>Reason</label>
+          <textarea class={input_cls()} id="reason" name="reason" rows="4"></textarea>
         </div>
         {Display.log_submit_button()}
       </form>
@@ -179,33 +175,25 @@ defmodule Catenary.Live.Navigation do
 
   defp extra_nav(%{:extra_nav => :profile} = assigns) do
     ~H"""
-    <div id="profile-nav">
-      <form method="post" id="profile-form" phx-submit="profile-update">
-        <table>
-          <tr>
-            <td>Name:</td>
-            <td>
-              <input
-                type="text"
-                class="bg-white dark:bg-black"
-                name="name"
-                value={Catenary.about_key(@identity, :name)}
-              />
-            </td>
-          </tr>
-          <tr>
-            <td>About:</td>
-            <td>
-              <textarea class="bg-white dark:bg-black" rows="11" cols="31" name="description"><%= Catenary.about_key(@identity,"description") %></textarea>
-            </td>
-          </tr>
-          <tr>
-            <td>Avatar:</td>
-            <td>
-              <input type="checkbox" class="bg-white dark:bg-black" name="keep-avatar" checked /> keep
-            </td>
-          </tr>
-        </table>
+    <div id="profile-nav" class={panel_cls()}>
+      <form method="post" id="profile-form" phx-submit="profile-update" class="flex flex-col gap-3">
+        <div>
+          <label for="name" class={label_cls()}>Name</label>
+          <input
+            type="text"
+            class={input_cls()}
+            id="name"
+            name="name"
+            value={Catenary.about_key(@identity, :name)}
+          />
+        </div>
+        <div>
+          <label for="description" class={label_cls()}>About</label>
+          <textarea class={input_cls()} id="description" rows="8" name="description"><%= Catenary.about_key(@identity,"description") %></textarea>
+        </div>
+        <label class="flex items-center gap-2 text-sm">
+          <input type="checkbox" class={checkbox_cls()} name="keep-avatar" checked /> Keep avatar
+        </label>
         {Display.log_submit_button()}
       </form>
     </div>
@@ -214,10 +202,9 @@ defmodule Catenary.Live.Navigation do
 
   defp extra_nav(%{:extra_nav => :mention} = assigns) do
     ~H"""
-    <div id="mention">
-      <p class="my-5">You may only create mentions for those for whom you have set an alias</p>
-      <br />
-      <form method="post" id="mention-form" phx-submit="new-entry">
+    <div id="mention" class={panel_cls()}>
+      {help_text("You may only create mentions for those for whom you have set an alias.")}
+      <form method="post" id="mention-form" phx-submit="new-entry" class="flex flex-col gap-3 mt-3">
         <input type="hidden" name="log_id" value="121" />
         <%= if displayed_matches([:log], @displayed_info) do %>
           <input type="hidden" name="ref" value={Catenary.index_to_string(@entry)} />
@@ -233,14 +220,12 @@ defmodule Catenary.Live.Navigation do
 
   defp extra_nav(%{:extra_nav => :tag} = assigns) do
     ~H"""
-    <div id="tags">
+    <div id="tags" class={panel_cls()}>
       <%= if displayed_matches([:log], @displayed_info) do %>
-        <form method="post" id="tag-form" phx-submit="new-entry">
+        <form method="post" id="tag-form" phx-submit="new-entry" class="flex flex-col gap-3">
           <input type="hidden" name="log_id" value="749" />
           <input type="hidden" name="ref" value={Catenary.index_to_string(@entry)} />
-          <p>
-            {tag_inputs(4)}
-          </p>
+          {tag_inputs(4)}
           {Display.log_submit_button()}
         </form>
       <% end %>
@@ -250,16 +235,18 @@ defmodule Catenary.Live.Navigation do
 
   defp extra_nav(%{:extra_nav => :react} = assigns) do
     ~H"""
-    <div id="reactions-nav" class="flex flex-row 5 mt-20">
+    <div id="reactions-nav" class={panel_cls()}>
       <%= if displayed_matches([:log], @displayed_info) do %>
-        <form method="post" id="reaction-form" phx-submit="new-entry">
+        {help_text("Select one or more reactions to attach to this entry.")}
+        <form method="post" id="reaction-form" phx-submit="new-entry" class="flex flex-col gap-2 mt-3">
           <input type="hidden" name="log_id" value="101" />
           <input type="hidden" name="ref" value={Catenary.index_to_string(@entry)} />
           <%= for e <- Catenary.Reactions.available() do %>
-            <input class="bg-white dark:bg-black" type="checkbox" name={"reaction-" <> e} value={e} />
-            {e}<br />
+            <label class="flex items-center gap-2 text-sm">
+              <input class={checkbox_cls()} type="checkbox" name={"reaction-" <> e} value={e} />
+              {e}
+            </label>
           <% end %>
-          <br />
           {Display.log_submit_button()}
         </form>
       <% end %>
@@ -269,27 +256,58 @@ defmodule Catenary.Live.Navigation do
 
   defp extra_nav(%{:extra_nav => :image} = assigns) do
     ~H"""
-    <div id="images-nav" class="mt-10">
+    <div id="images-nav" class={panel_cls()}>
       <%= if displayed_matches(Catenary.image_logs(), @displayed_info) do %>
-        <form id="set-avatar-form" phx-submit="new-entry">
+        <form id="set-avatar-form" phx-submit="new-entry" class="flex flex-col gap-3">
           <input type="hidden" name="log_id" value="360" />
           <input type="hidden" name="avatar" value={Catenary.index_to_string(@entry)} />
-          <h4>Set this image as your avatar</h4>
+          <h4 class="text-sm font-semibold">Set this image as your avatar</h4>
           {Display.log_submit_button()}
         </form>
-        <br /><br />
+        <div class="my-3 border-t border-stone-200 dark:border-stone-800"></div>
       <% end %>
-      <form id="imageupload-form" phx-submit="image-save" phx-change="image-validate">
-        <h4>Publish a new image</h4>
-        <.live_file_input upload={@uploads.image} />
+      <form id="imageupload-form" phx-submit="image-save" phx-change="image-validate" class="flex flex-col gap-3">
+        <label
+          phx-drop-target={@uploads.image.ref}
+          class="flex flex-col items-center justify-center gap-2 rounded-md border-2 border-dashed border-stone-300 dark:border-stone-600 bg-white dark:bg-stone-800 px-4 py-6 text-center cursor-pointer transition-colors hover:border-amber-700 dark:hover:border-amber-400 hover:bg-stone-100 dark:hover:bg-stone-700"
+        >
+          <span class="text-2xl leading-none text-amber-700 dark:text-amber-400">҂</span>
+          <span class="text-sm text-stone-600 dark:text-stone-300">Click to choose or drop an image</span>
+          <span class="text-xs text-stone-400 dark:text-stone-500">JPG, PNG or GIF</span>
+          <.live_file_input upload={@uploads.image} class="sr-only" />
+        </label>
+        <%= for entry <- @uploads.image.entries do %>
+          <div class="flex items-center gap-2 text-xs text-stone-600 dark:text-stone-300">
+            <span class="truncate">{entry.client_name}</span>
+          </div>
+        <% end %>
         {Display.log_submit_button()}
       </form>
-      <p class="py-5">Please be considerate with file sizes.</p>
     </div>
     """
   end
 
   defp extra_nav(_), do: ""
+
+  defp panel_cls, do: "rounded-lg border border-stone-200 dark:border-stone-800 bg-stone-50 dark:bg-stone-900 p-3"
+
+  defp input_cls,
+    do:
+      "w-full rounded-md border border-stone-300 dark:border-stone-600 bg-white dark:bg-stone-800 px-2 py-1 text-sm transition-colors focus:outline-none focus:border-amber-700 dark:focus:border-amber-400 focus:ring-1 focus:ring-amber-700/50 dark:focus:ring-amber-400/50"
+
+  defp checkbox_cls,
+    do:
+      "h-4 w-4 rounded border-stone-300 dark:border-stone-600 text-amber-700 dark:text-amber-400 focus:ring-1 focus:ring-amber-700/50 dark:focus:ring-amber-400/50"
+
+  defp label_cls,
+    do: "block text-[11px] font-medium uppercase tracking-wide text-stone-500 dark:text-stone-400 mb-1"
+
+  defp help_cls, do: "text-xs leading-snug text-stone-500 dark:text-stone-400"
+
+  defp help_text(text) do
+    ~s(<p class="#{help_cls()}">#{text}</p>)
+    |> Phoenix.HTML.raw()
+  end
 
   @alias_logs QuaggaDef.logs_for_name(:alias)
 
@@ -324,7 +342,7 @@ defmodule Catenary.Live.Navigation do
 
     ref_input =
       if which == :reply do
-        ~s(<input type="hidden" name="ref" value="#{Catenary.index_to_string(entry)}" /><br />)
+        ~s(<input type="hidden" name="ref" value="#{Catenary.index_to_string(entry)}" />)
       else
         ""
       end
@@ -339,16 +357,14 @@ defmodule Catenary.Live.Navigation do
     submit_btn = Display.log_submit_button()
 
     parts = [
-      ~s(<form method="post" id="posting-form" phx-submit="new-entry">),
+      ~s(<form method="post" id="posting-form" phx-submit="new-entry" class="flex flex-col gap-3">),
       ~s(<input type="hidden" name="log_id" value="#{QuaggaDef.base_log(which)}" />),
       ref_input,
-      "<br /><label for=\"title\">#{posting_icon(which)}</label>",
-      ~s(<input class="bg-white dark:bg-black" type="text" value="#{st}" name="title" />),
-      "<br />",
-      ~s(<textarea class="bg-white dark:bg-black" name="body" rows="8" cols="35"></textarea>),
-      "<p>",
+      ~s(<label for="title" class="#{label_cls()}">#{posting_icon(which)} Title</label>),
+      ~s(<input class="#{input_cls()}" type="text" value="#{st}" name="title" />),
+      ~s(<label for="body" class="#{label_cls()}">Body</label>),
+      ~s(<textarea class="#{input_cls()}" name="body" rows="8"></textarea>),
       tag_html,
-      "</p>",
       submit_btn,
       "</form>"
     ]
@@ -366,13 +382,23 @@ defmodule Catenary.Live.Navigation do
     case Preferences.accept_log_name?(which) do
       true ->
         "<button phx-click=\"toggle-" <>
-          Atom.to_string(which) <> "\">" <> posting_icon(which) <> "</button>\n"
+          Atom.to_string(which) <> "\" title=\"" <> posting_title(which) <> "\">" <>
+          posting_icon(which) <> "</button>\n"
 
       false ->
         ""
     end
     |> Phoenix.HTML.raw()
   end
+
+  defp posting_title(:graph), do: "Block/Unblock"
+  defp posting_title(:alias), do: "Set Alias"
+  defp posting_title(:tag), do: "Tag Entry"
+  defp posting_title(:mention), do: "Mention"
+  defp posting_title(:react), do: "React"
+  defp posting_title(:reply), do: "Reply"
+  defp posting_title(:journal), do: "New Journal Post"
+  defp posting_title(:image), do: "New Image"
 
   defp posting_icon(:graph), do: "⛒̟"
   defp posting_icon(:alias), do: "~̟"
@@ -419,9 +445,13 @@ defmodule Catenary.Live.Navigation do
     make_tag_inputs(less, [
       "<label for=" <>
         qname <>
-        ">#</label>" <>
-        "<input class=\"bg-white dark:bg-black\" name=" <>
-        qname <> " type=\"text\" size=\"16\" /><br/>"
+        " class=\"" <>
+        label_cls() <>
+        "\"># Tag " <> Integer.to_string(less + 1) <> "</label>" <>
+        "<input class=\"" <>
+        input_cls() <>
+        "\" name=" <>
+        qname <> " type=\"text\" />"
       | acc
     ])
   end
@@ -438,9 +468,13 @@ defmodule Catenary.Live.Navigation do
     make_mention_inputs(less, [
       "<label for=" <>
         qname <>
-        ">~</label>" <>
-        "<input class=\"bg-white dark:bg-black\" name=" <>
-        qname <> " type=\"text\" size=\"16\" /><br/>"
+        " class=\"" <>
+        label_cls() <>
+        "\">~ Mention " <> Integer.to_string(less + 1) <> "</label>" <>
+        "<input class=\"" <>
+        input_cls() <>
+        "\" name=" <>
+        qname <> " type=\"text\" />"
       | acc
     ])
   end

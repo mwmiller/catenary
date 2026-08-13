@@ -233,7 +233,7 @@ defmodule CatenaryWeb.Live do
             class="px-2 py-1 rounded hover:bg-stone-200 dark:hover:bg-stone-800 transition-colors text-lg leading-none">#</button>
           <button value="oases" phx-click="toview" title="Peers"
             class="px-2 py-1 rounded hover:bg-stone-200 dark:hover:bg-stone-800 transition-colors text-lg leading-none">⇆</button>
-          <button value="unshown" phx-click="toview" title="Unread"
+          <button value="unshown" phx-click="toview" title="Unshown"
             class="px-2 py-1 rounded hover:bg-stone-200 dark:hover:bg-stone-800 transition-colors text-lg leading-none">◎</button>
           <button value="aliases" phx-click="toview" title="Aliases"
             class="px-2 py-1 rounded hover:bg-stone-200 dark:hover:bg-stone-800 transition-colors text-lg leading-none">~</button>
