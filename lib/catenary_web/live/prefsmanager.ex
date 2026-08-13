@@ -15,8 +15,8 @@ defmodule Catenary.Live.PrefsManager do
        ac: ac,
        lc: lc,
        ec: ec,
-       picked: "bg-slate-200 border-slate-400 dark:bg-slate-700 dark:border-slate-600",
-       unpicked: " border-slate-200 dark:border-slate-800"
+       picked: "bg-slate-100 dark:bg-slate-800/50",
+       unpicked: ""
      }))}
   end
 
@@ -27,157 +27,162 @@ defmodule Catenary.Live.PrefsManager do
 
   def radio_value(i, selected_i, name) do
     checked = if i == selected_i, do: "checked", else: ""
-    "<input type=\"radio\" name=\"" <> name <> "\" value=\"" <> i <> "\" " <> checked <> " />"
+    "<input class=\"accent-amber-500\" type=\"radio\" name=\"" <> name <> "\" value=\"" <> i <> "\" " <> checked <> " />"
   end
 
   @impl true
   def render(assigns) do
     ~H"""
     <div id="preferences-view">
-      <div id="identview-wrap" class="col-span-full overflow-y-auto max-h-screen m-2 p-x-2">
-        <div class="my-2 text-center min-w-full">
-          <a href={"/authors/" <> @identity}>{Phoenix.HTML.raw(
-            Display.scaled_avatar(@identity, 8, ["mx-auto"])
-          )}</a>
-        </div>
-        <form method="post" id="clump-form" phx-change="clump-change">
-          <label for="clump_id">🎋</label>
-          <select name="clump_id" class="bg-white dark:bg-slate-800">
-            {for {c, _} <- @clumps, do: Phoenix.HTML.raw(option_value(c, @clump_id))}
-          </select>
-        </form>
-        <p class="m-1 text-xs">
-          {@ec} log entries available across {@lc} logs from {@ac} authors in {@clump_id}.
-        </p>
-        <form method="post" id="identity-form" phx-change="identity-change">
-          <table class="min-w-full">
-            <thead>
-              <tr class="border border-slate-200 dark:border-slate-800">
-                <th>Select</th>
-                <th>Name</th>
-                <th>Avatar</th>
-                <th>AKA</th>
-                <th>Activity</th>
-                <th class="text-amber-900">DROP</th>
-              </tr>
-            </thead>
-            <tbody class="text-center">
-              <%= for {n, k} <- @identities do %>
-                <tr class={"my-10 border #{if k == @identity, do: @picked, else: @unpicked}"}>
-                  <td class="py-5">
-                    {Phoenix.HTML.raw(radio_value(k, @identity, "selection"))}
-                  </td>
-                  <td>
+      <div id="identview-wrap" class="col-span-full overflow-y-auto max-h-screen m-2 px-2">
+        <div class="mx-auto flex max-w-3xl flex-col gap-4">
+          <div class="rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-4">
+            <div class="flex items-center gap-4">
+              <a href={"/authors/" <> @identity} class="shrink-0">
+                {Phoenix.HTML.raw(Display.scaled_avatar(@identity, 8, []))}
+              </a>
+              <div class="min-w-0 flex-1">
+                <div class="text-sm text-slate-500 dark:text-slate-400">Active clump</div>
+                <form method="post" id="clump-form" phx-change="clump-change" class="mt-1">
+                  <label class="mr-1" for="clump_id">🎋</label>
+                  <select name="clump_id" class="rounded-md border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 px-2 py-1 text-sm text-slate-900 dark:text-slate-100">
+                    {for {c, _} <- @clumps, do: Phoenix.HTML.raw(option_value(c, @clump_id))}
+                  </select>
+                </form>
+                <p class="mt-2 text-xs text-slate-500 dark:text-slate-400">
+                  {@ec} log entries available across {@lc} logs from {@ac} authors in {@clump_id}.
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div class="rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-4">
+            <h2 class="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-400 dark:text-slate-500">Identities</h2>
+            <form method="post" id="identity-form" phx-change="identity-change">
+              <div class="divide-y divide-slate-200 dark:divide-slate-700">
+                <%= for {n, k} <- @identities do %>
+                  <div class={"flex items-center gap-3 py-2 #{if k == @identity, do: @picked, else: @unpicked}"}>
+                    <label class="flex items-center gap-2 text-sm" title="Use as identity">
+                      {Phoenix.HTML.raw(radio_value(k, @identity, "selection"))}
+                      {Phoenix.HTML.raw(Display.scaled_avatar(k, 4, []))}
+                    </label>
                     <input
-                      class="bg-white dark:bg-slate-800"
+                      class="w-40 rounded-md border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 px-2 py-1 text-sm text-slate-900 dark:text-slate-100"
                       type="text"
-                      size="16"
                       id={n}
                       value={n}
                       phx-blur={"rename-id-" <> n}
                     />
-                  </td>
-                  <td>{Phoenix.HTML.raw(Display.scaled_avatar(k, 4, ["mx-auto"]))}</td>
-                  <td>{Phoenix.HTML.raw(Display.linked_author(k, @aliases, :href))}</td>
-                  <td>{Phoenix.HTML.raw(log_info_string(@store, k))}</td>
-                  <td>
-                    <%= if k == @identity do %>
-                      ⛒
-                    <% else %>
-                      <input type="radio" name="drop" value={n} />
-                    <% end %>
-                  </td>
-                </tr>
-              <% end %>
-              <tr class="my-10 border border-slate-200 dark:border-slate-800">
-                <td class="py=5">&nbsp;</td>
-                <td>
+                    <span class="min-w-0 flex-1 truncate text-sm">{Phoenix.HTML.raw(Display.linked_author(k, @aliases, :href))}</span>
+                    <span class="shrink-0 text-xs text-slate-500 dark:text-slate-400">{Phoenix.HTML.raw(log_info_string(@store, k))}</span>
+                    <span class="shrink-0 text-center text-xs" title="Drop identity">
+                      <%= if k == @identity do %>
+                        ⛒
+                      <% else %>
+                        <button
+                          type="button"
+                          class="rounded px-1.5 py-0.5 text-slate-400 dark:text-slate-500 transition-colors hover:bg-red-100 hover:text-red-700 dark:hover:bg-red-900/40 dark:hover:text-red-400"
+                          value={n}
+                          data-confirm={"Drop identity #{n}? This cannot be undone."}
+                          phx-click="drop-id"
+                          phx-value-name={n}
+                        >⛒</button>
+                      <% end %>
+                    </span>
+                  </div>
+                <% end %>
+                <div class="flex items-center gap-3 py-2">
+                  <span class="w-10 shrink-0" />
                   <input
-                    class="bg-white dark:bg-slate-800"
+                    class="w-40 rounded-md border border-dashed border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 px-2 py-1 text-sm text-slate-500 dark:text-slate-400 placeholder:text-slate-400 dark:placeholder:text-slate-500"
                     type="text"
-                    size="16"
+                    placeholder="new name"
                     id="new-id"
                     phx-blur="new-id"
                   />
-                </td>
-                <td>&nbsp;</td>
-                <td>&nbsp;</td>
-                <td>none yet</td>
-                <td>⛒</td>
-              </tr>
-            </tbody>
-          </table>
-          <label for="facet_id">❖</label>
-          <input
-            class="bg-white dark:bg-slate-800 m-5"
-            phx-blur="facet-change"
-            type="numeric"
-            name="facet_id"
-            size="3"
-            value={@facet_id}
-          />
-        </form>
-      </div>
-      <div>
-        Preferences
-        <form method="post" id="pref-form" phx-change="prefs-change">
-          <input
-            class="bg-white dark:bg-slate-800"
-            type="checkbox"
-            name="automention"
-            checked={Catenary.Preferences.get(:automention)}
-          /> Auto-mention
-          <input
-            class="bg-white dark:bg-slate-800"
-            type="checkbox"
-            name="autosync"
-            checked={Catenary.Preferences.get(:autosync)}
-          /> Auto-sync
-        </form>
-      </div>
-      <div class="flex-1 min-w-full">
-        <div>Accept log types</div>
-        <form method="post" id="accept-form" phx-submit="new-entry">
-          <input type="hidden" name="log_id" value="1337" />
-          <input type="hidden" name="listed" value="accept" />
-          <div class="grid grid-cols-3">
-            <%= for {s, a} <- Display.all_pretty_log_pairs do %>
-              <div>{log_accept_input(a, @blocked) |> Phoenix.HTML.raw()}&nbsp;{s}</div>
-            <% end %>
+                  <span class="text-xs text-slate-400 dark:text-slate-500">none yet</span>
+                </div>
+              </div>
+              <div class="mt-3 flex items-center gap-2 border-t border-slate-200 dark:border-slate-700 pt-3">
+                <label class="text-sm text-slate-600 dark:text-slate-300" for="facet_id">❖ Facet</label>
+                <input
+                  class="w-16 rounded-md border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 px-2 py-1 text-sm text-slate-900 dark:text-slate-100"
+                  phx-blur="facet-change"
+                  type="numeric"
+                  name="facet_id"
+                  value={@facet_id}
+                />
+              </div>
+            </form>
           </div>
-          {Phoenix.HTML.raw(Display.log_submit_button())}
-        </form>
-      </div>
-      <div class="flex flex-row min-w-full">
-        <div class="flex-auto">
-          <button
-            class="border opacity-61 p-2 m-10 bg-slate-100 dark:bg-slate-800"
-            value="all"
-            phx-disable-with="⌘⌘⌘"
-            phx-click="shown"
-          >
-            catch up
-          </button>
-        </div>
-        <div class="flex-auto">
-          <button
-            class="border opacity-61 p-2 m-10 bg-slate-100 dark:bg-slate-800"
-            value="none"
-            phx-disable-with="⎚⎚⎚"
-            phx-click="shown"
-          >
-            start fresh
-          </button>
-        </div>
-        <div class="flex-auto">
-          <button
-            class="border opacity-61 p-2 m-10 bg-slate-100 dark:bg-slate-800"
-            value="all"
-            phx-disable-with="〆〆〆"
-            phx-click="compact"
-          >
-            compact logs
-          </button>
+
+          <div class="rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-4">
+            <h2 class="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-400 dark:text-slate-500">Preferences</h2>
+            <form method="post" id="pref-form" phx-change="prefs-change" class="flex flex-col gap-2">
+              <label class="flex items-center gap-2 text-sm text-slate-700 dark:text-slate-300">
+                <input
+                  class="h-4 w-4 rounded border-slate-300 dark:border-slate-600 text-amber-500 dark:text-amber-400 focus:ring-1 focus:ring-amber-500/60 dark:focus:ring-amber-400/60"
+                  type="checkbox"
+                  name="automention"
+                  checked={Catenary.Preferences.get(:automention)}
+                /> Auto-mention
+              </label>
+              <label class="flex items-center gap-2 text-sm text-slate-700 dark:text-slate-300">
+                <input
+                  class="h-4 w-4 rounded border-slate-300 dark:border-slate-600 text-amber-500 dark:text-amber-400 focus:ring-1 focus:ring-amber-500/60 dark:focus:ring-amber-400/60"
+                  type="checkbox"
+                  name="autosync"
+                  checked={Catenary.Preferences.get(:autosync)}
+                /> Auto-sync
+              </label>
+            </form>
+          </div>
+
+          <div class="rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-4">
+            <h2 class="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-400 dark:text-slate-500">Accept log types</h2>
+            <form method="post" id="accept-form" phx-submit="new-entry">
+              <input type="hidden" name="log_id" value="1337" />
+              <input type="hidden" name="listed" value="accept" />
+              <div class="grid grid-cols-3 gap-1">
+                <%= for {s, a} <- Display.all_pretty_log_pairs do %>
+                  <label class="flex items-center gap-1.5 text-sm text-slate-700 dark:text-slate-300">
+                    {log_accept_input(a, @blocked) |> Phoenix.HTML.raw()}&nbsp;{s}
+                  </label>
+                <% end %>
+              </div>
+              <div class="mt-3">{Phoenix.HTML.raw(Display.log_submit_button())}</div>
+            </form>
+          </div>
+
+          <div class="rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-4">
+            <h2 class="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-400 dark:text-slate-500">Data maintenance</h2>
+            <div class="flex flex-wrap gap-2">
+              <button
+                class="rounded-md border border-slate-300 dark:border-slate-600 px-3 py-1.5 text-sm text-slate-700 dark:text-slate-300 transition-colors hover:bg-slate-100 dark:hover:bg-slate-800"
+                value="all"
+                phx-disable-with="⌘⌘⌘"
+                phx-click="shown"
+              >
+                catch up
+              </button>
+              <button
+                class="rounded-md border border-slate-300 dark:border-slate-600 px-3 py-1.5 text-sm text-slate-700 dark:text-slate-300 transition-colors hover:bg-slate-100 dark:hover:bg-slate-800"
+                value="none"
+                phx-disable-with="⎚⎚⎚"
+                phx-click="shown"
+              >
+                start fresh
+              </button>
+              <button
+                class="rounded-md border border-slate-300 dark:border-slate-600 px-3 py-1.5 text-sm text-slate-700 dark:text-slate-300 transition-colors hover:bg-slate-100 dark:hover:bg-slate-800"
+                value="all"
+                phx-disable-with="〆〆〆"
+                phx-click="compact"
+              >
+                compact logs
+              </button>
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -199,7 +204,7 @@ defmodule Catenary.Live.PrefsManager do
 
     ln = Atom.to_string(name)
 
-    ~s(<input class="bg-white dark:bg-slate-800" type="checkbox"  name="log_name-) <>
+    ~s(<input class="h-4 w-4 rounded border-slate-300 dark:border-slate-600 text-amber-500 dark:text-amber-400 focus:ring-1 focus:ring-amber-500/60 dark:focus:ring-amber-400/60" type="checkbox"  name="log_name-) <>
       ln <> ~s(" value=") <> ln <> "\"" <> checked <> "/>"
   end
 

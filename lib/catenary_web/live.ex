@@ -448,6 +448,14 @@ defmodule CatenaryWeb.Live do
   # A lot of overhead for a no-op.  Discover how to do this properly
   def handle_event("identity-change", _, socket), do: {:noreply, socket}
 
+  def handle_event("drop-id", %{"name" => whom}, socket) do
+    Baobab.Identity.drop(whom)
+
+    {:noreply, state_set(socket, %{identities: Baobab.Identity.list()})}
+  end
+
+  def handle_event("drop-id", _, socket), do: {:noreply, socket}
+
   # Empty is technically legal and works.  Just bad UX
   def handle_event("new-id", %{"value" => whom}, socket)
       when is_binary(whom) and byte_size(whom) > 0 do
