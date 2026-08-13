@@ -434,48 +434,22 @@ defmodule Catenary.Live.Navigation do
 
   defp tagged_match?(_, _), do: false
 
-  defp tag_inputs(count), do: make_tag_inputs(count, [])
+defp tag_inputs(count), do: grouped_inputs(count, "tag", "# Tags")
 
-  defp make_tag_inputs(0, acc), do: acc |> Enum.reverse() |> Enum.join("") |> Phoenix.HTML.raw()
+  defp mention_inputs(count), do: grouped_inputs(count, "mention", "~ Mentions")
 
-  defp make_tag_inputs(n, acc) do
-    less = n - 1
-    qname = "\"tag" <> Integer.to_string(less) <> "\""
+  defp grouped_inputs(count, name, label) do
+    inputs =
+      for n <- 0..(count - 1)//1 do
+        qname = "\"" <> name <> Integer.to_string(n) <> "\""
 
-    make_tag_inputs(less, [
-      "<label for=" <>
-        qname <>
-        " class=\"" <>
-        label_cls() <>
-        "\"># Tag " <> Integer.to_string(less + 1) <> "</label>" <>
         "<input class=\"" <>
-        input_cls() <>
-        "\" name=" <>
-        qname <> " type=\"text\" />"
-      | acc
-    ])
-  end
+          input_cls() <>
+          "\" name=" <>
+          qname <> " type=\"text\" />"
+      end
+      |> Enum.join("")
 
-  defp mention_inputs(count), do: make_mention_inputs(count, [])
-
-  defp make_mention_inputs(0, acc),
-    do: acc |> Enum.reverse() |> Enum.join("") |> Phoenix.HTML.raw()
-
-  defp make_mention_inputs(n, acc) do
-    less = n - 1
-    qname = "\"mention" <> Integer.to_string(less) <> "\""
-
-    make_mention_inputs(less, [
-      "<label for=" <>
-        qname <>
-        " class=\"" <>
-        label_cls() <>
-        "\">~ Mention " <> Integer.to_string(less + 1) <> "</label>" <>
-        "<input class=\"" <>
-        input_cls() <>
-        "\" name=" <>
-        qname <> " type=\"text\" />"
-      | acc
-    ])
+    Phoenix.HTML.raw("<label class=\"" <> label_cls() <> "\">" <> label <> "</label>" <> inputs)
   end
 end
