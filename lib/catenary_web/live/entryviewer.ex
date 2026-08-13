@@ -102,7 +102,7 @@ defmodule Catenary.Live.EntryViewer do
           </div>
         </div>
         <%= if is_tuple(@entry) && tuple_size(@entry) == 3 do %>
-          <div class="flex flex-row flex-wrap gap-x-8 gap-y-3">
+          <div class="flex flex-row flex-wrap justify-end items-center gap-x-8 gap-y-3">
             {metabox(@card, "mentions")}
             {metabox(@card, "tags")}
             {metabox(@card, "reactions")}
