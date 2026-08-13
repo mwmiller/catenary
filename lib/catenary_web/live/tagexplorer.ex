@@ -48,8 +48,8 @@ defmodule Catenary.Live.TagExplorer do
     |> Enum.map(fn {t, _c} ->
       ~s(<button value=") <>
         t <>
-        ~s(" phx-click="view-tag"><p class="px-2.5 py-1 rounded-full bg-slate-100 dark:bg-slate-800 text-amber-700 dark:text-amber-300 hover:bg-amber-100 dark:hover:bg-amber-900/40 transition-colors">) <>
-        t <> ~s(</p></button>)
+        ~s(" phx-click="view-tag"><div class="rounded-lg border border-slate-200 dark:border-slate-700 p-2 hover:border-amber-500 dark:hover:border-amber-400 transition-colors"><p class="text-amber-700 dark:text-amber-300">) <>
+        t <> ~s(</p></div></button>)
     end)
     |> Phoenix.HTML.raw()
   end
