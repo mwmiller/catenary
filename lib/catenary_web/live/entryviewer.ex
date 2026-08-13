@@ -69,10 +69,10 @@ defmodule Catenary.Live.EntryViewer do
 
   def render(%{card: :blocked} = assigns) do
     ~H"""
-    <div id="block-wrap" class="col-span-2 overflow-y-auto max-h-screen m-2 p-x-2">
-      <div class="min-w-full font-sans row-span-full">
-        <h1>Blocked</h1>
-        <p>You have blocked this activity. It will not be available to you unless you unblock.</p>
+    <div id="block-wrap" class="col-span-2 overflow-y-auto max-h-screen m-2 px-2">
+      <div class="rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-4">
+        <h1 class="text-lg font-semibold text-slate-800 dark:text-slate-100">Blocked</h1>
+        <p class="text-slate-600 dark:text-slate-300">You have blocked this activity. It will not be available to you unless you unblock.</p>
       </div>
     </div>
     """
@@ -80,46 +80,46 @@ defmodule Catenary.Live.EntryViewer do
 
   def render(assigns) do
     ~H"""
-    <div id="entryview-wrap" class="col-span-2 overflow-y-auto max-h-screen m-2 p-x-2">
-      <div class="min-w-full font-sans row-span-full">
-        {Phoenix.HTML.raw(Display.scaled_avatar(@card["author"], 8, ["float-left", "m-3"]))}
-        <h1>{@card["title"]}</h1>
-        <p class="text-sm font-light">
-          {Phoenix.HTML.raw(Display.linked_author(@card["author"], @aliases))} &mdash; {nice_time(
-            @card["published"]
-          )}
-        </p>
-        <p>
-          {icon_entries(@card["back-refs"])}&nbsp;↹&nbsp;{icon_entries(@card["fore-refs"])}
-        </p>
-        <hr class="mb-3" />
-        <div class="font-light">
-          {@card["body"]}
+    <div id="entryview-wrap" class="col-span-2 overflow-y-auto max-h-screen m-2 px-2">
+      <div class="flex flex-col gap-4">
+        <div class="rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-4 flex flex-col gap-3">
+          <div class="flex items-start gap-3">
+            {Phoenix.HTML.raw(Display.scaled_avatar(@card["author"], 8, ["flex-none"]))}
+            <div class="flex-auto min-w-0">
+              <h1 class="text-lg font-semibold text-slate-800 dark:text-slate-100">{@card["title"]}</h1>
+              <p class="text-sm text-slate-500 dark:text-slate-400">
+                {Phoenix.HTML.raw(Display.linked_author(@card["author"], @aliases))} &mdash; {nice_time(
+                  @card["published"]
+                )}
+              </p>
+              <p class="text-xs text-slate-400 dark:text-slate-500">
+                {icon_entries(@card["back-refs"])}&nbsp;↹&nbsp;{icon_entries(@card["fore-refs"])}
+              </p>
+            </div>
+          </div>
+          <div class="font-light text-slate-700 dark:text-slate-200 leading-relaxed">
+            {@card["body"]}
+          </div>
         </div>
+        <%= if is_tuple(@entry) && tuple_size(@entry) == 3 do %>
+          <div class="flex flex-row flex-wrap gap-2">
+            {metabox(@card, "mentions")}
+            {metabox(@card, "tags")}
+            {metabox(@card, "reactions")}
+            {metabox(@card, "refs")}
+          </div>
+        <% end %>
       </div>
-      <%= if is_tuple(@entry) && tuple_size(@entry) == 3 do %>
-        <div class="flex flex-row">
-          {metabox(@card, "mentions")}
-          {metabox(@card, "tags")}
-          {metabox(@card, "reactions")}
-          {metabox(@card, "refs")}
-        </div>
-      <% end %>
     </div>
     """
   end
 
-  defp inna_box(bits, config, bobs \\ "")
+  defp inna_box(bits, _config, bobs \\ "")
   defp inna_box([], _config, ""), do: ""
 
-  # This comment is for the tailwind preprocessor
-  # border-dashed border-dotted border-hidden border-double border-none border-solid
-
   # Yeah, we use integer strings, what of it?
-  defp inna_box([], config, acc) do
-    "<div class=\"p-3 m-5 border border-" <>
-      Keyword.get(config, :border, "solid") <>
-      " flex flex-rows \">" <> acc <> "</div>"
+  defp inna_box([], _config, acc) do
+    "<div class=\"flex flex-col gap-2\">" <> acc <> "</div>"
   end
 
   defp inna_box(["" | rest], config, acc), do: inna_box(rest, config, acc)
@@ -219,7 +219,7 @@ defmodule Catenary.Live.EntryViewer do
           name =
             case aboot |> Map.get("name") do
               nil -> ""
-              n -> "<h1>" <> n <> "</h1>"
+              n -> "<h1 class=\"text-lg font-semibold text-slate-800 dark:text-slate-100\">" <> n <> "</h1>"
             end
 
           desc =
@@ -275,7 +275,7 @@ defmodule Catenary.Live.EntryViewer do
         items
         |> Enum.reduce([], fn {%{name: name}, [entry | _]}, acc ->
           [
-            ~s(<div class="flex-auto p-1"><button class="text-xs" value=") <>
+            ~s(<div class="flex-auto p-1"><button class="text-xs text-amber-700 dark:text-amber-300 hover:text-amber-600 dark:hover:text-amber-200" value=") <>
               Catenary.index_to_string(entry) <>
               ~s(" phx-click="view-entry">) <>
               String.capitalize(Atom.to_string(name)) <> "</button></div>"
@@ -295,7 +295,7 @@ defmodule Catenary.Live.EntryViewer do
       entries ->
         {:safe, icons} = entries |> Enum.reverse() |> icon_entries
 
-        ~s(<h4 class="mt-5">Unshown mentions</h4><div class="p-2 flex flex-row">) <>
+        ~s(<h4 class="text-xs tracking-wide text-slate-400 dark:text-slate-500">Unshown mentions</h4><div class="p-2 flex flex-row">) <>
           icons <> "</div>"
     end
   end
@@ -331,7 +331,11 @@ defmodule Catenary.Live.EntryViewer do
     %{
       "title" => Display.entry_title(:image, %{}),
       "back-refs" => [],
-      "body" => Phoenix.HTML.raw("<img src=\"" <> src_uri <> "\">"),
+      "body" =>
+        Phoenix.HTML.raw(
+          "<img class=\"rounded-lg border border-slate-200 dark:border-slate-700 max-w-full h-auto\" src=\"" <>
+            src_uri <> "\">"
+        ),
       "published" => :unknown
     }
   end
@@ -475,7 +479,10 @@ defmodule Catenary.Live.EntryViewer do
   end
 
   defp key_link(key),
-    do: Display.entry_icon_link({:profile, key}, 2) <> "&nbsp;&nbsp; Key: " <> key
+    do:
+      Display.entry_icon_link({:profile, key}, 2) <>
+        "&nbsp;&nbsp;<span class=\"text-slate-500 dark:text-slate-400 break-all\">Key: " <>
+        key <> "</span>"
 
   defp nice_time(:unknown), do: "timeless"
   defp nice_time(:latest), do: "latest known"
@@ -541,7 +548,7 @@ defmodule Catenary.Live.EntryViewer do
 
       stuff ->
         """
-        <div class="flex-auto mt-11 p-3 border-t border-1 dark:border-stone-500 border-grey-900 justify-center">
+        <div class="flex-auto rounded-lg border border-slate-200 dark:border-slate-700 p-3 flex flex-col gap-1">
         """ <>
           metafill(stuff, which, "") <>
           "</div>"
@@ -557,13 +564,13 @@ defmodule Catenary.Live.EntryViewer do
       t,
       "tags",
       acc <>
-        ~s(<div class="auto text-xs text-orange-600 dark:text-amber-200"><button value="prev-tag-) <>
+        ~s(<div class="flex items-center gap-1 text-slate-500 dark:text-slate-400"><button class="hover:text-amber-600 dark:hover:text-amber-300" value="prev-tag-) <>
         h <>
-        ~s(" phx-click="nav">«</button> <button value=") <>
+        ~s(" phx-click="nav">«</button> <button class="text-amber-700 dark:text-amber-300 hover:text-amber-600 dark:hover:text-amber-200" value=") <>
         h <>
         ~s("  phx-click="view-tag">) <>
         h <>
-        ~s(</button> <button value="next-tag-) <> h <> ~s(" phx-click="nav">»</button></div>)
+        ~s(</button> <button class="hover:text-amber-600 dark:hover:text-amber-300" value="next-tag-) <> h <> ~s(" phx-click="nav">»</button></div>)
     )
   end
 
@@ -597,7 +604,8 @@ defmodule Catenary.Live.EntryViewer do
           "\">" <> vals["title"] <> "</button></li>"
       end)
 
-    "<div class=\"flex-auto p-2\"><h4>" <> ln <> "</h4><ul>" <> recents <> "</ul></div>"
+    "<div class=\"flex-auto p-2\"><h4 class=\"text-xs tracking-wide text-slate-400 dark:text-slate-500\">" <>
+      ln <> "</h4><ul class=\"list-none m-0 p-0 flex flex-col gap-1\">" <> recents <> "</ul></div>"
   end
 
   defp text_post(type, cbor) do
