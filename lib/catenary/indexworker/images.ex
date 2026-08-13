@@ -37,7 +37,7 @@ defmodule Catenary.IndexWorker.Images do
   defp files_to_entries([], acc), do: acc
 
   defp files_to_entries([file | rest], acc) do
-    with [clump_id, author, log_id, file] <- file |> Path.relative_to(@img_cat) |> Path.split(),
+    with [clump_id, author, log_id, file] <- file |> Path.split(),
          {l, ""} <- Integer.parse(log_id),
          {e, ""} <- file |> Path.rootname() |> Integer.parse() do
       entry = {author, l, e}
