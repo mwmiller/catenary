@@ -15,7 +15,7 @@ defmodule Catenary.Live.PrefsManager do
        ac: ac,
        lc: lc,
        ec: ec,
-       picked: "bg-slate-300 border-stone-400 dark:bg-stone-600 dark:border-slate-900",
+       picked: "bg-slate-200 border-slate-400 dark:bg-slate-700 dark:border-slate-600",
        unpicked: " border-slate-200 dark:border-slate-800"
      }))}
   end
@@ -42,7 +42,7 @@ defmodule Catenary.Live.PrefsManager do
         </div>
         <form method="post" id="clump-form" phx-change="clump-change">
           <label for="clump_id">🎋</label>
-          <select name="clump_id" class="bg-white dark:bg-black">
+          <select name="clump_id" class="bg-white dark:bg-slate-800">
             {for {c, _} <- @clumps, do: Phoenix.HTML.raw(option_value(c, @clump_id))}
           </select>
         </form>
@@ -69,7 +69,7 @@ defmodule Catenary.Live.PrefsManager do
                   </td>
                   <td>
                     <input
-                      class="bg-white dark:bg-black"
+                      class="bg-white dark:bg-slate-800"
                       type="text"
                       size="16"
                       id={n}
@@ -93,7 +93,7 @@ defmodule Catenary.Live.PrefsManager do
                 <td class="py=5">&nbsp;</td>
                 <td>
                   <input
-                    class="bg-white dark:bg-black"
+                    class="bg-white dark:bg-slate-800"
                     type="text"
                     size="16"
                     id="new-id"
@@ -109,7 +109,7 @@ defmodule Catenary.Live.PrefsManager do
           </table>
           <label for="facet_id">❖</label>
           <input
-            class="bg-white dark:bg-black m-5"
+            class="bg-white dark:bg-slate-800 m-5"
             phx-blur="facet-change"
             type="numeric"
             name="facet_id"
@@ -122,13 +122,13 @@ defmodule Catenary.Live.PrefsManager do
         Preferences
         <form method="post" id="pref-form" phx-change="prefs-change">
           <input
-            class="bg-white dark:bg-black"
+            class="bg-white dark:bg-slate-800"
             type="checkbox"
             name="automention"
             checked={Catenary.Preferences.get(:automention)}
           /> Auto-mention
           <input
-            class="bg-white dark:bg-black"
+            class="bg-white dark:bg-slate-800"
             type="checkbox"
             name="autosync"
             checked={Catenary.Preferences.get(:autosync)}
@@ -151,7 +151,7 @@ defmodule Catenary.Live.PrefsManager do
       <div class="flex flex-row min-w-full">
         <div class="flex-auto">
           <button
-            class="border opacity-61 p-2 m-10 bg-stone-200 dark:bg-stone-800"
+            class="border opacity-61 p-2 m-10 bg-slate-100 dark:bg-slate-800"
             value="all"
             phx-disable-with="⌘⌘⌘"
             phx-click="shown"
@@ -161,7 +161,7 @@ defmodule Catenary.Live.PrefsManager do
         </div>
         <div class="flex-auto">
           <button
-            class="border opacity-61 p-2 m-10 bg-stone-200 dark:bg-stone-800"
+            class="border opacity-61 p-2 m-10 bg-slate-100 dark:bg-slate-800"
             value="none"
             phx-disable-with="⎚⎚⎚"
             phx-click="shown"
@@ -171,7 +171,7 @@ defmodule Catenary.Live.PrefsManager do
         </div>
         <div class="flex-auto">
           <button
-            class="border opacity-61 p-2 m-10 bg-stone-200 dark:bg-stone-800"
+            class="border opacity-61 p-2 m-10 bg-slate-100 dark:bg-slate-800"
             value="all"
             phx-disable-with="〆〆〆"
             phx-click="compact"
@@ -199,7 +199,7 @@ defmodule Catenary.Live.PrefsManager do
 
     ln = Atom.to_string(name)
 
-    ~s(<input class="bg-white dark:bg-black" type="checkbox"  name="log_name-) <>
+    ~s(<input class="bg-white dark:bg-slate-800" type="checkbox"  name="log_name-) <>
       ln <> ~s(" value=") <> ln <> "\"" <> checked <> "/>"
   end
 

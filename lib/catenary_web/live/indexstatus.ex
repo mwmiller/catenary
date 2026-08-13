@@ -24,7 +24,7 @@ defmodule Catenary.Live.IndexStatus do
       "flex-auto p-1 font-bold text-amber-700 dark:text-amber-300 bg-amber-200 dark:bg-amber-900/60 rounded cursor-default"
 
   defp pill_class(:idle),
-    do: "flex-auto p-1 text-stone-600 dark:text-stone-300 cursor-default"
+    do: "flex-auto p-1 text-slate-500 dark:text-slate-400 cursor-default"
 
   defp pill_title(which, :running), do: "Indexing " <> pretty(which) <> "..."
   defp pill_title(which, :idle), do: pretty(which) <> " indexed"

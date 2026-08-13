@@ -211,14 +211,14 @@ defmodule CatenaryWeb.Live do
 
   defp explorebar(assigns) do
     ~H"""
-    <div class="sticky top-0 z-10 bg-white dark:bg-gray-950 border-b border-stone-200 dark:border-stone-800">
+    <div class="sticky top-0 z-10 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-700">
       <div class="flex items-center justify-between min-w-0 px-2 py-1 gap-1">
         <!-- Left: clump + identity -->
         <div class="flex items-center gap-1 shrink-0 text-sm font-mono">
           <button phx-click="toview" value="prefs" class="hover:text-amber-700 dark:hover:text-amber-400 transition-colors">
             {@clump_id}
           </button>
-          <span class="text-stone-400 dark:text-stone-600 select-none">/</span>
+          <span class="text-slate-400 dark:text-slate-600 select-none">/</span>
           <button value="origin" phx-click="nav" title="Home" class="flex items-center gap-1 hover:text-amber-700 dark:hover:text-amber-400 transition-colors">
             {Display.scaled_avatar(@identity, 2) |> Phoenix.HTML.raw()}
             <span class="truncate">{Display.linked_author(@identity, @aliases)}</span>
@@ -228,19 +228,19 @@ defmodule CatenaryWeb.Live do
         <!-- Center: nav buttons -->
         <div class="flex items-center gap-0.5 overflow-x-auto flex-1 justify-center min-w-0 scrollbar-hide">
           <button class={stack_color(@entry_back)} phx-click="nav-backward" title="Back"
-            class="px-2 py-1 rounded hover:bg-stone-200 dark:hover:bg-stone-800 transition-colors text-lg leading-none">⤶</button>
+            class="px-2 py-1 rounded hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors text-lg leading-none">⤶</button>
           <button value="tags" phx-click="toview" title="Tags"
-            class="px-2 py-1 rounded hover:bg-stone-200 dark:hover:bg-stone-800 transition-colors text-lg leading-none">#</button>
+            class="px-2 py-1 rounded hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors text-lg leading-none">#</button>
           <button value="oases" phx-click="toview" title="Peers"
-            class="px-2 py-1 rounded hover:bg-stone-200 dark:hover:bg-stone-800 transition-colors text-lg leading-none">⇆</button>
+            class="px-2 py-1 rounded hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors text-lg leading-none">⇆</button>
           <button value="unshown" phx-click="toview" title="Unshown"
-            class="px-2 py-1 rounded hover:bg-stone-200 dark:hover:bg-stone-800 transition-colors text-lg leading-none">◎</button>
+            class="px-2 py-1 rounded hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors text-lg leading-none">◎</button>
           <button value="aliases" phx-click="toview" title="Aliases"
-            class="px-2 py-1 rounded hover:bg-stone-200 dark:hover:bg-stone-800 transition-colors text-lg leading-none">~</button>
+            class="px-2 py-1 rounded hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors text-lg leading-none">~</button>
           <button value="images" phx-click="toview" title="Images"
-            class="px-2 py-1 rounded hover:bg-stone-200 dark:hover:bg-stone-800 transition-colors text-lg leading-none">҂</button>
+            class="px-2 py-1 rounded hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors text-lg leading-none">҂</button>
           <button class={stack_color(@entry_fore)} phx-click="nav-forward" title="Forward"
-            class="px-2 py-1 rounded hover:bg-stone-200 dark:hover:bg-stone-800 transition-colors text-lg leading-none">⤷</button>
+            class="px-2 py-1 rounded hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors text-lg leading-none">⤷</button>
         </div>
 
         <!-- Right: index status -->
@@ -252,8 +252,8 @@ defmodule CatenaryWeb.Live do
     """
   end
 
-  def stack_color([]), do: "bg-zinc-50 dark:bg-gray-800"
-  def stack_color(_), do: "bg-zinc-100 dark:bg-gray-900"
+  def stack_color([]), do: "bg-slate-100 dark:bg-slate-800"
+  def stack_color(_), do: "bg-slate-200 dark:bg-slate-700"
 
   defp activitybar(assigns) do
     ~H"""
