@@ -260,11 +260,11 @@ defmodule Catenary.Live.EntryViewer do
         ""
 
       r == "" ->
-        ~s(<div class="flex-auto p-2"><h4 class="text-xs tracking-wide text-slate-400 dark:text-slate-500">Journal</h4><ul class="list-none m-0 p-0 flex flex-col gap-1">) <>
+        ~s(<div class="flex-auto p-2"><h4 class="text-xs tracking-wide text-slate-400 dark:text-slate-500">Journal</h4><ul class="list-none m-0 p-0 flex flex-col gap-1 divide-y divide-slate-200 dark:divide-slate-700">) <>
           j <> "</ul></div>"
 
       j == "" ->
-        ~s(<div class="flex-auto p-2"><h4 class="text-xs tracking-wide text-slate-400 dark:text-slate-500">Reply</h4><ul class="list-none m-0 p-0 flex flex-col gap-1">) <>
+        ~s(<div class="flex-auto p-2"><h4 class="text-xs tracking-wide text-slate-400 dark:text-slate-500">Reply</h4><ul class="list-none m-0 p-0 flex flex-col gap-1 divide-y divide-slate-200 dark:divide-slate-700">) <>
           r <> "</ul></div>"
 
       true ->
@@ -282,20 +282,28 @@ defmodule Catenary.Live.EntryViewer do
   end
 
   defp tab_list(entries, settings) do
-    entries
-    |> Enum.take(7)
-    |> Enum.map(fn e -> tab_item(e, settings) end)
-    |> Enum.join()
+    case entries |> Enum.take(7) |> Enum.map(fn e -> tab_item(e, settings) end) do
+      [] -> ""
+      items ->
+        "<ul class=\"list-none m-0 p-0 flex flex-col gap-1 divide-y divide-slate-200 dark:divide-slate-700\">" <> Enum.join(items, "") <> "</ul>"
+    end
   end
 
   defp tab_item(e, settings) do
     vals = extract(e, settings)
+    {ident, _l, _s} = e
+    {:safe, ava} = Display.scaled_avatar(ident, 2, ["h-4 w-4 rounded-full object-cover"])
 
-    "<li><button class=\"" <>
-      Enum.join(Display.maybe_border(e), " ") <>
-      ~s(" phx-click="view-entry" value=") <>
+    when_new =
+      if Preferences.shown?(e) do
+        ""
+      else
+        "<span class=\"ml-2 w-1.5 h-1.5 shrink-0 rounded-full bg-amber-400 dark:bg-amber-500\"></span>"
+      end
+
+    "<li><button class=\"flex items-center gap-2 rounded-md px-2 py-1 text-sm text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800/60 text-left\" phx-click=\"view-entry\" value=\"" <>
       Catenary.index_to_string(e) <>
-      "\">" <> vals["title"] <> "</button></li>"
+      "\">" <> ava <> "<span class=\"truncate\">" <> vals["title"] <> "</span>" <> when_new <> "</button></li>"
   end
 
   defp profile_others(settings, a) do
