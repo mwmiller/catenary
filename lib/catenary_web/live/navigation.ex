@@ -264,20 +264,20 @@ defmodule Catenary.Live.Navigation do
           <h4 class="text-sm font-semibold">Set this image as your avatar</h4>
           {Display.log_submit_button()}
         </form>
-        <div class="my-3 border-t border-stone-200 dark:border-stone-800"></div>
+        <div class="my-3 border-t border-slate-200 dark:border-slate-700"></div>
       <% end %>
       <form id="imageupload-form" phx-submit="image-save" phx-change="image-validate" class="flex flex-col gap-3">
         <label
           phx-drop-target={@uploads.image.ref}
-          class="flex flex-col items-center justify-center gap-2 rounded-md border-2 border-dashed border-stone-300 dark:border-stone-600 bg-white dark:bg-stone-800 px-4 py-6 text-center cursor-pointer transition-colors hover:border-amber-700 dark:hover:border-amber-400 hover:bg-stone-100 dark:hover:bg-stone-700"
+          class="flex flex-col items-center justify-center gap-2 rounded-md border-2 border-dashed border-slate-300 dark:border-slate-600 bg-slate-50 dark:bg-slate-800 px-4 py-6 text-center cursor-pointer transition-colors hover:border-amber-500 dark:hover:border-amber-400 hover:bg-amber-50 dark:hover:bg-slate-700"
         >
           <span class="text-2xl leading-none text-amber-500 dark:text-amber-400">҂</span>
-          <span class="text-sm text-stone-600 dark:text-stone-300">Click to choose or drop an image</span>
-          <span class="text-xs text-stone-400 dark:text-stone-500">JPG, PNG or GIF</span>
+          <span class="text-sm text-slate-600 dark:text-slate-300">Click to choose or drop an image</span>
+          <span class="text-xs text-slate-400 dark:text-slate-500">JPG, PNG or GIF</span>
           <.live_file_input upload={@uploads.image} class="sr-only" />
         </label>
         <%= for entry <- @uploads.image.entries do %>
-          <div class="flex items-center gap-2 text-xs text-stone-600 dark:text-stone-300">
+          <div class="flex items-center gap-2 text-xs text-slate-600 dark:text-slate-300">
             <span class="truncate">{entry.client_name}</span>
           </div>
         <% end %>
@@ -289,20 +289,20 @@ defmodule Catenary.Live.Navigation do
 
   defp extra_nav(_), do: ""
 
-  defp panel_cls, do: "rounded-lg border border-stone-200 dark:border-stone-800 bg-white dark:bg-stone-900 p-3"
+  defp panel_cls, do: "rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-3"
 
   defp input_cls,
     do:
-      "w-full rounded-md border border-stone-300 dark:border-stone-600 bg-white dark:bg-stone-800 px-2 py-1 text-sm text-stone-900 dark:text-stone-100 transition-colors focus:outline-none focus:border-amber-500 dark:focus:border-amber-400 focus:ring-1 focus:ring-amber-500/60 dark:focus:ring-amber-400/60"
+      "w-full rounded-md border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 px-2 py-1 text-sm text-slate-900 dark:text-slate-100 transition-colors focus:outline-none focus:border-amber-500 dark:focus:border-amber-400 focus:ring-1 focus:ring-amber-500/60 dark:focus:ring-amber-400/60"
 
   defp checkbox_cls,
     do:
-      "h-4 w-4 rounded border-stone-300 dark:border-stone-600 text-amber-500 dark:text-amber-400 focus:ring-1 focus:ring-amber-500/60 dark:focus:ring-amber-400/60"
+      "h-4 w-4 rounded border-slate-300 dark:border-slate-600 text-amber-500 dark:text-amber-400 focus:ring-1 focus:ring-amber-500/60 dark:focus:ring-amber-400/60"
 
   defp label_cls,
-    do: "block text-[11px] font-medium uppercase tracking-wide text-stone-500 dark:text-stone-400 mb-1"
+    do: "block text-[11px] font-medium uppercase tracking-wide text-slate-500 dark:text-slate-400 mb-1"
 
-  defp help_cls, do: "text-xs leading-snug text-stone-500 dark:text-stone-400"
+  defp help_cls, do: "text-xs leading-snug text-slate-500 dark:text-slate-400"
 
   defp help_text(text) do
     ~s(<p class="#{help_cls()}">#{text}</p>)
