@@ -40,7 +40,7 @@ defmodule Catenary.Live.ImageExplorer do
         </div>
         <%= for {t, g} <- (@card[@entry] || []) |> Enum.sort do %>
           <div class="flex flex-col gap-2">
-            <h4 class="text-xs uppercase tracking-wide text-slate-400 dark:text-slate-500">{t}</h4>
+            <h4 class="text-xs tracking-wide text-slate-400 dark:text-slate-500">{t}</h4>
             <div class="flex flex-row flex-wrap gap-2">
               <%= for i <- g do %>
                 {i}
