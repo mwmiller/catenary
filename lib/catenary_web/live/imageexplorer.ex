@@ -10,9 +10,7 @@ defmodule Catenary.Live.ImageExplorer do
     {:ok,
      assign(socket, Map.merge(assigns, %{
        entry: which,
-       card: extract(aliases),
-       ul: "underline",
-       nl: ""
+       card: extract(aliases)
      }))}
   end
 
@@ -23,24 +21,34 @@ defmodule Catenary.Live.ImageExplorer do
 
   def render(assigns) do
     ~H"""
-    <div id="image-explore-wrap" class="col-span-2 overflow-y-auto max-h-screen m-2 p-x-2">
-      <h1>Image Explorer</h1>
-      <hr />
-      <%= for a <- @card |> Map.keys |> Enum.sort do %>
-        <button value={a} phx-click="arrange" phx-target={@myself}>
-          <p class={"text-amber-900 dark:text-amber-100 #{if @entry == a, do: @ul, else: @nl}"}>
-            {a}
-          </p>
-        </button>
-      <% end %>
-      <%= for {t, g} <- (@card[@entry] || []) |> Enum.sort do %>
-        <h4>{t}</h4>
-        <div class="flex flex-row flex-wrap mt-7 mx-auto">
-          <%= for i <- g do %>
-            {i}
-          <% end %>
+    <div id="image-explore-wrap" class="col-span-2 overflow-y-auto max-h-screen m-2 px-2">
+      <div class="flex flex-col gap-5">
+        <div class="flex items-center justify-between gap-3">
+          <h1 class="text-lg font-semibold text-slate-800 dark:text-slate-100">Image Explorer</h1>
+          <div class="flex gap-1 rounded-lg bg-slate-100 dark:bg-slate-800 p-1">
+            <%= for a <- @card |> Map.keys |> Enum.sort do %>
+              <button
+                value={a}
+                phx-click="arrange"
+                phx-target={@myself}
+                class={"px-2 py-1 text-xs rounded-md transition-colors #{if @entry == a, do: "bg-white dark:bg-slate-700 text-amber-700 dark:text-amber-300 shadow-sm", else: "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200"}"}
+              >
+                {a}
+              </button>
+            <% end %>
+          </div>
         </div>
-      <% end %>
+        <%= for {t, g} <- (@card[@entry] || []) |> Enum.sort do %>
+          <div class="flex flex-col gap-2">
+            <h4 class="text-xs uppercase tracking-wide text-slate-400 dark:text-slate-500">{t}</h4>
+            <div class="flex flex-row flex-wrap gap-2">
+              <%= for i <- g do %>
+                {i}
+              <% end %>
+            </div>
+          </div>
+        <% end %>
+      </div>
     </div>
     """
   end
@@ -82,7 +90,9 @@ defmodule Catenary.Live.ImageExplorer do
   defp displayable([], images), do: images
 
   defp displayable([{src, entry} | rest], images) do
-    img_tag = "<img class=\"w-20 m-1\" src=" <> src <> ">"
+    img_tag =
+      "<img class=\"w-32 h-32 object-cover rounded-lg border border-slate-200 dark:border-slate-700 shadow-sm hover:scale-105 hover:shadow-md hover:border-amber-500 dark:hover:border-amber-400 transition-all\" src=" <>
+        src <> ">"
 
     val =
       ("<div class=\"flex-auto\">" <>
