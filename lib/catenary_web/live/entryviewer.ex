@@ -114,28 +114,16 @@ defmodule Catenary.Live.EntryViewer do
     """
   end
 
-  defp inna_box(bits, _config, bobs \\ "")
-  defp inna_box([], _config, ""), do: ""
-
-  # Yeah, we use integer strings, what of it?
-  defp inna_box([], _config, acc) do
-    "<div class=\"flex flex-col gap-2\">" <> acc <> "</div>"
-  end
-
-  defp inna_box(["" | rest], config, acc), do: inna_box(rest, config, acc)
-  defp inna_box([jabba | rest], config, acc), do: inna_box(rest, config, acc <> jabba)
-
   def extract({:profile, a} = entry, settings) do
     clump_id = Keyword.get(settings, :clump_id)
 
     about = profile_about(a)
-    {timeline, as_of} = profile_timeline(a, settings)
+    {tabs, as_of} = profile_timeline(a, settings)
     others = profile_others(settings, a)
     mentions = profile_mentions(a)
+    key = key_link(a)
 
     Preferences.mark_entry(:shown, entry)
-
-    key = key_link(a)
 
     Map.merge(
       %{
@@ -144,7 +132,7 @@ defmodule Catenary.Live.EntryViewer do
         "title" => clump_id <> " Overview",
         "back-refs" => [],
         "tags" => [],
-        "body" => Phoenix.HTML.raw(key <> about <> mentions <> timeline <> others),
+        "body" => Phoenix.HTML.raw(about <> mentions <> tabs <> others <> key),
         "published" => as_of
       },
       from_refs(entry)
@@ -219,7 +207,7 @@ defmodule Catenary.Live.EntryViewer do
           name =
             case aboot |> Map.get("name") do
               nil -> ""
-              n -> "<h1 class=\"text-lg font-semibold text-slate-800 dark:text-slate-100\">" <> n <> "</h1>"
+              n -> "<h1 class=\"text-2xl font-bold text-slate-800 dark:text-slate-100\">" <> n <> "</h1>"
             end
 
           desc =
@@ -234,7 +222,14 @@ defmodule Catenary.Live.EntryViewer do
           []
       end
 
-    inna_box(about, cols: "1", border: "dashed")
+    case about do
+      [] ->
+        ""
+
+      _ ->
+        "<div class=\"flex flex-col gap-2 rounded-lg bg-slate-50 px-3 py-2 dark:bg-slate-800/40\">" <>
+          Enum.join(about, "") <> "</div>"
+    end
   end
 
   defp profile_timeline(a, settings) do
@@ -247,15 +242,60 @@ defmodule Catenary.Live.EntryViewer do
         # We extract this one twice.  But maybe there is a filter later
         %{"published" => as_of} = rev_order |> hd |> then(fn e -> extract(e, settings) end)
 
-        groups =
-          rev_order
-          |> Enum.take(23)
-          |> Enum.group_by(fn {_, l, _} -> Display.pretty_log_name(l) end)
-          |> Enum.map(fn t -> group_list(t, settings) end)
-          |> inna_box(border: "dotted")
+        journals = Enum.filter(rev_order, fn {_, l, _} -> l in QuaggaDef.logs_for_name(:journal) end)
+        replies = Enum.filter(rev_order, fn {_, l, _} -> l in QuaggaDef.logs_for_name(:reply) end)
 
-        {groups, as_of}
+        {profile_tabs(journals, replies, settings), as_of}
     end
+  end
+
+  # Journals and Replies are the two primary content logs for a profile.
+  # Render them as a CSS-only (no server round-trip) tabbed list.
+  defp profile_tabs(journals, replies, settings) do
+    j = tab_list(journals, settings)
+    r = tab_list(replies, settings)
+
+    cond do
+      j == "" and r == "" ->
+        ""
+
+      r == "" ->
+        ~s(<div class="flex-auto p-2"><h4 class="text-xs tracking-wide text-slate-400 dark:text-slate-500">Journal</h4><ul class="list-none m-0 p-0 flex flex-col gap-1">) <>
+          j <> "</ul></div>"
+
+      j == "" ->
+        ~s(<div class="flex-auto p-2"><h4 class="text-xs tracking-wide text-slate-400 dark:text-slate-500">Reply</h4><ul class="list-none m-0 p-0 flex flex-col gap-1">) <>
+          r <> "</ul></div>"
+
+      true ->
+        ~s(<div class="flex-auto p-2">) <>
+          ~s(<input type="radio" id="ptab-journal" name="profile-tabs" class="hidden peer/ptabj" checked>) <>
+          ~s(<input type="radio" id="ptab-reply" name="profile-tabs" class="hidden peer/ptabr">) <>
+          ~s(<div class="flex gap-1 border-b border-slate-200 dark:border-slate-700 pb-px">) <>
+          ~s(<label for="ptab-journal" class="cursor-pointer rounded-t-md px-3 py-1 text-sm font-medium text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 peer-checked/ptabj:bg-amber-500/10 peer-checked/ptabj:text-amber-700 dark:peer-checked/ptabj:text-amber-300">Journal</label>) <>
+          ~s(<label for="ptab-reply" class="cursor-pointer rounded-t-md px-3 py-1 text-sm font-medium text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 peer-checked/ptabr:bg-amber-500/10 peer-checked/ptabr:text-amber-700 dark:peer-checked/ptabr:text-amber-300">Reply</label>) <>
+          ~s(</div>) <>
+          ~s(<div class="hidden py-2 peer-checked/ptabj:block">) <> j <> ~s(</div>) <>
+          ~s(<div class="hidden py-2 peer-checked/ptabr:block">) <> r <> ~s(</div>) <>
+          ~s(</div>)
+    end
+  end
+
+  defp tab_list(entries, settings) do
+    entries
+    |> Enum.take(7)
+    |> Enum.map(fn e -> tab_item(e, settings) end)
+    |> Enum.join()
+  end
+
+  defp tab_item(e, settings) do
+    vals = extract(e, settings)
+
+    "<li><button class=\"" <>
+      Enum.join(Display.maybe_border(e), " ") <>
+      ~s(" phx-click="view-entry" value=") <>
+      Catenary.index_to_string(e) <>
+      "\">" <> vals["title"] <> "</button></li>"
   end
 
   defp profile_others(settings, a) do
@@ -272,18 +312,22 @@ defmodule Catenary.Live.EntryViewer do
         ""
 
       _ ->
-        items
-        |> Enum.reduce([], fn {%{name: name}, [entry | _]}, acc ->
-          [
-            ~s(<div class="flex-auto p-1"><button class="text-xs text-amber-700 dark:text-amber-300 hover:text-amber-600 dark:hover:text-amber-200" value=") <>
-              Catenary.index_to_string(entry) <>
-              ~s(" phx-click="view-entry">) <>
-              String.capitalize(Atom.to_string(name)) <> "</button></div>"
-            | acc
-          ]
-        end)
-        |> Enum.reverse()
-        |> inna_box(border: "double")
+        buttons =
+          items
+          |> Enum.reduce([], fn {%{name: name}, [entry | _]}, acc ->
+            [
+              ~s(<div class="flex-none"><button class="rounded-md border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 px-2 py-0.5 text-xs text-amber-700 dark:text-amber-300 hover:border-amber-500 hover:text-amber-600 dark:hover:border-amber-400 dark:hover:text-amber-200" value=") <>
+                Catenary.index_to_string(entry) <>
+                ~s(" phx-click="view-entry">) <>
+                String.capitalize(Atom.to_string(name)) <> "</button></div>"
+              | acc
+            ]
+          end)
+          |> Enum.reverse()
+          |> Enum.join()
+
+        ~s(<div class="flex-auto p-2"><h4 class="text-xs tracking-wide text-slate-400 dark:text-slate-500">Logs</h4><div class="flex flex-row flex-wrap items-center gap-1.5">) <>
+          buttons <> "</div></div>"
     end
   end
 
@@ -588,24 +632,6 @@ defmodule Catenary.Live.EntryViewer do
 
   defp icon_entries([entry | rest], acc) do
     icon_entries(rest, acc <> Display.entry_icon_link(entry, 2) <> "&nbsp;")
-  end
-
-  defp group_list({ln, items}, settings) do
-    recents =
-      items
-      |> Enum.take(5)
-      |> Enum.map(fn e -> {e, extract(e, settings)} end)
-      |> Enum.reduce("", fn {e, vals}, acc ->
-        acc <>
-          "<li><button class=\"" <>
-          Enum.join(Display.maybe_border(e), " ") <>
-          ~s(" phx-click="view-entry" value=") <>
-          Catenary.index_to_string(e) <>
-          "\">" <> vals["title"] <> "</button></li>"
-      end)
-
-    "<div class=\"flex-auto p-2\"><h4 class=\"text-xs tracking-wide text-slate-400 dark:text-slate-500\">" <>
-      ln <> "</h4><ul class=\"list-none m-0 p-0 flex flex-col gap-1\">" <> recents <> "</ul></div>"
   end
 
   defp text_post(type, cbor) do
