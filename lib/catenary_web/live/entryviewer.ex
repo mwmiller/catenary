@@ -102,7 +102,7 @@ defmodule Catenary.Live.EntryViewer do
           </div>
         </div>
         <%= if is_tuple(@entry) && tuple_size(@entry) == 3 do %>
-          <div class="flex flex-row flex-wrap gap-2">
+          <div class="flex flex-row flex-wrap gap-x-8 gap-y-3">
             {metabox(@card, "mentions")}
             {metabox(@card, "tags")}
             {metabox(@card, "reactions")}
@@ -548,7 +548,7 @@ defmodule Catenary.Live.EntryViewer do
 
       stuff ->
         """
-        <div class="flex-auto rounded-lg border border-slate-200 dark:border-slate-700 p-3 flex flex-col gap-1">
+        <div class="flex flex-row flex-wrap items-center gap-x-6 gap-y-2">
         """ <>
           metafill(stuff, which, "") <>
           "</div>"
@@ -564,13 +564,13 @@ defmodule Catenary.Live.EntryViewer do
       t,
       "tags",
       acc <>
-        ~s(<div class="flex items-center gap-1 text-slate-500 dark:text-slate-400"><button class="hover:text-amber-600 dark:hover:text-amber-300" value="prev-tag-) <>
+        ~s(<span class="inline-flex items-center gap-1 text-slate-500 dark:text-slate-400"><button class="hover:text-amber-600 dark:hover:text-amber-300" value="prev-tag-) <>
         h <>
         ~s(" phx-click="nav">«</button> <button class="text-amber-700 dark:text-amber-300 hover:text-amber-600 dark:hover:text-amber-200" value=") <>
         h <>
         ~s("  phx-click="view-tag">) <>
         h <>
-        ~s(</button> <button class="hover:text-amber-600 dark:hover:text-amber-300" value="next-tag-) <> h <> ~s(" phx-click="nav">»</button></div>)
+        ~s(</button> <button class="hover:text-amber-600 dark:hover:text-amber-300" value="next-tag-) <> h <> ~s(" phx-click="nav">»</button></span>)
     )
   end
 
