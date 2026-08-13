@@ -62,9 +62,9 @@ defmodule Catenary.Live.PrefsManager do
               <div class="divide-y divide-slate-200 dark:divide-slate-700">
                 <%= for {n, k} <- @identities do %>
                   <div class={"flex items-center gap-3 py-2 #{if k == @identity, do: @picked, else: @unpicked}"}>
-                    <label class="flex items-center gap-2 text-sm" title="Use as identity">
+                    <label class="flex w-12 shrink-0 items-center gap-2 text-sm" title="Use as identity">
                       {Phoenix.HTML.raw(radio_value(k, @identity, "selection"))}
-                      {Phoenix.HTML.raw(Display.scaled_avatar(k, 4, []))}
+                      {Phoenix.HTML.raw(Display.scaled_avatar(k, 4, ["block h-8 w-8 overflow-hidden rounded-full object-cover"]))}
                     </label>
                     <input
                       class="w-40 rounded-md border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 px-2 py-1 text-sm text-slate-900 dark:text-slate-100"
@@ -75,9 +75,9 @@ defmodule Catenary.Live.PrefsManager do
                     />
                     <span class="min-w-0 flex-1 truncate text-sm">{Phoenix.HTML.raw(Display.linked_author(k, @aliases, :href))}</span>
                     <span class="shrink-0 text-xs text-slate-500 dark:text-slate-400">{Phoenix.HTML.raw(log_info_string(@store, k))}</span>
-                    <span class="shrink-0 text-center text-xs" title="Drop identity">
+                    <span class="flex w-8 shrink-0 items-center justify-center">
                       <%= if k == @identity do %>
-                        ⛒
+                        <span class="text-slate-400 dark:text-slate-600" title="Current identity">⛒</span>
                       <% else %>
                         <button
                           type="button"
@@ -91,29 +91,38 @@ defmodule Catenary.Live.PrefsManager do
                     </span>
                   </div>
                 <% end %>
-                <div class="flex items-center gap-3 py-2">
-                  <span class="w-10 shrink-0" />
-                  <input
-                    class="w-40 rounded-md border border-dashed border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 px-2 py-1 text-sm text-slate-500 dark:text-slate-400 placeholder:text-slate-400 dark:placeholder:text-slate-500"
-                    type="text"
-                    placeholder="new name"
-                    id="new-id"
-                    phx-blur="new-id"
-                  />
-                  <span class="text-xs text-slate-400 dark:text-slate-500">none yet</span>
-                </div>
-              </div>
-              <div class="mt-3 flex items-center gap-2 border-t border-slate-200 dark:border-slate-700 pt-3">
-                <label class="text-sm text-slate-600 dark:text-slate-300" for="facet_id">❖ Facet</label>
-                <input
-                  class="w-16 rounded-md border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 px-2 py-1 text-sm text-slate-900 dark:text-slate-100"
-                  phx-blur="facet-change"
-                  type="numeric"
-                  name="facet_id"
-                  value={@facet_id}
-                />
               </div>
             </form>
+            <form phx-submit="new-id" class="flex items-center gap-3 border-t border-slate-200 py-2 dark:border-slate-700">
+              <span class="flex w-12 shrink-0 items-center justify-start">
+                <button
+                  type="submit"
+                  class="rounded-md border border-slate-300 dark:border-slate-600 px-1.5 text-sm text-slate-500 dark:text-slate-400 transition-colors hover:border-amber-500 hover:text-amber-600 dark:hover:border-amber-400 dark:hover:text-amber-400"
+                  title="Create identity"
+                >+</button>
+              </span>
+              <input
+                class="w-40 rounded-md border border-dashed border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 px-2 py-1 text-sm text-slate-500 dark:text-slate-400 placeholder:text-slate-400 dark:placeholder:text-slate-500"
+                type="text"
+                name="value"
+                placeholder="new name"
+                id="new-id"
+                phx-blur="new-id"
+              />
+              <span class="min-w-0 flex-1 truncate text-xs text-slate-400 dark:text-slate-500">create and switch to</span>
+              <span class="shrink-0 text-xs text-slate-400 dark:text-slate-500">none yet</span>
+              <span class="flex w-8 shrink-0 items-center justify-center" />
+            </form>
+            <div class="mt-3 flex items-center gap-2 border-t border-slate-200 dark:border-slate-700 pt-3">
+              <label class="text-sm text-slate-600 dark:text-slate-300" for="facet_id">❖ Facet</label>
+              <input
+                class="w-16 rounded-md border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 px-2 py-1 text-sm text-slate-900 dark:text-slate-100"
+                phx-blur="facet-change"
+                type="numeric"
+                name="facet_id"
+                value={@facet_id}
+              />
+            </div>
           </div>
 
           <div class="rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-4">
