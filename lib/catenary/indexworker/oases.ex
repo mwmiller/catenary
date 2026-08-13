@@ -8,7 +8,23 @@ defmodule Catenary.IndexWorker.Oases do
   Oasis Indices
   """
 
-  @display_count 4
+  # Only ever show this many oases in the explorer.
+  @display_count 11
+
+  # An oasis node is identified by its host:port. Its announcement log
+  # entries are authored with the announcing peer as the key, and a
+  # monotonically increasing seqnum; a rename produces a new entry with the
+  # same host:port but a higher seqnum and a new "name". Dedup on the node
+  # identity and keep the newest entry so we never show a renamed oasis twice
+  # (once for the old name, once for the new) and never show a stale name.
+  defp oasis_key(m), do: {m["host"], m["port"]}
+
+  defp oasis_seq(m) do
+    case m[:id] do
+      {_, _, s} -> s
+      _ -> 0
+    end
+  end
 
   def do_index(_todo, clump_id) do
     # Rebuild from the full store rather than just the incremental diff.
@@ -25,8 +41,9 @@ defmodule Catenary.IndexWorker.Oases do
 
   defp build_index(all, count) do
     all
+    |> Enum.sort_by(&oasis_seq/1, :desc)
+    |> Enum.uniq_by(&oasis_key/1)
     |> Enum.sort_by(fn m -> Map.get(m, "running") end, :desc)
-    |> Enum.uniq_by(fn %{"host" => h, "port" => p} -> {h, p} end)
     |> Enum.take(count)
   end
 

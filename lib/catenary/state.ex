@@ -37,18 +37,36 @@ defmodule Catenary.State do
     Agent.update(__MODULE__, fn s -> Map.merge(s, %{profile: profile_items}) end)
   end
 
+  @max_oases 11
+
   def clear_oases, do: Agent.update(__MODULE__, fn s -> %{s | oases: []} end)
 
   def update_oases(recents) do
     Agent.update(__MODULE__, fn s ->
       %{oases: prev} = s
 
+      # An oasis node is identified by its host:port; a rename produces a new
+      # announcement with the same host:port but a different name, so dedup on
+      # the node identity. Keep the newest entry (highest seqnum, stashed under
+      # :id as {author, log, seqnum}) so a renamed oasis is shown once, with its
+      # latest name, and never duplicates.
       full =
         (prev ++ recents)
-        |> Enum.uniq_by(fn m -> m["name"] end)
+        |> Enum.sort_by(&oasis_seq/1, :desc)
+        |> Enum.uniq_by(&oasis_key/1)
         |> Enum.sort_by(fn m -> Map.get(m, "running") end, :desc)
+        |> Enum.take(@max_oases)
 
       Map.merge(s, %{oases: full})
     end)
+  end
+
+  defp oasis_key(m), do: {m["host"], m["port"]}
+
+  defp oasis_seq(m) do
+    case m[:id] do
+      {_, _, s} -> s
+      _ -> 0
+    end
   end
 end
