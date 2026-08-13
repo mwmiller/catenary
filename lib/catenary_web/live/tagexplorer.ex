@@ -16,14 +16,15 @@ defmodule Catenary.Live.TagExplorer do
 
   def render(assigns) do
     ~H"""
-    <div id="tag-explore-wrap" class="col-span-2 overflow-y-auto max-h-screen m-2 p-x-2">
-      <h1>Tag Explorer</h1>
-      <hr />
-      <%= for g <-  @card["tags"] do %>
-        <div class="grid grid-cols-3 mt-10">
-          {g}
-        </div>
-      <% end %>
+    <div id="tag-explore-wrap" class="col-span-2 overflow-y-auto max-h-screen m-2 px-2">
+      <div class="flex flex-col gap-5">
+        <h1 class="text-lg font-semibold text-slate-800 dark:text-slate-100">Tag Explorer</h1>
+        <%= for g <- @card["tags"] do %>
+          <div class="flex flex-row flex-wrap gap-2">
+            {g}
+          </div>
+        <% end %>
+      </div>
     </div>
     """
   end
@@ -45,10 +46,10 @@ defmodule Catenary.Live.TagExplorer do
   defp to_links(tags) do
     tags
     |> Enum.map(fn {t, _c} ->
-      ~s(<div><button value=") <>
+      ~s(<button value=") <>
         t <>
-        ~s(" phx-click="view-tag"><p class="tighter text-amber-900 dark:text-amber-100">) <>
-        t <> ~s(</p></button></div>)
+        ~s(" phx-click="view-tag"><p class="px-2.5 py-1 rounded-full bg-slate-100 dark:bg-slate-800 text-amber-700 dark:text-amber-300 hover:bg-amber-100 dark:hover:bg-amber-900/40 transition-colors">) <>
+        t <> ~s(</p></button>)
     end)
     |> Phoenix.HTML.raw()
   end

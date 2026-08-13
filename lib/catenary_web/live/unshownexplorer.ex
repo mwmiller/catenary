@@ -18,20 +18,31 @@ defmodule Catenary.Live.UnshownExplorer do
 
   def render(assigns) do
     ~H"""
-    <div id="unshown-explore-wrap" class="col-span-2 overflow-y-auto max-h-screen m-2 p-x-2">
-      <h1>Unshown Explorer</h1>
-      <hr />
-      <%= for {type, entries, estring, size} <- @card do %>
-        <h3 class="text-slate-600 dark:text-slate-300">
-          <button phx-click="shown-set" value={estring}>∅</button>&nbsp;&nbsp;{type}
-        </h3>
-        <div class="grid grid-cols-3 my-2">
-          {entries}
-          <%= if size == :more do %>
-            <p class="text-xs">(◎+)</p>
-          <% end %>
-        </div>
-      <% end %>
+    <div id="unshown-explore-wrap" class="col-span-2 overflow-y-auto max-h-screen m-2 px-2">
+      <div class="flex flex-col gap-5">
+        <h1 class="text-lg font-semibold text-slate-800 dark:text-slate-100">Unshown Explorer</h1>
+        <%= for {type, entries, estring, size} <- @card do %>
+          <div class="flex flex-col gap-2">
+            <h3 class="text-xs tracking-wide text-slate-400 dark:text-slate-500 flex items-center gap-2">
+              <button
+                phx-click="shown-set"
+                value={estring}
+                title="Mark shown"
+                class="px-1 rounded text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-100 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+              >
+                ∅
+              </button>
+              {type}
+            </h3>
+            <div class="grid grid-cols-3 gap-2">
+              {entries}
+              <%= if size == :more do %>
+                <p class="text-xs text-slate-400 dark:text-slate-500">(◎+)</p>
+              <% end %>
+            </div>
+          </div>
+        <% end %>
+      </div>
     </div>
     """
   end

@@ -17,11 +17,12 @@ defmodule Catenary.Live.AliasExplorer do
 
   def render(assigns) do
     ~H"""
-    <div id="alias-explore-wrap" class="col-span-2 overflow-y-auto max-h-screen m-2 p-x-2">
-      <h1>Alias Explorer</h1>
-      <hr />
-      <div class="grid grid-cols-3 mt-10">
-        {@card["aliases"]}
+    <div id="alias-explore-wrap" class="col-span-2 overflow-y-auto max-h-screen m-2 px-2">
+      <div class="flex flex-col gap-4">
+        <h1 class="text-lg font-semibold text-slate-800 dark:text-slate-100">Alias Explorer</h1>
+        <div class="grid grid-cols-3 gap-2">
+          {@card["aliases"]}
+        </div>
       </div>
     </div>
     """
@@ -43,7 +44,9 @@ defmodule Catenary.Live.AliasExplorer do
     aliases
     |> Enum.map(fn {a, _} ->
       {:safe, html} = Display.linked_author(a, as)
-      "<div>" <> html <> "</div>"
+
+      "<div class=\"rounded-lg border border-slate-200 dark:border-slate-700 p-2 flex items-center gap-2 hover:border-amber-500 dark:hover:border-amber-400 transition-colors\">" <>
+        html <> "</div>"
     end)
     |> Phoenix.HTML.raw()
   end
