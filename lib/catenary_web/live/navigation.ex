@@ -271,7 +271,7 @@ defmodule Catenary.Live.Navigation do
           phx-drop-target={@uploads.image.ref}
           class="flex flex-col items-center justify-center gap-2 rounded-md border-2 border-dashed border-stone-300 dark:border-stone-600 bg-white dark:bg-stone-800 px-4 py-6 text-center cursor-pointer transition-colors hover:border-amber-700 dark:hover:border-amber-400 hover:bg-stone-100 dark:hover:bg-stone-700"
         >
-          <span class="text-2xl leading-none text-amber-700 dark:text-amber-400">҂</span>
+          <span class="text-2xl leading-none text-amber-500 dark:text-amber-400">҂</span>
           <span class="text-sm text-stone-600 dark:text-stone-300">Click to choose or drop an image</span>
           <span class="text-xs text-stone-400 dark:text-stone-500">JPG, PNG or GIF</span>
           <.live_file_input upload={@uploads.image} class="sr-only" />
@@ -289,15 +289,15 @@ defmodule Catenary.Live.Navigation do
 
   defp extra_nav(_), do: ""
 
-  defp panel_cls, do: "rounded-lg border border-stone-200 dark:border-stone-800 bg-stone-50 dark:bg-stone-900 p-3"
+  defp panel_cls, do: "rounded-lg border border-stone-200 dark:border-stone-800 bg-white dark:bg-stone-900 p-3"
 
   defp input_cls,
     do:
-      "w-full rounded-md border border-stone-300 dark:border-stone-600 bg-white dark:bg-stone-800 px-2 py-1 text-sm transition-colors focus:outline-none focus:border-amber-700 dark:focus:border-amber-400 focus:ring-1 focus:ring-amber-700/50 dark:focus:ring-amber-400/50"
+      "w-full rounded-md border border-stone-300 dark:border-stone-600 bg-white dark:bg-stone-800 px-2 py-1 text-sm text-stone-900 dark:text-stone-100 transition-colors focus:outline-none focus:border-amber-500 dark:focus:border-amber-400 focus:ring-1 focus:ring-amber-500/60 dark:focus:ring-amber-400/60"
 
   defp checkbox_cls,
     do:
-      "h-4 w-4 rounded border-stone-300 dark:border-stone-600 text-amber-700 dark:text-amber-400 focus:ring-1 focus:ring-amber-700/50 dark:focus:ring-amber-400/50"
+      "h-4 w-4 rounded border-stone-300 dark:border-stone-600 text-amber-500 dark:text-amber-400 focus:ring-1 focus:ring-amber-500/60 dark:focus:ring-amber-400/60"
 
   defp label_cls,
     do: "block text-[11px] font-medium uppercase tracking-wide text-stone-500 dark:text-stone-400 mb-1"
