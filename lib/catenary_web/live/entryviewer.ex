@@ -102,11 +102,11 @@ defmodule Catenary.Live.EntryViewer do
           </div>
         </div>
         <%= if is_tuple(@entry) && tuple_size(@entry) == 3 do %>
-          <div class="flex flex-row flex-wrap justify-end items-center gap-x-8 gap-y-3">
+          <div class="flex flex-row flex-wrap items-center gap-x-8 gap-y-3">
             {metabox(@card, "mentions")}
             {metabox(@card, "tags")}
             {metabox(@card, "reactions")}
-            {metabox(@card, "refs")}
+            {metabox(@card, "refs", "ml-auto")}
           </div>
         <% end %>
       </div>
@@ -541,14 +541,14 @@ defmodule Catenary.Live.EntryViewer do
     %{"refs" => refs, "fore-refs" => replies}
   end
 
-  defp metabox(data, which) do
+  defp metabox(data, which, extra \\ "") do
     case data[which] do
       [] ->
         ""
 
       stuff ->
         """
-        <div class="flex flex-row flex-wrap items-center gap-x-6 gap-y-2">
+        <div class="flex flex-row flex-wrap items-center gap-x-6 gap-y-2 #{extra}">
         """ <>
           metafill(stuff, which, "") <>
           "</div>"
