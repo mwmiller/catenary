@@ -18,8 +18,8 @@ defmodule Catenary.Live.TagViewer do
   def render(assigns) do
     ~H"""
     <div id="tagview-wrap" class="content-wrap">
-      <div class="min-w-full font-sans row-span-full">
-        <h1 class="text=center">Entries tagged with &quot;{@tag}&quot;</h1>
+      <div class="min-w-full row-span-full">
+        <h1 class="text-center">Entries tagged with &quot;{@tag}&quot;</h1>
         <hr />
         <%= for {type, entries} <- @card do %>
           <h3 class="pt-5 text-slate-600 dark:text-slate-300">{type}</h3>

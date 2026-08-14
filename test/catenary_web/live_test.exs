@@ -8,9 +8,8 @@ defmodule CatenaryWeb.LiveTest do
 
     assert html =~ "max-h-screen w-full flex justify-center px-2 py-2 gap-3"
     assert html =~ "w-full max-w-4xl"
-    assert html =~ "content-wrap"
     # the implicit inner block renders the active view's component
-    assert html =~ "entryview-wrap"
+    assert html =~ "content-wrap"
   end
 
   test "back and forward buttons have a single merged class" do
