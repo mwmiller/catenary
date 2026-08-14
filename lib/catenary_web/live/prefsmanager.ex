@@ -25,14 +25,13 @@ defmodule Catenary.Live.PrefsManager do
 
   def option_value(i, selected_i) do
     selected = if i == selected_i, do: "selected", else: ""
-    "<option value=\"" <> i <> "\" " <> selected <> ">" <> i <> "</option>"
+    ~s(<option value="#{i}" #{selected}>#{i}</option>)
   end
 
   def radio_value(i, selected_i, name) do
     checked = if i == selected_i, do: "checked", else: ""
 
-    "<input class=\"accent-amber-500\" type=\"radio\" name=\"" <>
-      name <> "\" value=\"" <> i <> "\" " <> checked <> " />"
+    ~s(<input class="accent-amber-500" type="radio" name="#{name}" value="#{i}" #{checked} />)
   end
 
   @impl true

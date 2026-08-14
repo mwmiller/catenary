@@ -68,7 +68,7 @@ defmodule CatenaryWeb.Live do
     <div class="max-h-screen w-full flex justify-center px-2 py-2 gap-3">
       {timeline_nav(assigns)}
       <div class="w-full max-w-4xl">
-        {render_slot(@inner)}
+        {render_slot(@inner_block)}
       </div>
       {activitybar(assigns)}
     </div>
@@ -78,29 +78,27 @@ defmodule CatenaryWeb.Live do
   def render(%{view: :prefs} = assigns) do
     ~H"""
     <.three_column_layout {assigns}>
-      <:inner>
-        <.live_component
-          module={Catenary.Live.PrefsManager}
-          id={:prefs}
-          clumps={@clumps}
-          clump_id={@clump_id}
-          identity={@identity}
-          identities={@identities}
-          store={@store}
-          facet_id={@facet_id}
-          aliases={@aliases}
-        />
-      </:inner>
+      <.live_component
+        module={Catenary.Live.PrefsManager}
+        id={:prefs}
+        clumps={@clumps}
+        clump_id={@clump_id}
+        identity={@identity}
+        identities={@identities}
+        store={@store}
+        facet_id={@facet_id}
+        aliases={@aliases}
+      />
     </.three_column_layout>
     """
   end
 
-  def render(%{view: :entries, entry: {:tag, _}} = assigns) do
+  def render(%{view: :entries, entry: {:tag, tag}} = assigns) do
+    assigns = assign(assigns, :tag, tag)
+
     ~H"""
     <.three_column_layout {assigns}>
-      <:inner>
-        <.live_component module={Catenary.Live.TagViewer} id={:tags} entry={elem(@entry, 1)} />
-      </:inner>
+      <.live_component module={Catenary.Live.TagViewer} id={:tags} entry={@tag} />
     </.three_column_layout>
     """
   end
@@ -108,9 +106,7 @@ defmodule CatenaryWeb.Live do
   def render(%{view: :tags} = assigns) do
     ~H"""
     <.three_column_layout {assigns}>
-      <:inner>
-        <.live_component module={Catenary.Live.TagExplorer} id={:tags} entry={@entry} />
-      </:inner>
+      <.live_component module={Catenary.Live.TagExplorer} id={:tags} entry={@entry} />
     </.three_column_layout>
     """
   end
@@ -118,14 +114,12 @@ defmodule CatenaryWeb.Live do
   def render(%{view: :images} = assigns) do
     ~H"""
     <.three_column_layout {assigns}>
-      <:inner>
-        <.live_component
-          module={Catenary.Live.ImageExplorer}
-          id={:images}
-          entry={:poster}
-          aliases={@aliases}
-        />
-      </:inner>
+      <.live_component
+        module={Catenary.Live.ImageExplorer}
+        id={:images}
+        entry={:poster}
+        aliases={@aliases}
+      />
     </.three_column_layout>
     """
   end
@@ -135,16 +129,14 @@ defmodule CatenaryWeb.Live do
   def render(%{view: :unshown} = assigns) do
     ~H"""
     <.three_column_layout {assigns}>
-      <:inner>
-        <.live_component
-          module={Catenary.Live.UnshownExplorer}
-          id={:unshown}
-          which={@entry}
-          clump_id={@clump_id}
-          oases={@oases}
-          shown_hash={@shown_hash}
-        />
-      </:inner>
+      <.live_component
+        module={Catenary.Live.UnshownExplorer}
+        id={:unshown}
+        which={@entry}
+        clump_id={@clump_id}
+        oases={@oases}
+        shown_hash={@shown_hash}
+      />
     </.three_column_layout>
     """
   end
@@ -152,14 +144,12 @@ defmodule CatenaryWeb.Live do
   def render(%{view: :aliases} = assigns) do
     ~H"""
     <.three_column_layout {assigns}>
-      <:inner>
-        <.live_component
-          module={Catenary.Live.AliasExplorer}
-          id={:aliases}
-          alias={:all}
-          aliases={@aliases}
-        />
-      </:inner>
+      <.live_component
+        module={Catenary.Live.AliasExplorer}
+        id={:aliases}
+        alias={:all}
+        aliases={@aliases}
+      />
     </.three_column_layout>
     """
   end
@@ -167,15 +157,13 @@ defmodule CatenaryWeb.Live do
   def render(%{view: :oases} = assigns) do
     ~H"""
     <.three_column_layout {assigns}>
-      <:inner>
-        <.live_component
-          module={Catenary.Live.OasisExplorer}
-          id={:oases}
-          oases={@oases}
-          opened={@opened}
-          aliases={@aliases}
-        />
-      </:inner>
+      <.live_component
+        module={Catenary.Live.OasisExplorer}
+        id={:oases}
+        oases={@oases}
+        opened={@opened}
+        aliases={@aliases}
+      />
     </.three_column_layout>
     """
   end
@@ -183,17 +171,15 @@ defmodule CatenaryWeb.Live do
   def render(%{view: :entries} = assigns) do
     ~H"""
     <.three_column_layout {assigns}>
-      <:inner>
-        <.live_component
-          module={Catenary.Live.EntryViewer}
-          id={:entry}
-          store={@store}
-          identity={@identity}
-          entry={@entry}
-          clump_id={@clump_id}
-          aliases={@aliases}
-        />
-      </:inner>
+      <.live_component
+        module={Catenary.Live.EntryViewer}
+        id={:entry}
+        store={@store}
+        identity={@identity}
+        entry={@entry}
+        clump_id={@clump_id}
+        aliases={@aliases}
+      />
     </.three_column_layout>
     """
   end
@@ -226,10 +212,12 @@ defmodule CatenaryWeb.Live do
         <!-- Center: nav buttons -->
         <div class="flex items-center gap-0.5 overflow-x-auto flex-1 justify-center min-w-0 scrollbar-hide">
           <button
-            class={stack_color(@entry_back)}
+            class={[
+              stack_color(@entry_back),
+              "px-2 py-1 rounded hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors text-lg leading-none"
+            ]}
             phx-click="nav-backward"
             title="Back"
-            class="px-2 py-1 rounded hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors text-lg leading-none"
           >⤶</button>
           <button
             value="tags"
@@ -262,10 +250,12 @@ defmodule CatenaryWeb.Live do
             class="px-2 py-1 rounded hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors text-lg leading-none"
           >҂</button>
           <button
-            class={stack_color(@entry_fore)}
+            class={[
+              stack_color(@entry_fore),
+              "px-2 py-1 rounded hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors text-lg leading-none"
+            ]}
             phx-click="nav-forward"
             title="Forward"
-            class="px-2 py-1 rounded hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors text-lg leading-none"
           >⤷</button>
         </div>
 

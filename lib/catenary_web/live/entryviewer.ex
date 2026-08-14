@@ -301,7 +301,7 @@ defmodule Catenary.Live.EntryViewer do
         ""
 
       items ->
-        "<ul class=\"list-none m-0 p-0 flex flex-col gap-1 divide-y divide-slate-200 dark:divide-slate-700\">" <>
+        ~s(<ul class="list-none m-0 p-0 flex flex-col gap-1 divide-y divide-slate-200 dark:divide-slate-700">) <>
           Enum.join(items, "") <> "</ul>"
     end
   end
@@ -315,14 +315,12 @@ defmodule Catenary.Live.EntryViewer do
       if Preferences.shown?(e) do
         ""
       else
-        "<span class=\"ml-2 w-1.5 h-1.5 shrink-0 rounded-full bg-amber-400 dark:bg-amber-500\"></span>"
+        ~s(<span class="ml-2 w-1.5 h-1.5 shrink-0 rounded-full bg-amber-400 dark:bg-amber-500"></span>)
       end
 
-    "<li><button class=\"flex items-center gap-2 rounded-md px-2 py-1 text-sm text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800/60 text-left\" phx-click=\"view-entry\" value=\"" <>
-      Catenary.index_to_string(e) <>
-      "\">" <>
+    ~s(<li><button class="flex items-center gap-2 rounded-md px-2 py-1 text-sm text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800/60 text-left" phx-click="view-entry" value="#{Catenary.index_to_string(e)}">) <>
       ava <>
-      "<span class=\"truncate\">" <> vals["title"] <> "</span>" <> when_new <> "</button></li>"
+      ~s(<span class="truncate">#{vals["title"]}</span>) <> when_new <> "</button></li>"
   end
 
   defp profile_others(settings, a) do
