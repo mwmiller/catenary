@@ -3,9 +3,7 @@
 module.exports = {
   content: [
     './js/**/*.js',
-    '../lib/*.ex',
-    '../lib/*_web.ex',
-    '../lib/*_web/**/*.*ex'
+    '../lib/**/*.ex'
   ],
   theme: {
     extend: {
