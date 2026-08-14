@@ -10,14 +10,17 @@ defmodule Catenary.Live.PrefsManager do
     {ac, lc, ec} = Catenary.clump_stats(assigns.clump_id)
 
     {:ok,
-     assign(socket, Map.merge(assigns, %{
-       blocked: blocked_map_set(assigns.clump_id),
-       ac: ac,
-       lc: lc,
-       ec: ec,
-       picked: "bg-slate-100 dark:bg-slate-800/50",
-       unpicked: ""
-     }))}
+     assign(
+       socket,
+       Map.merge(assigns, %{
+         blocked: blocked_map_set(assigns.clump_id),
+         ac: ac,
+         lc: lc,
+         ec: ec,
+         picked: "bg-slate-100 dark:bg-slate-800/50",
+         unpicked: ""
+       })
+     )}
   end
 
   def option_value(i, selected_i) do
@@ -27,14 +30,16 @@ defmodule Catenary.Live.PrefsManager do
 
   def radio_value(i, selected_i, name) do
     checked = if i == selected_i, do: "checked", else: ""
-    "<input class=\"accent-amber-500\" type=\"radio\" name=\"" <> name <> "\" value=\"" <> i <> "\" " <> checked <> " />"
+
+    "<input class=\"accent-amber-500\" type=\"radio\" name=\"" <>
+      name <> "\" value=\"" <> i <> "\" " <> checked <> " />"
   end
 
   @impl true
   def render(assigns) do
     ~H"""
     <div id="preferences-view">
-      <div id="identview-wrap" class="col-span-full overflow-y-auto max-h-screen m-2 px-2">
+      <div id="identview-wrap" class="content-wrap">
         <div class="mx-auto flex max-w-3xl flex-col gap-4">
           <div class="rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-4">
             <div class="flex items-center gap-4">
@@ -45,7 +50,10 @@ defmodule Catenary.Live.PrefsManager do
                 <div class="text-sm text-slate-500 dark:text-slate-400">Active clump</div>
                 <form method="post" id="clump-form" phx-change="clump-change" class="mt-1">
                   <label class="mr-1" for="clump_id">🎋</label>
-                  <select name="clump_id" class="rounded-md border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 px-2 py-1 text-sm text-slate-900 dark:text-slate-100">
+                  <select
+                    name="clump_id"
+                    class="rounded-md border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 px-2 py-1 text-sm text-slate-900 dark:text-slate-100"
+                  >
                     {for {c, _} <- @clumps, do: Phoenix.HTML.raw(option_value(c, @clump_id))}
                   </select>
                 </form>
@@ -57,14 +65,23 @@ defmodule Catenary.Live.PrefsManager do
           </div>
 
           <div class="rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-4">
-            <h2 class="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-400 dark:text-slate-500">Identities</h2>
+            <h2 class="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-400 dark:text-slate-500">
+              Identities
+            </h2>
             <form method="post" id="identity-form" phx-change="identity-change">
               <div class="divide-y divide-slate-200 dark:divide-slate-700">
                 <%= for {n, k} <- @identities do %>
                   <div class={"flex items-center gap-3 py-2 #{if k == @identity, do: @picked, else: @unpicked}"}>
-                    <label class="flex w-12 shrink-0 items-center gap-2 text-sm" title="Use as identity">
+                    <label
+                      class="flex w-12 shrink-0 items-center gap-2 text-sm"
+                      title="Use as identity"
+                    >
                       {Phoenix.HTML.raw(radio_value(k, @identity, "selection"))}
-                      {Phoenix.HTML.raw(Display.scaled_avatar(k, 4, ["block h-8 w-8 overflow-hidden rounded-full object-cover"]))}
+                      {Phoenix.HTML.raw(
+                        Display.scaled_avatar(k, 4, [
+                          "block h-8 w-8 overflow-hidden rounded-full object-cover"
+                        ])
+                      )}
                     </label>
                     <input
                       class="w-40 rounded-md border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 px-2 py-1 text-sm text-slate-900 dark:text-slate-100"
@@ -73,8 +90,12 @@ defmodule Catenary.Live.PrefsManager do
                       value={n}
                       phx-blur={"rename-id-" <> n}
                     />
-                    <span class="min-w-0 flex-1 truncate text-sm">{Phoenix.HTML.raw(Display.linked_author(k, @aliases, :href))}</span>
-                    <span class="shrink-0 text-xs text-slate-500 dark:text-slate-400">{Phoenix.HTML.raw(log_info_string(@store, k))}</span>
+                    <span class="min-w-0 flex-1 truncate text-sm">{Phoenix.HTML.raw(
+                      Display.linked_author(k, @aliases, :href)
+                    )}</span>
+                    <span class="shrink-0 text-xs text-slate-500 dark:text-slate-400">{Phoenix.HTML.raw(
+                      log_info_string(@store, k)
+                    )}</span>
                     <span class="flex w-8 shrink-0 items-center justify-center">
                       <%= if k == @identity do %>
                         <span class="text-slate-400 dark:text-slate-600" title="Current identity">⛒</span>
@@ -93,7 +114,10 @@ defmodule Catenary.Live.PrefsManager do
                 <% end %>
               </div>
             </form>
-            <form phx-submit="new-id" class="flex items-center gap-3 border-t border-slate-200 py-2 dark:border-slate-700">
+            <form
+              phx-submit="new-id"
+              class="flex items-center gap-3 border-t border-slate-200 py-2 dark:border-slate-700"
+            >
               <span class="flex w-12 shrink-0 items-center justify-start">
                 <button
                   type="submit"
@@ -126,7 +150,9 @@ defmodule Catenary.Live.PrefsManager do
           </div>
 
           <div class="rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-4">
-            <h2 class="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-400 dark:text-slate-500">Preferences</h2>
+            <h2 class="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-400 dark:text-slate-500">
+              Preferences
+            </h2>
             <form method="post" id="pref-form" phx-change="prefs-change" class="flex flex-col gap-2">
               <label class="flex items-center gap-2 text-sm text-slate-700 dark:text-slate-300">
                 <input
@@ -148,7 +174,9 @@ defmodule Catenary.Live.PrefsManager do
           </div>
 
           <div class="rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-4">
-            <h2 class="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-400 dark:text-slate-500">Accept log types</h2>
+            <h2 class="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-400 dark:text-slate-500">
+              Accept log types
+            </h2>
             <form method="post" id="accept-form" phx-submit="new-entry">
               <input type="hidden" name="log_id" value="1337" />
               <input type="hidden" name="listed" value="accept" />
@@ -164,7 +192,9 @@ defmodule Catenary.Live.PrefsManager do
           </div>
 
           <div class="rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-4">
-            <h2 class="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-400 dark:text-slate-500">Data maintenance</h2>
+            <h2 class="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-400 dark:text-slate-500">
+              Data maintenance
+            </h2>
             <div class="flex flex-wrap gap-2">
               <button
                 class="rounded-md border border-slate-300 dark:border-slate-600 px-3 py-1.5 text-sm text-slate-700 dark:text-slate-300 transition-colors hover:bg-slate-100 dark:hover:bg-slate-800"

@@ -21,7 +21,7 @@ defmodule Catenary.Live.OasisExplorer do
 
   def render(%{nodes: []} = assigns) do
     ~H"""
-    <div id="oasis-explore-wrap" class="col-span-2 overflow-y-auto max-h-screen m-2 px-2">
+    <div id="oasis-explore-wrap" class="content-wrap">
       <div class="flex flex-col gap-4">
         <div class="flex items-center justify-between gap-3">
           <h1 class="text-lg font-semibold text-slate-800 dark:text-slate-100">Oasis Explorer</h1>
@@ -56,7 +56,7 @@ defmodule Catenary.Live.OasisExplorer do
 
   def render(assigns) do
     ~H"""
-    <div id="oasisexplore-wrap" class="col-span-2 overflow-y-auto max-h-screen m-2 px-2">
+    <div id="oasisexplore-wrap" class="content-wrap">
       <div class="flex flex-col gap-4">
         <div class="flex items-center justify-between gap-3">
           <h1 class="text-lg font-semibold text-slate-800 dark:text-slate-100">Oasis Explorer</h1>

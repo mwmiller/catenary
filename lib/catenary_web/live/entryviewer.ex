@@ -69,10 +69,12 @@ defmodule Catenary.Live.EntryViewer do
 
   def render(%{card: :blocked} = assigns) do
     ~H"""
-    <div id="block-wrap" class="col-span-2 overflow-y-auto max-h-screen m-2 px-2">
+    <div id="block-wrap" class="content-wrap">
       <div class="rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-4">
         <h1 class="text-lg font-semibold text-slate-800 dark:text-slate-100">Blocked</h1>
-        <p class="text-slate-600 dark:text-slate-300">You have blocked this activity. It will not be available to you unless you unblock.</p>
+        <p class="text-slate-600 dark:text-slate-300">
+          You have blocked this activity. It will not be available to you unless you unblock.
+        </p>
       </div>
     </div>
     """
@@ -80,13 +82,15 @@ defmodule Catenary.Live.EntryViewer do
 
   def render(assigns) do
     ~H"""
-    <div id="entryview-wrap" class="col-span-2 overflow-y-auto max-h-screen m-2 px-2">
+    <div id="entryview-wrap" class="content-wrap">
       <div class="flex flex-col gap-4">
         <div class="rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-4 flex flex-col gap-3">
           <div class="flex items-start gap-3">
             {Phoenix.HTML.raw(Display.scaled_avatar(@card["author"], 8, ["flex-none"]))}
             <div class="flex-auto min-w-0">
-              <h1 class="text-lg font-semibold text-slate-800 dark:text-slate-100">{@card["title"]}</h1>
+              <h1 class="text-lg font-semibold text-slate-800 dark:text-slate-100">
+                {@card["title"]}
+              </h1>
               <p class="text-sm text-slate-500 dark:text-slate-400">
                 {Phoenix.HTML.raw(Display.linked_author(@card["author"], @aliases))} &mdash; {nice_time(
                   @card["published"]
@@ -206,8 +210,12 @@ defmodule Catenary.Live.EntryViewer do
         [{^a, aboot}] ->
           name =
             case aboot |> Map.get("name") do
-              nil -> ""
-              n -> "<h1 class=\"text-2xl font-bold text-slate-800 dark:text-slate-100\">" <> n <> "</h1>"
+              nil ->
+                ""
+
+              n ->
+                "<h1 class=\"text-2xl font-bold text-slate-800 dark:text-slate-100\">" <>
+                  n <> "</h1>"
             end
 
           desc =
@@ -242,7 +250,9 @@ defmodule Catenary.Live.EntryViewer do
         # We extract this one twice.  But maybe there is a filter later
         %{"published" => as_of} = rev_order |> hd |> then(fn e -> extract(e, settings) end)
 
-        journals = Enum.filter(rev_order, fn {_, l, _} -> l in QuaggaDef.logs_for_name(:journal) end)
+        journals =
+          Enum.filter(rev_order, fn {_, l, _} -> l in QuaggaDef.logs_for_name(:journal) end)
+
         replies = Enum.filter(rev_order, fn {_, l, _} -> l in QuaggaDef.logs_for_name(:reply) end)
 
         {profile_tabs(journals, replies, settings), as_of}
@@ -275,17 +285,24 @@ defmodule Catenary.Live.EntryViewer do
           ~s(<label for="ptab-journal" class="cursor-pointer rounded-t-md px-3 py-1 text-sm font-medium text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 peer-checked/ptabj:bg-amber-500/10 peer-checked/ptabj:text-amber-700 dark:peer-checked/ptabj:text-amber-300">Journal</label>) <>
           ~s(<label for="ptab-reply" class="cursor-pointer rounded-t-md px-3 py-1 text-sm font-medium text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 peer-checked/ptabr:bg-amber-500/10 peer-checked/ptabr:text-amber-700 dark:peer-checked/ptabr:text-amber-300">Reply</label>) <>
           ~s(</div>) <>
-          ~s(<div class="hidden py-2 peer-checked/ptabj:block">) <> j <> ~s(</div>) <>
-          ~s(<div class="hidden py-2 peer-checked/ptabr:block">) <> r <> ~s(</div>) <>
+          ~s(<div class="hidden py-2 peer-checked/ptabj:block">) <>
+          j <>
+          ~s(</div>) <>
+          ~s(<div class="hidden py-2 peer-checked/ptabr:block">) <>
+          r <>
+          ~s(</div>) <>
           ~s(</div>)
     end
   end
 
   defp tab_list(entries, settings) do
     case entries |> Enum.take(7) |> Enum.map(fn e -> tab_item(e, settings) end) do
-      [] -> ""
+      [] ->
+        ""
+
       items ->
-        "<ul class=\"list-none m-0 p-0 flex flex-col gap-1 divide-y divide-slate-200 dark:divide-slate-700\">" <> Enum.join(items, "") <> "</ul>"
+        "<ul class=\"list-none m-0 p-0 flex flex-col gap-1 divide-y divide-slate-200 dark:divide-slate-700\">" <>
+          Enum.join(items, "") <> "</ul>"
     end
   end
 
@@ -303,7 +320,9 @@ defmodule Catenary.Live.EntryViewer do
 
     "<li><button class=\"flex items-center gap-2 rounded-md px-2 py-1 text-sm text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800/60 text-left\" phx-click=\"view-entry\" value=\"" <>
       Catenary.index_to_string(e) <>
-      "\">" <> ava <> "<span class=\"truncate\">" <> vals["title"] <> "</span>" <> when_new <> "</button></li>"
+      "\">" <>
+      ava <>
+      "<span class=\"truncate\">" <> vals["title"] <> "</span>" <> when_new <> "</button></li>"
   end
 
   defp profile_others(settings, a) do
@@ -622,7 +641,8 @@ defmodule Catenary.Live.EntryViewer do
         h <>
         ~s("  phx-click="view-tag">) <>
         h <>
-        ~s(</button> <button class="hover:text-amber-600 dark:hover:text-amber-300" value="next-tag-) <> h <> ~s(" phx-click="nav">»</button></span>)
+        ~s(</button> <button class="hover:text-amber-600 dark:hover:text-amber-300" value="next-tag-) <>
+        h <> ~s(" phx-click="nav">»</button></span>)
     )
   end
 

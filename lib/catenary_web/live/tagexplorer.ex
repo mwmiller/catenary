@@ -16,7 +16,7 @@ defmodule Catenary.Live.TagExplorer do
 
   def render(assigns) do
     ~H"""
-    <div id="tag-explore-wrap" class="col-span-2 overflow-y-auto max-h-screen m-2 px-2">
+    <div id="tag-explore-wrap" class="content-wrap">
       <div class="flex flex-col gap-5">
         <h1 class="text-lg font-semibold text-slate-800 dark:text-slate-100">Tag Explorer</h1>
         <%= for g <- @card["tags"] do %>

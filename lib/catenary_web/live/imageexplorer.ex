@@ -8,10 +8,13 @@ defmodule Catenary.Live.ImageExplorer do
   @impl true
   def update(%{entry: which, aliases: aliases} = assigns, socket) do
     {:ok,
-     assign(socket, Map.merge(assigns, %{
-       entry: which,
-       card: extract(aliases)
-     }))}
+     assign(
+       socket,
+       Map.merge(assigns, %{
+         entry: which,
+         card: extract(aliases)
+       })
+     )}
   end
 
   @impl true
@@ -21,7 +24,7 @@ defmodule Catenary.Live.ImageExplorer do
 
   def render(assigns) do
     ~H"""
-    <div id="image-explore-wrap" class="col-span-2 overflow-y-auto max-h-screen m-2 px-2">
+    <div id="image-explore-wrap" class="content-wrap">
       <div class="flex flex-col gap-5">
         <div class="flex items-center justify-between gap-3">
           <h1 class="text-lg font-semibold text-slate-800 dark:text-slate-100">Image Explorer</h1>

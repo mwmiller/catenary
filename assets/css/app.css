@@ -4,6 +4,9 @@
 @tailwind utilities;
 
 @layer base {
+  html {
+    scrollbar-gutter: stable;
+  }
   h1 {
     @apply text-2xl m-1;
   }
@@ -55,6 +58,12 @@
   }
   .tighter {
     @apply m-0 p-0;
+  }
+  .content-wrap {
+    @apply overflow-y-auto max-h-screen m-2 px-2;
+  }
+  body {
+    scrollbar-gutter: stable;
   }
 }
 

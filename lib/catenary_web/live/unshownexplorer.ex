@@ -18,7 +18,7 @@ defmodule Catenary.Live.UnshownExplorer do
 
   def render(assigns) do
     ~H"""
-    <div id="unshown-explore-wrap" class="col-span-2 overflow-y-auto max-h-screen m-2 px-2">
+    <div id="unshown-explore-wrap" class="content-wrap">
       <div class="flex flex-col gap-5">
         <h1 class="text-lg font-semibold text-slate-800 dark:text-slate-100">Unshown Explorer</h1>
         <%= for {type, entries, estring, size} <- @card do %>

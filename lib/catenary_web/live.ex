@@ -62,12 +62,23 @@ defmodule CatenaryWeb.Live do
      )}
   end
 
-  def render(%{view: :prefs} = assigns) do
+  defp three_column_layout(assigns) do
     ~H"""
     {explorebar(assigns)}
     <div class="max-h-screen w-full flex justify-center px-2 py-2 gap-3">
       {timeline_nav(assigns)}
       <div class="w-full max-w-4xl">
+        {render_slot(@inner)}
+      </div>
+      {activitybar(assigns)}
+    </div>
+    """
+  end
+
+  def render(%{view: :prefs} = assigns) do
+    ~H"""
+    <.three_column_layout {assigns}>
+      <:inner>
         <.live_component
           module={Catenary.Live.PrefsManager}
           id={:prefs}
@@ -79,53 +90,43 @@ defmodule CatenaryWeb.Live do
           facet_id={@facet_id}
           aliases={@aliases}
         />
-      </div>
-      {activitybar(assigns)}
-    </div>
+      </:inner>
+    </.three_column_layout>
     """
   end
 
   def render(%{view: :entries, entry: {:tag, _}} = assigns) do
     ~H"""
-    {explorebar(assigns)}
-    <div class="max-h-screen w-full flex justify-center px-2 py-2 gap-3">
-      {timeline_nav(assigns)}
-      <div class="w-full max-w-4xl">
-        <.live_component module={Catenary.Live.TagViewer} id={:tags} entry={elem(@entry, 1)} ) />
-      </div>
-      {activitybar(assigns)}
-    </div>
+    <.three_column_layout {assigns}>
+      <:inner>
+        <.live_component module={Catenary.Live.TagViewer} id={:tags} entry={elem(@entry, 1)} />
+      </:inner>
+    </.three_column_layout>
     """
   end
 
   def render(%{view: :tags} = assigns) do
     ~H"""
-    {explorebar(assigns)}
-    <div class="max-h-screen w-full flex justify-center px-2 py-2 gap-3">
-      {timeline_nav(assigns)}
-      <div class="w-full max-w-4xl">
+    <.three_column_layout {assigns}>
+      <:inner>
         <.live_component module={Catenary.Live.TagExplorer} id={:tags} entry={@entry} />
-      </div>
-      {activitybar(assigns)}
-    </div>
+      </:inner>
+    </.three_column_layout>
     """
   end
 
   def render(%{view: :images} = assigns) do
     ~H"""
-    {explorebar(assigns)}
-    <div class="max-h-screen w-full flex justify-center px-2 py-2 gap-3">
-      {timeline_nav(assigns)}
-      <div class="w-full max-w-4xl">
+    <.three_column_layout {assigns}>
+      <:inner>
         <.live_component
           module={Catenary.Live.ImageExplorer}
           id={:images}
           entry={:poster}
           aliases={@aliases}
         />
-      </div>
-      {activitybar(assigns)}
-    </div>
+      </:inner>
+    </.three_column_layout>
     """
   end
 
@@ -133,10 +134,8 @@ defmodule CatenaryWeb.Live do
   # oases lets us know when thing might be moving
   def render(%{view: :unshown} = assigns) do
     ~H"""
-    {explorebar(assigns)}
-    <div class="max-h-screen w-full flex justify-center px-2 py-2 gap-3">
-      {timeline_nav(assigns)}
-      <div class="w-full max-w-4xl">
+    <.three_column_layout {assigns}>
+      <:inner>
         <.live_component
           module={Catenary.Live.UnshownExplorer}
           id={:unshown}
@@ -145,36 +144,30 @@ defmodule CatenaryWeb.Live do
           oases={@oases}
           shown_hash={@shown_hash}
         />
-      </div>
-      {activitybar(assigns)}
-    </div>
+      </:inner>
+    </.three_column_layout>
     """
   end
 
   def render(%{view: :aliases} = assigns) do
     ~H"""
-    {explorebar(assigns)}
-    <div class="max-h-screen w-full flex justify-center px-2 py-2 gap-3">
-      {timeline_nav(assigns)}
-      <div class="w-full max-w-4xl">
+    <.three_column_layout {assigns}>
+      <:inner>
         <.live_component
           module={Catenary.Live.AliasExplorer}
           id={:aliases}
           alias={:all}
           aliases={@aliases}
         />
-      </div>
-      {activitybar(assigns)}
-    </div>
+      </:inner>
+    </.three_column_layout>
     """
   end
 
   def render(%{view: :oases} = assigns) do
     ~H"""
-    {explorebar(assigns)}
-    <div class="max-h-screen w-full flex justify-center px-2 py-2 gap-3">
-      {timeline_nav(assigns)}
-      <div class="w-full max-w-4xl">
+    <.three_column_layout {assigns}>
+      <:inner>
         <.live_component
           module={Catenary.Live.OasisExplorer}
           id={:oases}
@@ -182,18 +175,15 @@ defmodule CatenaryWeb.Live do
           opened={@opened}
           aliases={@aliases}
         />
-      </div>
-      {activitybar(assigns)}
-    </div>
+      </:inner>
+    </.three_column_layout>
     """
   end
 
   def render(%{view: :entries} = assigns) do
     ~H"""
-    {explorebar(assigns)}
-    <div class="max-h-screen w-full flex justify-center px-2 py-2 gap-3">
-      {timeline_nav(assigns)}
-      <div class="w-full max-w-4xl">
+    <.three_column_layout {assigns}>
+      <:inner>
         <.live_component
           module={Catenary.Live.EntryViewer}
           id={:entry}
@@ -203,9 +193,8 @@ defmodule CatenaryWeb.Live do
           clump_id={@clump_id}
           aliases={@aliases}
         />
-      </div>
-      {activitybar(assigns)}
-    </div>
+      </:inner>
+    </.three_column_layout>
     """
   end
 
@@ -215,11 +204,20 @@ defmodule CatenaryWeb.Live do
       <div class="flex items-center justify-between min-w-0 px-2 py-1 gap-1">
         <!-- Left: clump + identity -->
         <div class="flex items-center gap-1 shrink-0 text-sm font-mono">
-          <button phx-click="toview" value="prefs" class="hover:text-amber-700 dark:hover:text-amber-400 transition-colors">
+          <button
+            phx-click="toview"
+            value="prefs"
+            class="hover:text-amber-700 dark:hover:text-amber-400 transition-colors"
+          >
             {@clump_id}
           </button>
           <span class="text-slate-400 dark:text-slate-600 select-none">/</span>
-          <button value="origin" phx-click="nav" title="Home" class="flex items-center gap-1 hover:text-amber-700 dark:hover:text-amber-400 transition-colors">
+          <button
+            value="origin"
+            phx-click="nav"
+            title="Home"
+            class="flex items-center gap-1 hover:text-amber-700 dark:hover:text-amber-400 transition-colors"
+          >
             {Display.scaled_avatar(@identity, 2) |> Phoenix.HTML.raw()}
             <span class="truncate">{Display.linked_author(@identity, @aliases)}</span>
           </button>
@@ -227,20 +225,48 @@ defmodule CatenaryWeb.Live do
 
         <!-- Center: nav buttons -->
         <div class="flex items-center gap-0.5 overflow-x-auto flex-1 justify-center min-w-0 scrollbar-hide">
-          <button class={stack_color(@entry_back)} phx-click="nav-backward" title="Back"
-            class="px-2 py-1 rounded hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors text-lg leading-none">⤶</button>
-          <button value="tags" phx-click="toview" title="Tags"
-            class="px-2 py-1 rounded hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors text-lg leading-none">#</button>
-          <button value="oases" phx-click="toview" title="Peers"
-            class="px-2 py-1 rounded hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors text-lg leading-none">⇆</button>
-          <button value="unshown" phx-click="toview" title="Unshown"
-            class="px-2 py-1 rounded hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors text-lg leading-none">◎</button>
-          <button value="aliases" phx-click="toview" title="Aliases"
-            class="px-2 py-1 rounded hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors text-lg leading-none">~</button>
-          <button value="images" phx-click="toview" title="Images"
-            class="px-2 py-1 rounded hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors text-lg leading-none">҂</button>
-          <button class={stack_color(@entry_fore)} phx-click="nav-forward" title="Forward"
-            class="px-2 py-1 rounded hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors text-lg leading-none">⤷</button>
+          <button
+            class={stack_color(@entry_back)}
+            phx-click="nav-backward"
+            title="Back"
+            class="px-2 py-1 rounded hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors text-lg leading-none"
+          >⤶</button>
+          <button
+            value="tags"
+            phx-click="toview"
+            title="Tags"
+            class="px-2 py-1 rounded hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors text-lg leading-none"
+          >#</button>
+          <button
+            value="oases"
+            phx-click="toview"
+            title="Peers"
+            class="px-2 py-1 rounded hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors text-lg leading-none"
+          >⇆</button>
+          <button
+            value="unshown"
+            phx-click="toview"
+            title="Unshown"
+            class="px-2 py-1 rounded hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors text-lg leading-none"
+          >◎</button>
+          <button
+            value="aliases"
+            phx-click="toview"
+            title="Aliases"
+            class="px-2 py-1 rounded hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors text-lg leading-none"
+          >~</button>
+          <button
+            value="images"
+            phx-click="toview"
+            title="Images"
+            class="px-2 py-1 rounded hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors text-lg leading-none"
+          >҂</button>
+          <button
+            class={stack_color(@entry_fore)}
+            phx-click="nav-forward"
+            title="Forward"
+            class="px-2 py-1 rounded hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors text-lg leading-none"
+          >⤷</button>
         </div>
 
         <!-- Right: index status -->
@@ -385,12 +411,12 @@ defmodule CatenaryWeb.Live do
     {:noreply, state_set(socket, %{})}
   end
 
-   def handle_event("reindex", _, socket) do
-     Catenary.Indices.force_rebuild()
-     {:noreply, socket}
-   end
+  def handle_event("reindex", _, socket) do
+    Catenary.Indices.force_rebuild()
+    {:noreply, socket}
+  end
 
-   def handle_event("prefs-change", %{"_target" => [target]} = vals, socket) do
+  def handle_event("prefs-change", %{"_target" => [target]} = vals, socket) do
     # This idiom works for on change checkboxes.
     # Might want to extract.  Also, be careful on how "prefs-change" is used
     set_to =

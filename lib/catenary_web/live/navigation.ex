@@ -126,7 +126,9 @@ defmodule Catenary.Live.Navigation do
   defp extra_nav(%{:extra_nav => :graph, :blocked => true} = assigns) do
     ~H"""
     <div id="block" class={panel_cls()}>
-      {help_text("You may unblock by submitting this form. It will publish a public log entry to that effect. Including a reason is optional.")}
+      {help_text(
+        "You may unblock by submitting this form. It will publish a public log entry to that effect. Including a reason is optional."
+      )}
       <form method="post" id="block-form" phx-submit="new-entry" class="flex flex-col gap-3 mt-3">
         <input type="hidden" name="log_id" value="1337" />
         <input type="hidden" name="action" value="unblock" />
@@ -151,7 +153,9 @@ defmodule Catenary.Live.Navigation do
   defp extra_nav(%{:extra_nav => :graph} = assigns) do
     ~H"""
     <div id="block" class={panel_cls()}>
-      {help_text("Blocking will be published on a public log. This can have negative social implications. A block cannot disappear from your history.")}
+      {help_text(
+        "Blocking will be published on a public log. This can have negative social implications. A block cannot disappear from your history."
+      )}
       <form method="post" id="block-form" phx-submit="new-entry" class="flex flex-col gap-3 mt-3">
         <input type="hidden" name="log_id" value="1337" />
         <input type="hidden" name="action" value="block" />
@@ -266,7 +270,12 @@ defmodule Catenary.Live.Navigation do
         </form>
         <div class="my-3 border-t border-slate-200 dark:border-slate-700"></div>
       <% end %>
-      <form id="imageupload-form" phx-submit="image-save" phx-change="image-validate" class="flex flex-col gap-3">
+      <form
+        id="imageupload-form"
+        phx-submit="image-save"
+        phx-change="image-validate"
+        class="flex flex-col gap-3"
+      >
         <label
           phx-drop-target={@uploads.image.ref}
           class="flex flex-col items-center justify-center gap-2 rounded-md border-2 border-dashed border-slate-300 dark:border-slate-600 bg-slate-50 dark:bg-slate-800 px-4 py-6 text-center cursor-pointer transition-colors hover:border-amber-500 dark:hover:border-amber-400 hover:bg-amber-50 dark:hover:bg-slate-700"
@@ -289,7 +298,8 @@ defmodule Catenary.Live.Navigation do
 
   defp extra_nav(_), do: ""
 
-  defp panel_cls, do: "rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-3"
+  defp panel_cls,
+    do: "rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-3"
 
   defp input_cls,
     do:
@@ -300,7 +310,8 @@ defmodule Catenary.Live.Navigation do
       "h-4 w-4 rounded border-slate-300 dark:border-slate-600 text-amber-500 dark:text-amber-400 focus:ring-1 focus:ring-amber-500/60 dark:focus:ring-amber-400/60"
 
   defp label_cls,
-    do: "block text-[11px] font-medium uppercase tracking-wide text-slate-500 dark:text-slate-400 mb-1"
+    do:
+      "block text-[11px] font-medium uppercase tracking-wide text-slate-500 dark:text-slate-400 mb-1"
 
   defp help_cls, do: "text-xs leading-snug text-slate-500 dark:text-slate-400"
 
@@ -382,7 +393,10 @@ defmodule Catenary.Live.Navigation do
     case Preferences.accept_log_name?(which) do
       true ->
         "<button phx-click=\"toggle-" <>
-          Atom.to_string(which) <> "\" title=\"" <> posting_title(which) <> "\">" <>
+          Atom.to_string(which) <>
+          "\" title=\"" <>
+          posting_title(which) <>
+          "\">" <>
           posting_icon(which) <> "</button>\n"
 
       false ->
@@ -434,7 +448,7 @@ defmodule Catenary.Live.Navigation do
 
   defp tagged_match?(_, _), do: false
 
-defp tag_inputs(count), do: grouped_inputs(count, "tag", "# Tags")
+  defp tag_inputs(count), do: grouped_inputs(count, "tag", "# Tags")
 
   defp mention_inputs(count), do: grouped_inputs(count, "mention", "~ Mentions")
 

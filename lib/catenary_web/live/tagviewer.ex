@@ -17,7 +17,7 @@ defmodule Catenary.Live.TagViewer do
 
   def render(assigns) do
     ~H"""
-    <div id="tagview-wrap" class="col-span-2 overflow-y-auto max-h-screen m-2 p-x-2">
+    <div id="tagview-wrap" class="content-wrap">
       <div class="min-w-full font-sans row-span-full">
         <h1 class="text=center">Entries tagged with &quot;{@tag}&quot;</h1>
         <hr />

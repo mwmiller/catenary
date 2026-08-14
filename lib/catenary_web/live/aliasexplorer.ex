@@ -17,7 +17,7 @@ defmodule Catenary.Live.AliasExplorer do
 
   def render(assigns) do
     ~H"""
-    <div id="alias-explore-wrap" class="col-span-2 overflow-y-auto max-h-screen m-2 px-2">
+    <div id="alias-explore-wrap" class="content-wrap">
       <div class="flex flex-col gap-4">
         <h1 class="text-lg font-semibold text-slate-800 dark:text-slate-100">Alias Explorer</h1>
         <div class="grid grid-cols-3 gap-2">
