@@ -90,7 +90,7 @@ defmodule CatenaryWeb.Live do
     {explorebar(assigns)}
     <div class="max-h-screen w-full flex justify-center px-2 py-2 gap-3">
       {timeline_nav(assigns)}
-      <div class="w-full max-w-xl flex-shrink-0">
+      <div class="w-full max-w-4xl">
         <.live_component module={Catenary.Live.TagViewer} id={:tags} entry={elem(@entry, 1)} ) />
       </div>
       {activitybar(assigns)}
@@ -103,7 +103,7 @@ defmodule CatenaryWeb.Live do
     {explorebar(assigns)}
     <div class="max-h-screen w-full flex justify-center px-2 py-2 gap-3">
       {timeline_nav(assigns)}
-      <div class="w-full max-w-xl flex-shrink-0">
+      <div class="w-full max-w-4xl">
         <.live_component module={Catenary.Live.TagExplorer} id={:tags} entry={@entry} />
       </div>
       {activitybar(assigns)}
@@ -116,7 +116,7 @@ defmodule CatenaryWeb.Live do
     {explorebar(assigns)}
     <div class="max-h-screen w-full flex justify-center px-2 py-2 gap-3">
       {timeline_nav(assigns)}
-      <div class="w-full max-w-xl flex-shrink-0">
+      <div class="w-full max-w-4xl">
         <.live_component
           module={Catenary.Live.ImageExplorer}
           id={:images}
@@ -136,7 +136,7 @@ defmodule CatenaryWeb.Live do
     {explorebar(assigns)}
     <div class="max-h-screen w-full flex justify-center px-2 py-2 gap-3">
       {timeline_nav(assigns)}
-      <div class="w-full max-w-xl flex-shrink-0">
+      <div class="w-full max-w-4xl">
         <.live_component
           module={Catenary.Live.UnshownExplorer}
           id={:unshown}
@@ -156,7 +156,7 @@ defmodule CatenaryWeb.Live do
     {explorebar(assigns)}
     <div class="max-h-screen w-full flex justify-center px-2 py-2 gap-3">
       {timeline_nav(assigns)}
-      <div class="w-full max-w-xl flex-shrink-0">
+      <div class="w-full max-w-4xl">
         <.live_component
           module={Catenary.Live.AliasExplorer}
           id={:aliases}
@@ -174,7 +174,7 @@ defmodule CatenaryWeb.Live do
     {explorebar(assigns)}
     <div class="max-h-screen w-full flex justify-center px-2 py-2 gap-3">
       {timeline_nav(assigns)}
-      <div class="w-full max-w-xl flex-shrink-0">
+      <div class="w-full max-w-4xl">
         <.live_component
           module={Catenary.Live.OasisExplorer}
           id={:oases}
@@ -193,7 +193,7 @@ defmodule CatenaryWeb.Live do
     {explorebar(assigns)}
     <div class="max-h-screen w-full flex justify-center px-2 py-2 gap-3">
       {timeline_nav(assigns)}
-      <div class="w-full max-w-xl flex-shrink-0">
+      <div class="w-full max-w-4xl">
         <.live_component
           module={Catenary.Live.EntryViewer}
           id={:entry}
@@ -385,7 +385,12 @@ defmodule CatenaryWeb.Live do
     {:noreply, state_set(socket, %{})}
   end
 
-  def handle_event("prefs-change", %{"_target" => [target]} = vals, socket) do
+   def handle_event("reindex", _, socket) do
+     Catenary.Indices.force_rebuild()
+     {:noreply, socket}
+   end
+
+   def handle_event("prefs-change", %{"_target" => [target]} = vals, socket) do
     # This idiom works for on change checkboxes.
     # Might want to extract.  Also, be careful on how "prefs-change" is used
     set_to =

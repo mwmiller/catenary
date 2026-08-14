@@ -52,6 +52,18 @@ defmodule Catenary.IndexWorker.Common do
         {:noreply, %{state | indexed: mapped_curr}}
       end
 
+      def force_rebuild(state) do
+        Status.set(unquote(na), unquote(run), :running)
+        clump_id = Preferences.get(:clump_id)
+        current = clump_id |> Baobab.stored_info()
+
+        {mapped_curr, todo} = updated_logs(current, %{}, {%{}, []})
+        do_index(todo, clump_id)
+
+        Status.set(unquote(na), unquote(idle), :idle)
+        {:noreply, %{state | indexed: mapped_curr}}
+      end
+
       defp updated_logs([], _, acc), do: acc
 
       defp updated_logs([{a, l, e} = entry | rest], seen, {mc, td}) when l in @logs_of_interest do
@@ -70,6 +82,12 @@ defmodule Catenary.IndexWorker.Common do
 
       @impl true
       def handle_cast(:update, state), do: update_from_logs(state)
+
+      @impl true
+      def handle_cast(:force_rebuild, state) do
+        Indices.empty_tables(unquote(empty))
+        force_rebuild(state)
+      end
     end
   end
 end

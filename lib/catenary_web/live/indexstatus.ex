@@ -11,10 +11,17 @@ defmodule Catenary.Live.IndexStatus do
   @impl true
   def render(assigns) do
     ~H"""
-    <div class="status flex flex-row font-mono text-xs text-center mx-1 w-max">
+    <div class="status flex items-center gap-1 font-mono text-xs text-center mx-1 w-max">
       <%= for {which, {char, state}} <- @indexing do %>
         <div class={pill_class(state)} title={pill_title(which, state)}>{char}</div>
       <% end %>
+      <button
+        type="button"
+        phx-click="reindex"
+        phx-disable-with="⟳"
+        title="Reindex"
+        class="shrink-0 text-xs px-1.5 py-0.5 rounded hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors"
+      >⏵</button>
     </div>
     """
   end
