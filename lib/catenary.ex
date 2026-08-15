@@ -48,7 +48,7 @@ defmodule Catenary do
   def oasis_state do
     oasis_items =
       Catenary.State.get(:oases)
-      |> Enum.map(fn m -> Map.put(m, :connected, Baby.is_connected?({m["host"], m["port"]})) end)
+      |> Enum.map(fn m -> Map.put(m, :connected, Baby.connected?({m["host"], m["port"]})) end)
 
     {:ok, oasis_items}
   end
