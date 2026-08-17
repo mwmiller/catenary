@@ -248,7 +248,7 @@ defmodule CatenaryWeb.Live do
             phx-click="toview"
             title="Images"
             class="px-2 py-1 rounded hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors text-lg leading-none"
-          >҂</button>
+          >▣</button>
           <button
             class={[
               stack_color(@entry_fore),

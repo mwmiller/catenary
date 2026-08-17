@@ -38,7 +38,7 @@ defmodule Catenary.Live.OasisExplorer do
           No recent oases found.
           <%= if @opened == 0 do %>
             <button
-              class="ml-1 text-amber-700 dark:text-amber-400 hover:text-amber-600 dark:hover:text-amber-300"
+              class="ml-1 text-amber-800 dark:text-amber-300 hover:text-amber-600 dark:hover:text-amber-200"
               phx-click="init-connect"
               phx-disable-with="↯ trying ↯"
               title="Connect to bootstrap node"
@@ -87,7 +87,7 @@ defmodule Catenary.Live.OasisExplorer do
                 <span class="text-emerald-600 dark:text-emerald-400" title="Connected">⥀</span>
               <% else %>
                 <button
-                  class="px-1.5 py-0.5 rounded text-amber-700 dark:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-900/40 transition-colors"
+                  class="px-1.5 py-0.5 rounded text-amber-800 dark:text-amber-300 hover:bg-amber-50 dark:hover:bg-amber-900/40 transition-colors"
                   phx-click="connect"
                   phx-disable-with="↯"
                   value={Catenary.index_to_string(recent.id)}

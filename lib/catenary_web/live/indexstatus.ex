@@ -28,7 +28,7 @@ defmodule Catenary.Live.IndexStatus do
 
   defp pill_class(:running),
     do:
-      "flex-auto p-1 font-bold text-amber-700 dark:text-amber-300 bg-amber-200 dark:bg-amber-900/60 rounded cursor-default"
+      "flex-auto p-1 font-bold text-amber-900 dark:text-amber-200 bg-amber-200 dark:bg-amber-900/60 rounded cursor-default"
 
   defp pill_class(:idle),
     do: "flex-auto p-1 text-slate-500 dark:text-slate-400 cursor-default"

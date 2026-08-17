@@ -4,7 +4,7 @@ defmodule Catenary.IndexWorker.Images do
   # @name_atom :images
   use Catenary.IndexWorker.Common,
     name_atom: :images,
-    indica: {"𐍊", "҂"},
+    indica: {"▣", "▣"},
     logs: Enum.reduce(Catenary.image_logs(), [], fn n, a -> a ++ QuaggaDef.logs_for_name(n) end)
 
   @moduledoc """

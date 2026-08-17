@@ -280,7 +280,7 @@ defmodule Catenary.Live.Navigation do
           phx-drop-target={@uploads.image.ref}
           class="flex flex-col items-center justify-center gap-2 rounded-md border-2 border-dashed border-slate-300 dark:border-slate-600 bg-slate-50 dark:bg-slate-800 px-4 py-6 text-center cursor-pointer transition-colors hover:border-amber-500 dark:hover:border-amber-400 hover:bg-amber-50 dark:hover:bg-slate-700"
         >
-          <span class="text-2xl leading-none text-amber-500 dark:text-amber-400">҂</span>
+          <span class="text-2xl leading-none text-amber-500 dark:text-amber-400">▣</span>
           <span class="text-sm text-slate-600 dark:text-slate-300">Click to choose or drop an image</span>
           <span class="text-xs text-slate-400 dark:text-slate-500">JPG, PNG or GIF</span>
           <.live_file_input upload={@uploads.image} class="sr-only" />
@@ -392,10 +392,14 @@ defmodule Catenary.Live.Navigation do
   defp post_button_for(which) do
     case Preferences.accept_log_name?(which) do
       true ->
-        "<button phx-click=\"toggle-" <>
+        "<button type=\"button\" phx-click=\"toggle-" <>
           Atom.to_string(which) <>
           "\" title=\"" <>
           posting_title(which) <>
+          "\" aria-label=\"" <>
+          posting_title(which) <>
+          " — posts to a log\" class=\"" <>
+          post_button_cls() <>
           "\">" <>
           posting_icon(which) <> "</button>\n"
 
@@ -404,6 +408,13 @@ defmodule Catenary.Live.Navigation do
     end
     |> Phoenix.HTML.raw()
   end
+
+  defp post_button_cls,
+    do:
+      "rounded-md bg-amber-500 hover:bg-amber-400 active:bg-amber-600 " <>
+        "dark:bg-amber-400 dark:hover:bg-amber-300 dark:active:bg-amber-500 " <>
+        "text-white dark:text-slate-900 text-sm font-semibold px-2 py-1 " <>
+        "shadow-sm transition-colors"
 
   defp posting_title(:graph), do: "Block/Unblock"
   defp posting_title(:alias), do: "Set Alias"
@@ -414,14 +425,14 @@ defmodule Catenary.Live.Navigation do
   defp posting_title(:journal), do: "New Journal Post"
   defp posting_title(:image), do: "New Image"
 
-  defp posting_icon(:graph), do: "⛒̟"
-  defp posting_icon(:alias), do: "~̟"
-  defp posting_icon(:tag), do: "#̟"
-  defp posting_icon(:mention), do: "∑̟"
-  defp posting_icon(:react), do: "⌘̟"
-  defp posting_icon(:reply), do: "↩︎̟"
-  defp posting_icon(:journal), do: "✎̟"
-  defp posting_icon(:image), do: "̟҂"
+  defp posting_icon(:graph), do: "⛒"
+  defp posting_icon(:alias), do: "~"
+  defp posting_icon(:tag), do: "#"
+  defp posting_icon(:mention), do: "※"
+  defp posting_icon(:react), do: "♥"
+  defp posting_icon(:reply), do: "↩︎"
+  defp posting_icon(:journal), do: "✎"
+  defp posting_icon(:image), do: "▣"
 
   @doc """
   Returns true if any of the `list` of desired views matches the `displayed`

@@ -2,7 +2,7 @@ defmodule Catenary.IndexWorker.Mentions do
   @name_atom :mentions
   use Catenary.IndexWorker.Common,
     name_atom: :mentions,
-    indica: {"∏", "∑"},
+    indica: {"※", "※"},
     logs: QuaggaDef.logs_for_name(:mention)
 
   @moduledoc """

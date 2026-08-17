@@ -44,8 +44,12 @@ defmodule Catenary.Display do
           val
       end
 
+    alt = short_id(id)
+
     Phoenix.HTML.raw(
-      "<img class=\"" <>
+      "<img alt=\"" <>
+        alt <>
+        "\" class=\"" <>
         Enum.join(classes, " ") <>
         "\"  width=" <> ss <> " height=" <> ss <> " src=\"" <> uri <> "\">"
     )
@@ -139,7 +143,7 @@ defmodule Catenary.Display do
   The standard button which indicates a log entry will be created.
   """
   def log_submit_button do
-    ~s(<button phx-disable-with="𝄇" type="submit" class="w-full rounded-md bg-amber-500 hover:bg-amber-400 active:bg-amber-600 dark:bg-amber-400 dark:hover:bg-amber-300 dark:active:bg-amber-500 text-white dark:text-slate-900 text-sm font-semibold px-4 py-1.5 shadow-sm transition-colors">➲</button>)
+    ~s(<button phx-disable-with="𝄇" type="submit" title="Post to log" aria-label="Post to log" class="w-full rounded-md bg-amber-500 hover:bg-amber-400 active:bg-amber-600 dark:bg-amber-400 dark:hover:bg-amber-300 dark:active:bg-amber-500 text-white dark:text-slate-900 text-sm font-semibold px-4 py-1.5 shadow-sm transition-colors">➲</button>)
     |> Phoenix.HTML.raw()
   end
 

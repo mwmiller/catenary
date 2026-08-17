@@ -2,7 +2,7 @@ defmodule Catenary.IndexWorker.Reactions do
   @name_atom :reactions
   use Catenary.IndexWorker.Common,
     name_atom: :reactions,
-    indica: {"※", "⌘"},
+    indica: {"♡", "♥"},
     logs: QuaggaDef.logs_for_name(:react)
 
   @moduledoc """
