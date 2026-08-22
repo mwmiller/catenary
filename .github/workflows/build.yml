@@ -50,7 +50,7 @@ jobs:
           targets: ${{ matrix.triple }}
 
       - name: Configure Burrito target
-        run: echo "BURRITO_TARGET=${{ matrix.target }}" >> $GITHUB_ENV
+        run: echo "BURRITO_TARGET=${{ matrix.target }}" >> "$GITHUB_ENV"
 
       - name: Install Hex + deps + deps unlock
         run: |
@@ -75,8 +75,8 @@ jobs:
             linux)   a=burrito_out/catenary_linux ;;
             windows) a=burrito_out/catenary_windows.exe ;;
           esac
-          echo "artifact=$a" >> $GITHUB_OUTPUT
-          echo "name=catenary-${{ matrix.target }}" >> $GITHUB_OUTPUT
+          echo "artifact=$a" >> "$GITHUB_OUTPUT"
+          echo "name=catenary-${{ matrix.target }}" >> "$GITHUB_OUTPUT"
 
       - uses: actions/upload-artifact@v4
         with:
@@ -129,10 +129,51 @@ jobs:
             src-tauri/target/release/bundle/deb/*.deb
             src-tauri/target/release/bundle/appimage/*.AppImage
 
+  shell-windows:
+    name: Native shell (Tauri) Windows x86_64
+    needs: backend
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Set up Rust (stable)
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Install Tauri CLI
+        run: npm install -g @tauri-apps/cli@latest
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: backend-windows
+          path: src-tauri/binaries
+
+      - name: Rename sidecar to the compile-time name Tauri expects
+        shell: bash
+        run: |
+          mv src-tauri/binaries/catenary_windows.exe \
+             src-tauri/binaries/catenary-backend-x86_64-pc-windows-msvc.exe
+
+      - name: Build NSIS installer
+        run: tauri build --bundles nsis
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: desktop-windows
+          path: src-tauri/target/release/bundle/nsis/*.exe
+
   shell:
     name: Native shell (Tauri)
-    needs: [backend, shell-linux]
+    needs: [backend, shell-linux, shell-windows]
     runs-on: macos-14
+    env:
+      APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
+      APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+      APPLE_PROVISIONING_PROFILE: ${{ secrets.APPLE_PROVISIONING_PROFILE }}
+      APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
     steps:
       - uses: actions/checkout@v4
 
@@ -163,16 +204,11 @@ jobs:
           chmod +x src-tauri/binaries/catenary-backend-aarch64-apple-darwin
 
       - name: Build signed .app (when signing secrets are configured)
-        if: ${{ secrets.APPLE_CERTIFICATE != '' }}
-        env:
-          APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
-          APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
-          APPLE_PROVISIONING_PROFILE: ${{ secrets.APPLE_PROVISIONING_PROFILE }}
-          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+        if: env.APPLE_CERTIFICATE != ''
         run: tauri build --bundles app
 
       - name: Build unsigned .app
-        if: ${{ secrets.APPLE_CERTIFICATE == '' }}
+        if: env.APPLE_CERTIFICATE == ''
         run: tauri build --bundles app --no-sign
 
       - uses: actions/download-artifact@v4
@@ -188,6 +224,11 @@ jobs:
       - uses: actions/download-artifact@v4
         with:
           name: desktop-linux
+          path: release
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: desktop-windows
           path: release
 
       - name: Stage release assets
@@ -209,3 +250,4 @@ jobs:
             release/*
             release/deb/*
             release/appimage/*
+            release/nsis/*
