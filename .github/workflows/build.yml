@@ -238,16 +238,41 @@ jobs:
         with:
           path: release
 
-      - name: Attach all platform bundles to a GitHub Release
+      - name: Normalize asset names and write release notes
+        run: |
+          version="${GITHUB_REF_NAME#v}"
+          cd release
+          mv desktop-linux/*.deb        "Catenary-${version}-linux-x86_64.deb"
+          mv desktop-linux/*.AppImage   "Catenary-${version}-linux-x86_64.AppImage"
+          mv desktop-windows/*.exe      "Catenary-${version}-windows-x86_64-setup.exe"
+          mv desktop-macos/*.zip        "Catenary-${version}-macos-aarch64.zip"
+          cat > notes.md <<NOTES
+          Catenary ${version} for all supported platforms.
+
+          ### Linux (x86_64)
+          - \`Catenary-${version}-linux-x86_64.deb\` — Pop!_OS / Ubuntu / Debian:
+            \`sudo apt install ./Catenary-${version}-linux-x86_64.deb\`
+          - \`Catenary-${version}-linux-x86_64.AppImage\` — any distro; needs webkit2gtk first:
+            \`sudo apt install libwebkit2gtk-4.1-0\`, then \`chmod +x\` the file and run it.
+
+          ### Windows (x86_64)
+          - \`Catenary-${version}-windows-x86_64-setup.exe\` — standard installer with
+            Start-menu shortcuts and an uninstaller.
+
+          ### macOS (Apple Silicon)
+          - \`Catenary-${version}-macos-aarch64.zip\` — unzip and drag to Applications.
+            The build is unsigned: on first launch, right-click the app and choose Open.
+          NOTES
+
+      - name: Attach installers to a GitHub Release
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ github.event_name == 'workflow_dispatch' && format('v{0}', github.sha) || github.ref_name }}
           draft: ${{ github.event_name == 'workflow_dispatch' }}
           generate_release_notes: true
+          body_path: release/notes.md
           files: |
-            release/backend-macos/*
-            release/backend-linux/*
-            release/backend-windows/*
-            release/desktop-macos/*
-            release/desktop-linux/*
-            release/desktop-windows/*
+            release/Catenary-*-linux-x86_64.deb
+            release/Catenary-*-linux-x86_64.AppImage
+            release/Catenary-*-windows-x86_64-setup.exe
+            release/Catenary-*-macos-aarch64.zip
