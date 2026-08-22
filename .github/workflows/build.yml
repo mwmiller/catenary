@@ -35,7 +35,7 @@ jobs:
           node-version: "22"
 
       - name: Set up Elixir/Erlang/Zig/XZ via mise
-        uses: jdx/mise-action@v17
+        uses: jdx/mise-action@v4.2.5
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           install: true
@@ -184,7 +184,7 @@ jobs:
         run: npm install -g @tauri-apps/cli@latest
 
       - name: Set up build tools via mise
-        uses: jdx/mise-action@v17
+        uses: jdx/mise-action@v4.2.5
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           install: true
