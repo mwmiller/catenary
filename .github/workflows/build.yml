@@ -83,9 +83,55 @@ jobs:
           name: backend-${{ matrix.target }}
           path: ${{ steps.artifact.outputs.artifact }}
 
+  shell-linux:
+    name: Native shell (Tauri) Linux x86_64
+    needs: backend
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Tauri Linux build prerequisites
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            build-essential curl wget file \
+            libwebkit2gtk-4.1-dev libssl-dev \
+            libayatana-appindicator3-dev librsvg2-dev libxdo-dev
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Set up Rust (stable)
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Install Tauri CLI
+        run: npm install -g @tauri-apps/cli@latest
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: backend-linux
+          path: src-tauri/binaries
+
+      - name: Rename sidecar to the compile-time name Tauri expects
+        run: |
+          mv src-tauri/binaries/catenary_linux \
+             src-tauri/binaries/catenary-backend-x86_64-unknown-linux-gnu
+          chmod +x src-tauri/binaries/catenary-backend-x86_64-unknown-linux-gnu
+
+      - name: Build deb + AppImage
+        run: tauri build --bundles deb appimage
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: desktop-linux
+          path: |
+            src-tauri/target/release/bundle/deb/*.deb
+            src-tauri/target/release/bundle/appimage/*.AppImage
+
   shell:
     name: Native shell (Tauri)
-    needs: backend
+    needs: [backend, shell-linux]
     runs-on: macos-14
     steps:
       - uses: actions/checkout@v4
@@ -139,6 +185,11 @@ jobs:
           name: backend-windows
           path: src-tauri/binaries
 
+      - uses: actions/download-artifact@v4
+        with:
+          name: desktop-linux
+          path: release
+
       - name: Stage release assets
         run: |
           mkdir -p release
@@ -154,4 +205,7 @@ jobs:
         with:
           tag_name: "v${{ github.sha }}"
           draft: true
-          files: release/*
+          files: |
+            release/*
+            release/deb/*
+            release/appimage/*
