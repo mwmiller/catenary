@@ -15,7 +15,6 @@ on:
 
 env:
   CARGO_TERM_COLOR: auto
-  MIX_ENV: prod
 
 jobs:
   backend:
@@ -67,6 +66,8 @@ jobs:
 
       - name: Build Burrito release
         run: mix release --overwrite
+        env:
+          MIX_ENV: prod
 
       - name: Locate artifact
         id: artifact
