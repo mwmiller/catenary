@@ -266,7 +266,6 @@ jobs:
 
           ### macOS (Apple Silicon)
           - \`Catenary-${version}-macos-aarch64.zip\` — unzip and drag to Applications.
-            The build is unsigned: on first launch, right-click the app and choose Open.
           NOTES
 
       - name: Attach installers to a GitHub Release
