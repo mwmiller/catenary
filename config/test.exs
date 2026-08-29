@@ -7,9 +7,6 @@ config :catenary, CatenaryWeb.Endpoint,
   secret_key_base: "SPxKtYJrt9CsLLapQ3vv2Lzr5P2AvjZnbbdCMMWfxW6Y5g1OBpeLJs29iveA6CrC",
   server: false
 
-# In test we don't send emails.
-config :catenary, Catenary.Mailer, adapter: Swoosh.Adapters.Test
-
 # Print only warnings and errors during test
 config :logger, level: :warning
 

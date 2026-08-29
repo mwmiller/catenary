@@ -34,9 +34,6 @@ config :tailwind,
     cd: Path.expand("../assets", __DIR__)
   ]
 
-# Swoosh API client is needed for adapters other than SMTP.
-config :swoosh, :api_client, false
-
 # Configure esbuild (the version is required)
 config :esbuild,
   version: "0.25.9",
