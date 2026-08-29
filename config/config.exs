@@ -12,6 +12,7 @@ config :elixir, :time_zone_database, Tz.TimeZoneDatabase
 
 # Configures the endpoint
 config :catenary, CatenaryWeb.Endpoint,
+  adapter: Bandit.PhoenixAdapter,
   url: [host: "localhost"],
   render_errors: [
     formats: [html: CatenaryWeb.ErrorHTML, json: CatenaryWeb.ErrorJSON],
