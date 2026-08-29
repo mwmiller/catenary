@@ -50,7 +50,6 @@ config :catenary, CatenaryWeb.Endpoint,
   live_reload: [
     patterns: [
       ~r"priv/static/.*(js|css|png|jpeg|jpg|gif|svg)$",
-      ~r"priv/gettext/.*(po)$",
       ~r"lib/catenary_web/(live|views)/.*(ex)$",
       ~r"lib/catenary_web/templates/.*(eex)$"
     ]

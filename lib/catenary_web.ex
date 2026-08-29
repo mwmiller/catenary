@@ -22,7 +22,6 @@ defmodule CatenaryWeb do
       use Phoenix.Controller, formats: [html: "HTML", json: "JSON"]
 
       import Plug.Conn
-      use Gettext, backend: CatenaryWeb.Gettext
       import Phoenix.LiveView.Controller
     end
   end
@@ -70,8 +69,6 @@ defmodule CatenaryWeb do
     quote do
       # Routes generation with the ~p sigil
       unquote(verified_routes())
-
-      use Gettext, backend: CatenaryWeb.Gettext
     end
   end
 
@@ -88,7 +85,6 @@ defmodule CatenaryWeb do
   def channel do
     quote do
       use Phoenix.Channel
-      use Gettext, backend: CatenaryWeb.Gettext
     end
   end
 
@@ -99,8 +95,6 @@ defmodule CatenaryWeb do
 
       # Routes generation with the ~p sigil
       unquote(verified_routes())
-
-      use Gettext, backend: CatenaryWeb.Gettext
     end
   end
 
