@@ -5,7 +5,6 @@ defmodule Catenary.Live.EntryViewer do
   require Logger
   use Phoenix.LiveComponent
   alias Catenary.{Display, Preferences}
-  alias Timex.Format.DateTime.Formatter
 
   @image_logs Catenary.image_logs()
   @impl true
@@ -557,11 +556,55 @@ defmodule Catenary.Live.EntryViewer do
   defp nice_time(:latest), do: "latest known"
 
   defp nice_time(t) do
-    t
-    |> Timex.parse!("{ISO:Extended}")
-    |> Timex.Timezone.convert(Timex.Timezone.local())
-    |> Formatter.format!("{YYYY}-{0M}-{0D} {kitchen}")
+    case DateTime.from_iso8601(t, :extended) do
+      {:ok, dt, _} -> nice_time_dt(dt)
+      _ -> "timeless"
+    end
+  rescue
+    _ -> "timeless"
   end
+
+  defp nice_time_dt(%DateTime{} = dt) do
+    local =
+      case DateTime.shift_zone(dt, local_zone()) do
+        {:ok, z} -> z
+        _ -> DateTime.shift_zone!(dt, "Etc/UTC")
+      end
+
+    "#{Date.to_iso8601(local)} #{kitchen(local)}"
+  end
+
+  # Machine-local IANA zone: prefer $TZ, otherwise derive from the
+  # /etc/localtime symlink target (e.g. ".../America/New_York"), else UTC.
+  defp local_zone do
+    case System.get_env("TZ") do
+      tz when is_binary(tz) and tz != "" -> tz
+      _ -> local_zone_from_file()
+    end
+  end
+
+  defp local_zone_from_file do
+    case :file.read_link("/etc/localtime") do
+      {:ok, target} ->
+        target
+        |> to_string()
+        |> String.split("/")
+        |> Enum.reverse()
+        |> Enum.take_while(&(&1 != "zoneinfo"))
+        |> Enum.reverse()
+        |> Enum.join("/")
+
+      _ ->
+        "Etc/UTC"
+    end
+  end
+
+  defp kitchen(%{hour: 0, minute: m}), do: "12:#{pad2(m)} AM"
+  defp kitchen(%{hour: 12, minute: m}), do: "12:#{pad2(m)} PM"
+  defp kitchen(%{hour: h, minute: m}) when h < 12, do: "#{h}:#{pad2(m)} AM"
+  defp kitchen(%{hour: h, minute: m}), do: "#{h - 12}:#{pad2(m)} PM"
+
+  defp pad2(n), do: n |> Integer.to_string() |> String.pad_leading(2, "0")
 
   defp malformed(error, body) do
     Logger.debug(error)

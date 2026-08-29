@@ -79,9 +79,10 @@ defmodule Catenary.Indices do
         ""
 
       t ->
-        t
-        |> Timex.parse!("{ISO:Extended}")
-        |> Timex.to_unix()
+        case DateTime.from_iso8601(t, :extended) do
+          {:ok, dt, _} -> DateTime.to_unix(dt)
+          _ -> ""
+        end
     end
   end
 

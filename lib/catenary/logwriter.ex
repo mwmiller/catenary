@@ -17,7 +17,11 @@ defmodule Catenary.LogWriter do
     # There will be more things to handle in short order, so this looks verbose
     # but it's probably necessary
     %Baobab.Entry{author: a, log_id: l, seqnum: e} =
-      %{"body" => body, "title" => title, "published" => Timex.now() |> DateTime.to_string()}
+      %{
+        "body" => body,
+        "title" => title,
+        "published" => DateTime.utc_now() |> DateTime.to_string()
+      }
       |> CBOR.encode()
       |> append_log_for_socket(360_360, socket)
 
@@ -69,7 +73,7 @@ defmodule Catenary.LogWriter do
         "body" => body,
         "references" => [[oa, ol, oe]],
         "title" => t,
-        "published" => Timex.now() |> DateTime.to_string()
+        "published" => DateTime.utc_now() |> DateTime.to_string()
       }
       |> CBOR.encode()
       |> append_log_for_socket(533, socket)
@@ -93,7 +97,7 @@ defmodule Catenary.LogWriter do
         "whom" => whom,
         "references" => references,
         "alias" => ali,
-        "published" => Timex.now() |> DateTime.to_string()
+        "published" => DateTime.utc_now() |> DateTime.to_string()
       }
       |> CBOR.encode()
       |> append_log_for_socket(53, socket)
@@ -123,7 +127,7 @@ defmodule Catenary.LogWriter do
         %{
           "references" => [references],
           "tags" => tags,
-          "published" => Timex.now() |> DateTime.to_string()
+          "published" => DateTime.utc_now() |> DateTime.to_string()
         }
         |> CBOR.encode()
         |> append_log_for_socket(749, socket)
@@ -166,7 +170,7 @@ defmodule Catenary.LogWriter do
         %{
           "references" => [references],
           "mentions" => mentions,
-          "published" => Timex.now() |> DateTime.to_string()
+          "published" => DateTime.utc_now() |> DateTime.to_string()
         }
         |> CBOR.encode()
         |> append_log_for_socket(121, socket)
@@ -198,7 +202,7 @@ defmodule Catenary.LogWriter do
         "references" => ref,
         "action" => action,
         "reason" => Map.get(info, "reason", ""),
-        "published" => Timex.now() |> DateTime.to_string()
+        "published" => DateTime.utc_now() |> DateTime.to_string()
       }
       |> CBOR.encode()
       |> append_log_for_socket(1337, socket)
@@ -233,7 +237,7 @@ defmodule Catenary.LogWriter do
       Map.merge(
         %{
           "action" => "logs",
-          "published" => Timex.now() |> DateTime.to_string()
+          "published" => DateTime.utc_now() |> DateTime.to_string()
         },
         arl
       )
@@ -256,7 +260,7 @@ defmodule Catenary.LogWriter do
     %{
       "references" => [to],
       "reactions" => Catenary.checkbox_expander(values, "reaction-"),
-      "published" => Timex.now() |> DateTime.to_string()
+      "published" => DateTime.utc_now() |> DateTime.to_string()
     }
     |> CBOR.encode()
     |> append_log_for_socket(101, socket)
@@ -271,7 +275,7 @@ defmodule Catenary.LogWriter do
     %{
       "references" => [to],
       "mentions" => mentions,
-      "published" => Timex.now() |> DateTime.to_string()
+      "published" => DateTime.utc_now() |> DateTime.to_string()
     }
     |> CBOR.encode()
     |> append_log_for_socket(121, socket)
@@ -301,7 +305,7 @@ defmodule Catenary.LogWriter do
       values
       |> Map.drop(["log_id", "avatar"])
       |> Map.merge(maybe_avatar)
-      |> Map.merge(%{"published" => Timex.now() |> DateTime.to_string()})
+      |> Map.merge(%{"published" => DateTime.utc_now() |> DateTime.to_string()})
       |> CBOR.encode()
       |> append_log_for_socket(360, socket)
 

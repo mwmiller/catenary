@@ -7,6 +7,9 @@
 # General application configuration
 import Config
 
+# Use the `tz` IANA time zone database for DateTime timezone handling
+config :elixir, :time_zone_database, Tz.TimeZoneDatabase
+
 # Configures the endpoint
 config :catenary, CatenaryWeb.Endpoint,
   url: [host: "localhost"],
