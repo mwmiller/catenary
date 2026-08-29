@@ -50,7 +50,7 @@ defmodule Catenary.MixProject do
   # Type `mix help deps` for examples and options.
   defp deps do
     [
-      {:baby, "== 0.39.1"},
+      {:baby, "~> 0.40.0"},
       {:baobab, "~> 0.35"},
       {:quagga_def, ">= 0.0.0"},
       {:cbor, "~> 1.0"},
