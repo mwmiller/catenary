@@ -47,6 +47,9 @@ defmodule CatenaryWeb.Live do
          profile_items: Catenary.profile_items_state(),
          view: view,
          extra_nav: :none,
+         connect_open: false,
+         manual_peer: nil,
+         manual_state: :none,
          indexing: Catenary.Indices.status(),
          entry: entry,
          entry_fore: [],
@@ -163,6 +166,10 @@ defmodule CatenaryWeb.Live do
         oases={@oases}
         opened={@opened}
         aliases={@aliases}
+        connect_open={@connect_open}
+        manual_peer={@manual_peer}
+        manual_state={@manual_state}
+        bootstrap={Catenary.bootstrap_node(@clump_id)}
       />
     </.three_column_layout>
     """
@@ -321,6 +328,45 @@ defmodule CatenaryWeb.Live do
        socket,
        Navigation.move_to("specified", %{view: view, entry: which}, socket.assigns)
      )}
+  end
+
+  # Manual connect attempt timing: re-check every 2s, give up after 20s.
+  @manual_check_interval 2_000
+  @manual_connect_timeout 20_000
+
+  # Each attempt is tagged with a generation number so that messages from a
+  # cancelled earlier attempt (already in the mailbox when timers were
+  # cancelled) cannot corrupt the state of the current one.
+  def handle_info({:manual_connect_check, target, attempt}, socket) do
+    if attempt == socket.assigns[:manual_attempt] do
+      {host, port} = target
+
+      if manual_connected?(host, port) do
+        if t = socket.assigns[:manual_timeout_timer], do: Process.cancel_timer(t)
+        {:noreply, state_set(socket, %{manual_state: :connected})}
+      else
+        check =
+          Process.send_after(
+            self(),
+            {:manual_connect_check, target, attempt},
+            @manual_check_interval
+          )
+
+        {:noreply, assign(socket, manual_check_timer: check)}
+      end
+    else
+      {:noreply, socket}
+    end
+  end
+
+  def handle_info({:manual_connect_timeout, target, attempt}, socket) do
+    if attempt == socket.assigns[:manual_attempt] do
+      {host, port} = target
+      state = if manual_connected?(host, port), do: :connected, else: :failed
+      {:noreply, state_set(socket, %{manual_state: state})}
+    else
+      {:noreply, socket}
+    end
   end
 
   def handle_info(:sync, socket) do
@@ -570,17 +616,6 @@ defmodule CatenaryWeb.Live do
      )}
   end
 
-  def handle_event("init-connect", _, socket) do
-    {host, port} = Catenary.bootstrap_node(socket.assigns.clump_id)
-    connector_wrap(host, port, socket)
-    {:noreply, state_set(socket, %{})}
-  end
-
-  def handle_event("clear-oases", _, socket) do
-    Catenary.remove_oasis_logs()
-    {:noreply, state_set(socket, %{})}
-  end
-
   def handle_event("connect", %{"value" => where}, socket) do
     with {a, l, e} <- Catenary.string_to_index(where),
          %Baobab.Entry{payload: payload} <-
@@ -594,6 +629,26 @@ defmodule CatenaryWeb.Live do
       _ -> {:noreply, socket}
     end
   end
+
+  def handle_event("set-connect-mode", %{"value" => mode}, socket) do
+    connect_open = mode == "manual"
+    {:noreply, assign(socket, connect_open: connect_open)}
+  end
+
+  def handle_event("connect-manual", %{"host" => host, "port" => port}, socket) do
+    case parse_peer(host, port) do
+      {:ok, host, port} ->
+        Logger.debug(["Manual connection opening to ", host, ":", to_string(port), "..."])
+        connector_wrap(host, port, socket)
+        start_manual_connect(socket, host, port)
+
+      :error ->
+        Logger.warning(["Ignoring malformed manual connection target: ", host, ":", port])
+        {:noreply, state_set(socket, %{})}
+    end
+  end
+
+  def handle_event("connect-manual", _, socket), do: {:noreply, socket}
 
   def handle_event("nav", %{"value" => motion}, socket) do
     {:noreply, state_set(socket, Navigation.move_to(motion, :current, socket.assigns))}
@@ -685,4 +740,71 @@ defmodule CatenaryWeb.Live do
       clump_id: socket.assigns.clump_id
     )
   end
+
+  # Manual peer targets with separate host and port entry fields. The host is
+  # passed through as entered (bare IPv6 addresses need no unwrapping).
+  defp parse_peer(host, port) when is_binary(host) and is_binary(port) do
+    host = String.trim(host)
+
+    with true <- byte_size(host) > 0,
+         {port, ""} <- Integer.parse(String.trim(port)),
+         true <- port > 0 and port <= 65535 do
+      {:ok, host, port}
+    else
+      _ -> :error
+    end
+  end
+
+  defp parse_peer(_, _), do: :error
+
+  # Manual connect attempt lifecycle: :connecting -> :connected | :failed.
+  # The connection is re-checked periodically and declared failed after the
+  # timeout, since Baby.connect gives no synchronous failure signal.
+
+  defp start_manual_connect(socket, host, port) do
+    cancel_manual_timers(socket)
+    attempt = (socket.assigns[:manual_attempt] || 0) + 1
+    target = {host, port}
+
+    check =
+      Process.send_after(self(), {:manual_connect_check, target, attempt}, @manual_check_interval)
+
+    timeout =
+      Process.send_after(
+        self(),
+        {:manual_connect_timeout, target, attempt},
+        @manual_connect_timeout
+      )
+
+    {:noreply,
+     state_set(socket, %{
+       manual_peer: "#{host}:#{port}",
+       manual_state: :connecting,
+       manual_attempt: attempt,
+       manual_check_timer: check,
+       manual_timeout_timer: timeout
+     })}
+  end
+
+  defp cancel_manual_timers(socket) do
+    if t = socket.assigns[:manual_check_timer], do: Process.cancel_timer(t)
+    if t = socket.assigns[:manual_timeout_timer], do: Process.cancel_timer(t)
+  end
+
+  # Whether the manually entered peer already has an active connection, so the
+  # UI can mirror the explorer's connected/attempting-sync indicators. Both
+  # address families are tried, since either may be in use.
+  defp manual_connected?(host, port) when is_binary(host) and is_integer(port) do
+    charlist = String.to_charlist(host)
+    active = Baby.Connection.Registry.active()
+
+    Enum.any?([:inet, :inet6], fn family ->
+      case :inet.getaddr(charlist, family) do
+        {:ok, addr} -> {addr, port} in active
+        _ -> false
+      end
+    end)
+  end
+
+  defp manual_connected?(_, _), do: false
 end

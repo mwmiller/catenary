@@ -35,6 +35,24 @@ Development iteration of the shell alone, with `mix phx.server` already running:
 cd src-tauri && cargo tauri dev
 ```
 
+## Connecting to peers
+
+The **Peers** view (⇆ in the navigation bar) is the Oasis Explorer:
+
+* **Announced oases (◉)** — recently announced oases are listed with their
+  operator and clump identity. Click a row's **⇆** to connect; a green **⥀**
+  marks an established connection. A muted **⥀** means a sync is being
+  attempted.
+* **Manual connect (⌖)** — enter a peer's host and port in the separate
+  fields (pre-filled with the clump's bootstrap node) and click **⇆**. The
+  entered peer is tracked below the form: pulsing **↯** while connecting,
+  green **⥀** once connected, and **⛒** if the connection could not be
+  established within 20 seconds. Malformed targets (empty host, non-numeric
+  or out-of-range port) are ignored with a warning in the log. Both IPv4 and
+  IPv6 peers are supported.
+
+Status indicators are glyphs throughout; hover them for tooltips.
+
 ## Tests
 
 ```
