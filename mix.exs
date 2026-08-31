@@ -51,7 +51,7 @@ defmodule Catenary.MixProject do
   defp deps do
     [
       {:baby, "~> 0.40.0"},
-      {:baobab, "~> 0.35"},
+      {:baobab, "~> 0.40"},
       {:quagga_def, ">= 0.0.0"},
       {:cbor, "~> 1.0"},
       {:mdex, "~> 0.13"},
