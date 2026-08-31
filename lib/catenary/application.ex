@@ -16,7 +16,13 @@ defmodule Catenary.Application do
 
     clumps =
       for {c, k} <- Application.get_env(:catenary, :clumps) do
-        [controlling_identity: whoami, id: c, port: Keyword.get(k, :port)]
+        [
+          controlling_identity: whoami,
+          id: c,
+          port: Keyword.get(k, :port),
+          announce: Keyword.get(k, :announce, false),
+          cryouts: Keyword.get(k, :cryouts, [])
+        ]
       end
 
     img_root =

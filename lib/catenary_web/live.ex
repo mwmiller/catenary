@@ -6,7 +6,7 @@ defmodule CatenaryWeb.Live do
   require Logger
   alias Catenary.{Display, LogWriter, Navigation, Preferences}
 
-  def mount(_params, session, socket) do
+  def mount(params, session, socket) do
     # Making sure these exist, but also faux docs
     {:asc, :desc, :author, :logid, :seq}
     Phoenix.PubSub.subscribe(Catenary.PubSub, "ui")
@@ -16,9 +16,15 @@ defmodule CatenaryWeb.Live do
     clump_id = Preferences.get(:clump_id)
 
     {view, entry} =
-      case session do
-        %{"view" => v, "entry" => e} -> {v, e}
-        _ -> {Preferences.get(:view), Preferences.get(:entry)}
+      case params["view"] do
+        view_str when is_binary(view_str) and view_str != "" ->
+          {String.to_existing_atom(view_str), :all}
+
+        _ ->
+          case session do
+            %{"view" => v, "entry" => e} -> {v, e}
+            _ -> {Preferences.get(:view), Preferences.get(:entry)}
+          end
       end
 
     facet_id = Preferences.get(:facet_id)

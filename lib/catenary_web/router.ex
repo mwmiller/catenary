@@ -33,6 +33,8 @@ defmodule CatenaryWeb.Router do
 
   scope "/" do
     pipe_through :browser
-    live_dashboard "/dashboard", metrics: CatenaryWeb.Telemetry
+    live_dashboard "/dashboard",
+      metrics: CatenaryWeb.Telemetry,
+      on_mount: CatenaryWeb.LiveDashboardHooks
   end
 end
