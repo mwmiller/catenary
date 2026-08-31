@@ -22,6 +22,15 @@ fn build_menu(app: &tauri::App) -> tauri::Result<()> {
     let dashboard = MenuItemBuilder::with_id("dashboard", "Dashboard")
         .accelerator("CmdOrCtrl+D")
         .build(handle)?;
+    let prefs = MenuItemBuilder::with_id("prefs", "Preferences")
+        .accelerator("CmdOrCtrl+,")
+        .build(handle)?;
+    let oases = MenuItemBuilder::with_id("oases", "Oases")
+        .accelerator("CmdOrCtrl+O")
+        .build(handle)?;
+    let unshown = MenuItemBuilder::with_id("unshown", "Unshown")
+        .accelerator("CmdOrCtrl+U")
+        .build(handle)?;
     let reload = MenuItemBuilder::with_id("reload", "Reload")
         .accelerator("CmdOrCtrl+R")
         .build(handle)?;
@@ -31,7 +40,13 @@ fn build_menu(app: &tauri::App) -> tauri::Result<()> {
     let catenary = SubmenuBuilder::new(handle, "Catenary")
         .item(&quit)
         .build()?;
-    let go = SubmenuBuilder::new(handle, "Go").item(&dashboard).build()?;
+    let go = SubmenuBuilder::new(handle, "Go")
+        .item(&dashboard)
+        .separator()
+        .item(&prefs)
+        .item(&oases)
+        .item(&unshown)
+        .build()?;
     let view = SubmenuBuilder::new(handle, "View").item(&reload).build()?;
     let window = SubmenuBuilder::new(handle, "Window")
         .item(&close_window)
@@ -116,6 +131,27 @@ pub fn run() {
         .on_menu_event(|app, event| match event.id().as_ref() {
             "dashboard" => {
                 let _ = app.emit_to("main", "catenary-menu", json!({ "view": "dashboard" }));
+            }
+            "prefs" => {
+                let _ = app.emit_to(
+                    "main",
+                    "catenary-menu",
+                    json!({ "view": "prefs", "entry": "none" }),
+                );
+            }
+            "oases" => {
+                let _ = app.emit_to(
+                    "main",
+                    "catenary-menu",
+                    json!({ "view": "oases", "entry": "none" }),
+                );
+            }
+            "unshown" => {
+                let _ = app.emit_to(
+                    "main",
+                    "catenary-menu",
+                    json!({ "view": "unshown", "entry": "none" }),
+                );
             }
             "reload" => {
                 if let Some(window) = app.get_webview_window("main") {

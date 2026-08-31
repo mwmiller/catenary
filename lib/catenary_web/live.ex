@@ -48,8 +48,7 @@ defmodule CatenaryWeb.Live do
          view: view,
          extra_nav: :none,
          connect_open: false,
-         manual_peer: nil,
-         manual_state: :none,
+         manual: %{},
          indexing: Catenary.Indices.status(),
          entry: entry,
          entry_fore: [],
@@ -167,8 +166,7 @@ defmodule CatenaryWeb.Live do
         opened={@opened}
         aliases={@aliases}
         connect_open={@connect_open}
-        manual_peer={@manual_peer}
-        manual_state={@manual_state}
+        manual={@manual}
         bootstrap={Catenary.bootstrap_node(@clump_id)}
       />
     </.three_column_layout>
@@ -334,25 +332,27 @@ defmodule CatenaryWeb.Live do
   @manual_check_interval 2_000
   @manual_connect_timeout 20_000
 
-  # Each attempt is tagged with a generation number so that messages from a
-  # cancelled earlier attempt (already in the mailbox when timers were
-  # cancelled) cannot corrupt the state of the current one.
+  # Each manual peer is tracked independently in the `:manual` map, keyed by
+  # {host, port}. Each attempt is tagged with a generation number so that
+  # messages from a cancelled earlier attempt (already in the mailbox when
+  # timers were cancelled) cannot corrupt the state of the current one.
   def handle_info({:manual_connect_check, target, attempt}, socket) do
-    if attempt == socket.assigns[:manual_attempt] do
-      {host, port} = target
-      {:noreply, manual_connect_progress(host, port, target, attempt, socket)}
-    else
-      {:noreply, socket}
+    case current_manual_entry(socket, target, attempt) do
+      %{state: :connecting} = entry ->
+        {:noreply, manual_connect_progress(target, entry, socket)}
+
+      _ ->
+        {:noreply, socket}
     end
   end
 
   def handle_info({:manual_connect_timeout, target, attempt}, socket) do
-    if attempt == socket.assigns[:manual_attempt] do
-      {host, port} = target
-      state = if manual_connected?(host, port), do: :connected, else: :failed
-      {:noreply, state_set(socket, %{manual_state: state})}
-    else
-      {:noreply, socket}
+    case current_manual_entry(socket, target, attempt) do
+      %{state: :connecting} = entry ->
+        {:noreply, put_manual_entry(socket, target, %{entry | state: :failed})}
+
+      _ ->
+        {:noreply, socket}
     end
   end
 
@@ -749,9 +749,10 @@ defmodule CatenaryWeb.Live do
   # timeout, since Baby.connect gives no synchronous failure signal.
 
   defp start_manual_connect(socket, host, port) do
-    cancel_manual_timers(socket)
-    attempt = (socket.assigns[:manual_attempt] || 0) + 1
     target = {host, port}
+    cancel_manual_timers(socket, target)
+    prior = socket.assigns[:manual][target]
+    attempt = (prior && prior.attempt || 0) + 1
 
     check =
       Process.send_after(self(), {:manual_connect_check, target, attempt}, @manual_check_interval)
@@ -763,37 +764,53 @@ defmodule CatenaryWeb.Live do
         @manual_connect_timeout
       )
 
-    {:noreply,
-     state_set(socket, %{
-       manual_peer: "#{host}:#{port}",
-       manual_state: :connecting,
-       manual_attempt: attempt,
-       manual_check_timer: check,
-       manual_timeout_timer: timeout
-     })}
+    entry = %{state: :connecting, attempt: attempt, check_timer: check, timeout_timer: timeout}
+    {:noreply, put_manual_entry(socket, target, entry)}
   end
 
   # Retry every @manual_check_interval until the connection shows up or the
   # timeout fires; each reschedule keeps the current attempt number.
-  defp manual_connect_progress(host, port, target, attempt, socket) do
+  defp manual_connect_progress(target, entry, socket) do
+    {host, port} = target
+
     if manual_connected?(host, port) do
-      if t = socket.assigns[:manual_timeout_timer], do: Process.cancel_timer(t)
-      state_set(socket, %{manual_state: :connected})
+      Process.cancel_timer(entry.timeout_timer)
+      put_manual_entry(socket, target, %{entry | state: :connected})
     else
       check =
         Process.send_after(
           self(),
-          {:manual_connect_check, target, attempt},
+          {:manual_connect_check, target, entry.attempt},
           @manual_check_interval
         )
 
-      assign(socket, manual_check_timer: check)
+      put_manual_entry(socket, target, %{entry | check_timer: check})
     end
   end
 
-  defp cancel_manual_timers(socket) do
-    if t = socket.assigns[:manual_check_timer], do: Process.cancel_timer(t)
-    if t = socket.assigns[:manual_timeout_timer], do: Process.cancel_timer(t)
+  # The live entry for a target, but only if it is the generation we expect.
+  defp current_manual_entry(socket, target, attempt) do
+    case socket.assigns[:manual][target] do
+      %{attempt: ^attempt} = entry -> entry
+      _ -> nil
+    end
+  end
+
+  defp put_manual_entry(socket, target, entry) do
+    state_set(socket, %{manual: Map.put(socket.assigns[:manual] || %{}, target, entry)})
+  end
+
+  # Stop the timers of any previous attempt for this target only; attempts
+  # against other targets continue undisturbed.
+  defp cancel_manual_timers(socket, target) do
+    case socket.assigns[:manual][target] do
+      nil ->
+        :ok
+
+      entry ->
+        if t = entry.check_timer, do: Process.cancel_timer(t)
+        if t = entry.timeout_timer, do: Process.cancel_timer(t)
+    end
   end
 
   # Whether the manually entered peer already has an active connection, so the

@@ -4,7 +4,7 @@ defmodule Catenary.MixProject do
   def project do
     [
       app: :catenary,
-      version: "0.41.1",
+      version: "0.42.0",
       elixir: "~> 1.18",
       elixirc_paths: elixirc_paths(Mix.env()),
       start_permanent: Mix.env() == :prod,

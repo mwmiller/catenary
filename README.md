@@ -25,9 +25,17 @@ scripts/build-app.sh
 ```
 
 This builds the backend release and the `catenary.app` shell. The shell's menu
-bar has a **Dashboard** item (⌘D) that navigates the LiveView to
-`/dashboard` (LiveDashboard), and native window resize events are reported
-back so the app can remember its window size.
+bar has a **Go** menu with keyboard shortcuts for quick navigation:
+
+| Item | Shortcut | View |
+|------|----------|------|
+| Dashboard | ⌘D | LiveDashboard |
+| Preferences | ⌘, | Settings |
+| Oases | ⌘O | Peers/Nodes |
+| Unshown | ⌘U | Unshown entries |
+
+Native window resize events are reported back so the app can remember its
+window size.
 
 Development iteration of the shell alone, with `mix phx.server` already running:
 
