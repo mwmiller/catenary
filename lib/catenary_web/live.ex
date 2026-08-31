@@ -334,28 +334,48 @@ defmodule CatenaryWeb.Live do
      )}
   end
 
-  # Manual connect attempt timing: re-check every 2s, give up after 20s.
-  @manual_check_interval 2_000
+  # Manual connect attempt timing: give up after 20s if the connecting attempt
+  # never establishes. Connection *events* (established or dropped) are pushed
+  # in near-realtime by Catenary.ConnectionMonitor as :connections_changed.
+  # A failed attempt is shown briefly (@manual_failed_grace) before cleanup.
   @manual_connect_timeout 20_000
+  @manual_failed_grace 5_000
+
+  # The connection set changed (some peer connected or dropped). Refresh the
+  # whole view and reconcile the manual-peer list against the live registry so
+  # a connected peer is removed the moment its connection goes away, and a
+  # connecting peer is promoted to connected as soon as it establishes.
+  def handle_info(:connections_changed, socket) do
+    {:noreply, state_set(socket, %{manual: reconcile_manual(socket)})}
+  end
 
   # Each manual peer is tracked independently in the `:manual` map, keyed by
   # {host, port}. Each attempt is tagged with a generation number so that
   # messages from a cancelled earlier attempt (already in the mailbox when
   # timers were cancelled) cannot corrupt the state of the current one.
-  def handle_info({:manual_connect_check, target, attempt}, socket) do
+  def handle_info({:manual_connect_timeout, target, attempt}, socket) do
     case current_manual_entry(socket, target, attempt) do
       %{state: :connecting} = entry ->
-        {:noreply, manual_connect_progress(target, entry, socket)}
+        # Show the failure briefly so it is visible, then remove the entry.
+        cleanup =
+          Process.send_after(
+            self(),
+            {:manual_cleanup, target, attempt},
+            @manual_failed_grace
+          )
+
+        {:noreply,
+         put_manual_entry(socket, target, %{entry | state: :failed, cleanup_timer: cleanup})}
 
       _ ->
         {:noreply, socket}
     end
   end
 
-  def handle_info({:manual_connect_timeout, target, attempt}, socket) do
+  def handle_info({:manual_cleanup, target, attempt}, socket) do
     case current_manual_entry(socket, target, attempt) do
-      %{state: :connecting} = entry ->
-        {:noreply, put_manual_entry(socket, target, %{entry | state: :failed})}
+      %{state: :failed} ->
+        {:noreply, remove_manual_entry(socket, target)}
 
       _ ->
         {:noreply, socket}
@@ -750,47 +770,32 @@ defmodule CatenaryWeb.Live do
 
   defp parse_peer(_, _), do: :error
 
-  # Manual connect attempt lifecycle: :connecting -> :connected | :failed.
-  # The connection is re-checked periodically and declared failed after the
-  # timeout, since Baby.connect gives no synchronous failure signal.
-
+  # Manual connect attempt lifecycle: :connecting -> :connected | :failed ->
+  # cleaned up. Establishment and disconnection are driven in near-realtime by
+  # Catenary.ConnectionMonitor's :connections_changed broadcasts (see
+  # reconcile_manual/1); the timeout only exists because Baby.connect gives no
+  # synchronous failure signal, so an attempt that never establishes is declared
+  # failed after @manual_connect_timeout.
   defp start_manual_connect(socket, host, port) do
     target = {host, port}
     cancel_manual_timers(socket, target)
     prior = socket.assigns[:manual][target]
     attempt = ((prior && prior.attempt) || 0) + 1
 
-    check =
-      Process.send_after(self(), {:manual_connect_check, target, attempt}, @manual_check_interval)
-
-    timeout =
-      Process.send_after(
-        self(),
-        {:manual_connect_timeout, target, attempt},
-        @manual_connect_timeout
-      )
-
-    entry = %{state: :connecting, attempt: attempt, check_timer: check, timeout_timer: timeout}
-    {:noreply, put_manual_entry(socket, target, entry)}
-  end
-
-  # Retry every @manual_check_interval until the connection shows up or the
-  # timeout fires; each reschedule keeps the current attempt number.
-  defp manual_connect_progress(target, entry, socket) do
-    {host, port} = target
-
-    if manual_connected?(host, port) do
-      Process.cancel_timer(entry.timeout_timer)
-      put_manual_entry(socket, target, %{entry | state: :connected})
+    # If the peer is already connected there will be no registry change to push
+    # a :connections_changed broadcast, so start it as :connected right away.
+    if manual_connected_in?(Baby.Connection.Registry.active(), host, port) do
+      {:noreply, put_manual_entry(socket, target, %{state: :connected, attempt: attempt})}
     else
-      check =
+      timeout =
         Process.send_after(
           self(),
-          {:manual_connect_check, target, entry.attempt},
-          @manual_check_interval
+          {:manual_connect_timeout, target, attempt},
+          @manual_connect_timeout
         )
 
-      put_manual_entry(socket, target, %{entry | check_timer: check})
+      entry = %{state: :connecting, attempt: attempt, timeout_timer: timeout}
+      {:noreply, put_manual_entry(socket, target, entry)}
     end
   end
 
@@ -806,6 +811,45 @@ defmodule CatenaryWeb.Live do
     state_set(socket, %{manual: Map.put(socket.assigns[:manual] || %{}, target, entry)})
   end
 
+  defp remove_manual_entry(socket, target) do
+    state_set(socket, %{manual: Map.delete(socket.assigns[:manual] || %{}, target)})
+  end
+
+  # Reconcile the manual-peer list against the live connection registry: an
+  # entry that is still :connecting is promoted to :connected once its peer
+  # appears, and a :connected entry whose connection has dropped is removed
+  # (cleanup happens here, in realtime, as soon as the monitor sees the change).
+  # :failed entries linger only until @manual_failed_grace (see the timeout and
+  # :manual_cleanup handlers).
+  defp reconcile_manual(socket) do
+    active = Baby.Connection.Registry.active()
+
+    Enum.reduce(socket.assigns[:manual] || %{}, %{}, fn {target, entry}, acc ->
+      reconcile_target(active, target, entry, acc)
+    end)
+  end
+
+  defp reconcile_target(active, {host, port} = target, %{state: :connecting} = entry, acc) do
+    if manual_connected_in?(active, host, port) do
+      if t = Map.get(entry, :timeout_timer), do: Process.cancel_timer(t)
+      Map.put(acc, target, %{entry | state: :connected})
+    else
+      Map.put(acc, target, entry)
+    end
+  end
+
+  defp reconcile_target(active, {host, port} = target, %{state: :connected} = entry, acc) do
+    if manual_connected_in?(active, host, port) do
+      Map.put(acc, target, entry)
+    else
+      acc
+    end
+  end
+
+  defp reconcile_target(_active, target, entry, acc) do
+    Map.put(acc, target, entry)
+  end
+
   # Stop the timers of any previous attempt for this target only; attempts
   # against other targets continue undisturbed.
   defp cancel_manual_timers(socket, target) do
@@ -814,17 +858,16 @@ defmodule CatenaryWeb.Live do
         :ok
 
       entry ->
-        if t = entry.check_timer, do: Process.cancel_timer(t)
-        if t = entry.timeout_timer, do: Process.cancel_timer(t)
+        if t = Map.get(entry, :timeout_timer), do: Process.cancel_timer(t)
+        if t = Map.get(entry, :cleanup_timer), do: Process.cancel_timer(t)
     end
   end
 
-  # Whether the manually entered peer already has an active connection, so the
-  # UI can mirror the explorer's connected/attempting-sync indicators. Both
-  # address families are tried, since either may be in use.
-  defp manual_connected?(host, port) when is_binary(host) and is_integer(port) do
+  # Whether a manually entered peer already has an active connection, so the UI
+  # can mirror the explorer's connected/attempting-sync indicators. Both address
+  # families are tried, since either may be in use.
+  defp manual_connected_in?(active, host, port) when is_binary(host) and is_integer(port) do
     charlist = String.to_charlist(host)
-    active = Baby.Connection.Registry.active()
 
     Enum.any?([:inet, :inet6], fn family ->
       case :inet.getaddr(charlist, family) do
@@ -834,5 +877,5 @@ defmodule CatenaryWeb.Live do
     end)
   end
 
-  defp manual_connected?(_, _), do: false
+  defp manual_connected_in?(_, _, _), do: false
 end

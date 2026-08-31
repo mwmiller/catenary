@@ -53,6 +53,8 @@ defmodule Catenary.Application do
       CatenaryWeb.Telemetry,
       # Start the PubSub system
       {Phoenix.PubSub, name: Catenary.PubSub},
+      # Pushes near-realtime connect/disconnect changes to the web UI
+      Catenary.ConnectionMonitor,
       # Start the Endpoint (http/https)
       CatenaryWeb.Endpoint,
       Catenary.IndexSup,
