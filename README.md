@@ -32,10 +32,10 @@ bar has a **Go** menu with keyboard shortcuts for quick navigation:
 | Dashboard | ⌘D | LiveDashboard |
 | Preferences | ⌘, | Settings |
 | Oases | ⌘O | Peers/Nodes |
-| Unshown | ⌘U | Unshown entries |
 
 Native window resize events are reported back so the app can remember its
-window size.
+window size. Choosing **Quit Catenary** terminates the backend and releases
+its port.
 
 Development iteration of the shell alone, with `mix phx.server` already running:
 

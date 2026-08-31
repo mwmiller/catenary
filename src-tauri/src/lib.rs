@@ -1,10 +1,11 @@
 use std::net::{SocketAddr, TcpStream};
+use std::sync::{Arc, Mutex};
 use std::time::Duration;
 
 use serde_json::json;
 use tauri::menu::{MenuBuilder, MenuItemBuilder, PredefinedMenuItem, SubmenuBuilder};
-use tauri::{Emitter, Manager, Window};
-use tauri_plugin_shell::process::CommandEvent;
+use tauri::{Emitter, Manager, RunEvent, Window};
+use tauri_plugin_shell::process::{CommandChild, CommandEvent};
 use tauri_plugin_shell::ShellExt;
 
 // The Elixir (Burrito) backend serves the LiveView on this port.
@@ -28,9 +29,6 @@ fn build_menu(app: &tauri::App) -> tauri::Result<()> {
     let oases = MenuItemBuilder::with_id("oases", "Oases")
         .accelerator("CmdOrCtrl+O")
         .build(handle)?;
-    let unshown = MenuItemBuilder::with_id("unshown", "Unshown")
-        .accelerator("CmdOrCtrl+U")
-        .build(handle)?;
     let reload = MenuItemBuilder::with_id("reload", "Reload")
         .accelerator("CmdOrCtrl+R")
         .build(handle)?;
@@ -45,7 +43,6 @@ fn build_menu(app: &tauri::App) -> tauri::Result<()> {
         .separator()
         .item(&prefs)
         .item(&oases)
-        .item(&unshown)
         .build()?;
     let view = SubmenuBuilder::new(handle, "View").item(&reload).build()?;
     let window = SubmenuBuilder::new(handle, "Window")
@@ -63,9 +60,7 @@ fn build_menu(app: &tauri::App) -> tauri::Result<()> {
     Ok(())
 }
 
-// Spawns the Elixir backend (a Burrito-wrapped release) as a sidecar and
-// forwards its output to our logs.
-fn start_backend(app: &tauri::AppHandle) {
+fn start_backend(app: &tauri::AppHandle, child: Arc<Mutex<Option<CommandChild>>>) {
     let handle = app.clone();
     std::thread::spawn(move || {
         let command = match handle.shell().sidecar("catenary-backend") {
@@ -77,7 +72,8 @@ fn start_backend(app: &tauri::AppHandle) {
         };
 
         match command.spawn() {
-            Ok((mut rx, _child)) => {
+            Ok((mut rx, child_proc)) => {
+                *child.lock().unwrap() = Some(child_proc);
                 println!("[catenary] backend started");
                 while let Some(event) = rx.blocking_recv() {
                     match event {
@@ -111,12 +107,14 @@ fn wait_for_backend() {
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
+    let backend_child: Arc<Mutex<Option<CommandChild>>> = Arc::new(Mutex::new(None));
+    let exit_child = backend_child.clone();
     tauri::Builder::default()
         .plugin(tauri_plugin_shell::init())
         .invoke_handler(tauri::generate_handler![set_window_size])
         .setup(|app| {
             build_menu(app)?;
-            start_backend(app.handle());
+            start_backend(app.handle(), backend_child);
 
             let handle = app.handle().clone();
             std::thread::spawn(move || {
@@ -146,13 +144,6 @@ pub fn run() {
                     json!({ "view": "oases", "entry": "none" }),
                 );
             }
-            "unshown" => {
-                let _ = app.emit_to(
-                    "main",
-                    "catenary-menu",
-                    json!({ "view": "unshown", "entry": "none" }),
-                );
-            }
             "reload" => {
                 if let Some(window) = app.get_webview_window("main") {
                     let _ = window.reload();
@@ -173,6 +164,14 @@ pub fn run() {
                 );
             }
         })
-        .run(tauri::generate_context!())
-        .expect("error while running tauri application");
+        .build(tauri::generate_context!())
+        .expect("error while building tauri application")
+        .run(move |_app, event| {
+            if let RunEvent::Exit = event {
+                if let Some(child) = exit_child.lock().unwrap().take() {
+                    let _ = child.kill();
+                    println!("[catenary] backend killed");
+                }
+            }
+        });
 }
