@@ -340,20 +340,7 @@ defmodule CatenaryWeb.Live do
   def handle_info({:manual_connect_check, target, attempt}, socket) do
     if attempt == socket.assigns[:manual_attempt] do
       {host, port} = target
-
-      if manual_connected?(host, port) do
-        if t = socket.assigns[:manual_timeout_timer], do: Process.cancel_timer(t)
-        {:noreply, state_set(socket, %{manual_state: :connected})}
-      else
-        check =
-          Process.send_after(
-            self(),
-            {:manual_connect_check, target, attempt},
-            @manual_check_interval
-          )
-
-        {:noreply, assign(socket, manual_check_timer: check)}
-      end
+      {:noreply, manual_connect_progress(host, port, target, attempt, socket)}
     else
       {:noreply, socket}
     end
@@ -748,7 +735,7 @@ defmodule CatenaryWeb.Live do
 
     with true <- byte_size(host) > 0,
          {port, ""} <- Integer.parse(String.trim(port)),
-         true <- port > 0 and port <= 65535 do
+         true <- port > 0 and port <= 65_535 do
       {:ok, host, port}
     else
       _ -> :error
@@ -784,6 +771,24 @@ defmodule CatenaryWeb.Live do
        manual_check_timer: check,
        manual_timeout_timer: timeout
      })}
+  end
+
+  # Retry every @manual_check_interval until the connection shows up or the
+  # timeout fires; each reschedule keeps the current attempt number.
+  defp manual_connect_progress(host, port, target, attempt, socket) do
+    if manual_connected?(host, port) do
+      if t = socket.assigns[:manual_timeout_timer], do: Process.cancel_timer(t)
+      state_set(socket, %{manual_state: :connected})
+    else
+      check =
+        Process.send_after(
+          self(),
+          {:manual_connect_check, target, attempt},
+          @manual_check_interval
+        )
+
+      assign(socket, manual_check_timer: check)
+    end
   end
 
   defp cancel_manual_timers(socket) do
