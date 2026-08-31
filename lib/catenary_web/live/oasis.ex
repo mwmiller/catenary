@@ -15,8 +15,7 @@ defmodule Catenary.Live.OasisExplorer do
        nodes: nodes,
        opened: assigns.opened,
        connect_open: Map.get(assigns, :connect_open, false),
-       manual_peer: Map.get(assigns, :manual_peer, nil),
-       manual_state: Map.get(assigns, :manual_state, :none),
+       manual: Map.get(assigns, :manual, %{}),
        bootstrap: Map.get(assigns, :bootstrap, QuaggaDef.bootstrap_node())
      )}
   end
@@ -106,28 +105,33 @@ defmodule Catenary.Live.OasisExplorer do
               </div>
             </div>
           </form>
-          <%= if @manual_peer do %>
+          <%= if map_size(@manual) > 0 do %>
             <div class="font-mono text-xs flex flex-col divide-y divide-slate-200 dark:divide-slate-700">
-              <div class="flex items-center gap-2 py-2">
-                <div class="flex-none text-slate-400 dark:text-slate-500" title="Manual peer">
-                  ⌖
+              <%= for {{host, port}, entry} <- @manual do %>
+                <div class="flex items-center gap-2 py-2">
+                  <div class="flex-none text-slate-400 dark:text-slate-500" title="Manual peer">
+                    ⌖
+                  </div>
+                  <div class="flex-auto min-w-0">
+                    <span class="text-slate-800 dark:text-slate-100">{host}:{port}</span>
+                  </div>
+                  <%= case entry.state do %>
+                    <% :connected -> %>
+                      <span class="text-emerald-600 dark:text-emerald-400" title="Connected">⥀</span>
+                    <% :connecting -> %>
+                      <span
+                        class="text-amber-800 dark:text-amber-300 animate-pulse"
+                        title="Connecting"
+                      >
+                        ↯
+                      </span>
+                    <% :failed -> %>
+                      <span class="text-rose-600 dark:text-rose-400" title="Connection failed">⛒</span>
+                    <% _ -> %>
+                      <span class="text-slate-400 dark:text-slate-500" title="Attempting sync">⥀</span>
+                  <% end %>
                 </div>
-                <div class="flex-auto min-w-0">
-                  <span class="text-slate-800 dark:text-slate-100">{@manual_peer}</span>
-                </div>
-                <%= case @manual_state do %>
-                  <% :connected -> %>
-                    <span class="text-emerald-600 dark:text-emerald-400" title="Connected">⥀</span>
-                  <% :connecting -> %>
-                    <span class="text-amber-800 dark:text-amber-300 animate-pulse" title="Connecting">
-                      ↯
-                    </span>
-                  <% :failed -> %>
-                    <span class="text-rose-600 dark:text-rose-400" title="Connection failed">⛒</span>
-                  <% _ -> %>
-                    <span class="text-slate-400 dark:text-slate-500" title="Attempting sync">⥀</span>
-                <% end %>
-              </div>
+              <% end %>
             </div>
           <% end %>
         <% else %>

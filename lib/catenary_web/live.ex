@@ -758,7 +758,7 @@ defmodule CatenaryWeb.Live do
     target = {host, port}
     cancel_manual_timers(socket, target)
     prior = socket.assigns[:manual][target]
-    attempt = (prior && prior.attempt || 0) + 1
+    attempt = ((prior && prior.attempt) || 0) + 1
 
     check =
       Process.send_after(self(), {:manual_connect_check, target, attempt}, @manual_check_interval)
