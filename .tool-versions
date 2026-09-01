@@ -3,4 +3,4 @@ elixir 1.20.4-otp-29
 erlang 29.0.5
 rust 1.97.1
 zig 0.16.0
-node 26.7.0
+node 22.23.2

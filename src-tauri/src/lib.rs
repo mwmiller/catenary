@@ -1,6 +1,9 @@
 use std::io::{BufRead, BufReader};
 use std::net::{SocketAddr, TcpStream};
+#[cfg(unix)]
 use std::os::unix::process::CommandExt;
+#[cfg(windows)]
+use std::os::windows::process::CommandExt;
 use std::process::{Command as StdCommand, Stdio};
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
@@ -8,6 +11,25 @@ use std::time::Duration;
 use serde_json::json;
 use tauri::menu::{MenuBuilder, MenuItemBuilder, PredefinedMenuItem, SubmenuBuilder};
 use tauri::{Emitter, Manager, RunEvent, Window};
+
+#[cfg(windows)]
+const CREATE_NEW_PROCESS_GROUP: u32 = 0x0000_0200;
+
+#[cfg(unix)]
+fn kill_backend(pid: i32) {
+    unsafe {
+        libc::kill(-pid, libc::SIGKILL);
+    }
+}
+
+#[cfg(windows)]
+fn kill_backend(pid: i32) {
+    let _ = StdCommand::new("taskkill")
+        .args(["/PID", &pid.to_string(), "/T", "/F"])
+        .stdout(Stdio::null())
+        .stderr(Stdio::null())
+        .status();
+}
 
 // The Elixir (Burrito) backend serves the LiveView on this port.
 const BACKEND_URL: &str = "http://localhost:14041";
@@ -86,11 +108,18 @@ fn start_backend(pid: Arc<Mutex<Option<i32>>>) {
         exe.set_file_name("catenary-backend");
 
         let mut command = StdCommand::new(exe);
+        #[cfg(unix)]
         command
             .arg("--no-halt")
             .stdout(Stdio::piped())
             .stderr(Stdio::piped())
             .process_group(0);
+        #[cfg(windows)]
+        command
+            .arg("--no-halt")
+            .stdout(Stdio::piped())
+            .stderr(Stdio::piped())
+            .creation_flags(CREATE_NEW_PROCESS_GROUP);
 
         let mut child = match command.spawn() {
             Ok(child) => child,
@@ -109,19 +138,15 @@ fn start_backend(pid: Arc<Mutex<Option<i32>>>) {
         let mut threads = Vec::new();
         if let Some(stdout) = stdout {
             threads.push(std::thread::spawn(move || {
-                for line in stdout.lines() {
-                    if let Ok(line) = line {
-                        println!("[catenary] {}", line.trim_end());
-                    }
+                for line in stdout.lines().map_while(Result::ok) {
+                    println!("[catenary] {}", line.trim_end());
                 }
             }));
         }
         if let Some(stderr) = stderr {
             threads.push(std::thread::spawn(move || {
-                for line in stderr.lines() {
-                    if let Ok(line) = line {
-                        eprintln!("[catenary] {}", line.trim_end());
-                    }
+                for line in stderr.lines().map_while(Result::ok) {
+                    eprintln!("[catenary] {}", line.trim_end());
                 }
             }));
         }
@@ -217,9 +242,7 @@ pub fn run() {
         .run(move |_app, event| {
             if let RunEvent::Exit = event {
                 if let Some(pid) = exit_pid.lock().unwrap().take() {
-                    unsafe {
-                        libc::kill(-pid, libc::SIGKILL);
-                    }
+                    kill_backend(pid);
                     println!("[catenary] backend killed");
                 }
             }
