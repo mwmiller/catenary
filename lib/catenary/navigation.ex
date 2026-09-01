@@ -23,14 +23,14 @@ defmodule Catenary.Navigation do
   defp sent_state(supplied, _assigns), do: supplied
 
   # Back/forward pop directly from the history stacks and bypass `new_path`.
-  defp transition("back", sent, _from, %{entry_back: entry_back, entry_fore: entry_fore}) do
+  defp transition("back", _from, sent, %{entry_back: entry_back, entry_fore: entry_fore}) do
     case entry_back do
       [] -> sent
       [prev | rest] -> Map.merge(prev, %{entry_back: rest, entry_fore: [sent | entry_fore]})
     end
   end
 
-  defp transition("forward", sent, _from, %{entry_back: entry_back, entry_fore: entry_fore}) do
+  defp transition("forward", _from, sent, %{entry_back: entry_back, entry_fore: entry_fore}) do
     case entry_fore do
       [] -> sent
       [next | rest] -> Map.merge(next, %{entry_fore: rest, entry_back: [sent | entry_back]})
