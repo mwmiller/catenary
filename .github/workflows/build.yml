@@ -222,12 +222,15 @@ jobs:
         if: env.APPLE_CERTIFICATE == ''
         run: tauri build --bundles app --no-sign
 
-      - name: Create DMG installer
+      - name: Create DMG installer with Applications symlink
         run: |
-          cd src-tauri/target/release/bundle/macos
+          staging="$RUNNER_TEMP/dmg-staging"
+          mkdir -p "$staging"
+          cp -R src-tauri/target/release/bundle/macos/Catenary.app "$staging/"
+          ln -s /Applications "$staging/Applications"
           hdiutil create \
             -volname "Catenary" \
-            -srcfolder Catenary.app \
+            -srcfolder "$staging" \
             -ov -format UDZO "$GITHUB_WORKSPACE/Catenary-macos.dmg"
 
       - name: Zip Catenary.app for distribution

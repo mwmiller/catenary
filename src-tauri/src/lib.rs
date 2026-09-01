@@ -1,12 +1,13 @@
+use std::io::{BufRead, BufReader};
 use std::net::{SocketAddr, TcpStream};
+use std::os::unix::process::CommandExt;
+use std::process::{Command as StdCommand, Stdio};
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
 
 use serde_json::json;
 use tauri::menu::{MenuBuilder, MenuItemBuilder, PredefinedMenuItem, SubmenuBuilder};
 use tauri::{Emitter, Manager, RunEvent, Window};
-use tauri_plugin_shell::process::{CommandChild, CommandEvent};
-use tauri_plugin_shell::ShellExt;
 
 // The Elixir (Burrito) backend serves the LiveView on this port.
 const BACKEND_URL: &str = "http://localhost:14041";
@@ -33,9 +34,12 @@ fn build_menu(app: &tauri::App) -> tauri::Result<()> {
         .accelerator("CmdOrCtrl+R")
         .build(handle)?;
     let close_window = PredefinedMenuItem::close_window(handle, None)?;
+    let about = PredefinedMenuItem::about(handle, Some("About Catenary"), None)?;
     let quit = PredefinedMenuItem::quit(handle, Some("Quit Catenary"))?;
 
     let catenary = SubmenuBuilder::new(handle, "Catenary")
+        .item(&about)
+        .separator()
         .item(&quit)
         .build()?;
     let go = SubmenuBuilder::new(handle, "Go")
@@ -60,35 +64,59 @@ fn build_menu(app: &tauri::App) -> tauri::Result<()> {
     Ok(())
 }
 
-fn start_backend(app: &tauri::AppHandle, child: Arc<Mutex<Option<CommandChild>>>) {
-    let handle = app.clone();
+fn start_backend(pid: Arc<Mutex<Option<i32>>>) {
     std::thread::spawn(move || {
-        let command = match handle.shell().sidecar("catenary-backend") {
-            Ok(command) => command.arg("--no-halt"),
+        let mut exe = match std::env::current_exe() {
+            Ok(exe) => exe,
             Err(err) => {
-                eprintln!("[catenary] unable to resolve the backend sidecar: {err}");
+                eprintln!("[catenary] unable to resolve the app executable: {err}");
+                return;
+            }
+        };
+        exe.set_file_name("catenary-backend");
+
+        let mut command = StdCommand::new(exe);
+        command
+            .arg("--no-halt")
+            .stdout(Stdio::piped())
+            .stderr(Stdio::piped())
+            .process_group(0);
+
+        let mut child = match command.spawn() {
+            Ok(child) => child,
+            Err(err) => {
+                eprintln!("[catenary] failed to spawn the backend: {err}");
                 return;
             }
         };
 
-        match command.spawn() {
-            Ok((mut rx, child_proc)) => {
-                *child.lock().unwrap() = Some(child_proc);
-                println!("[catenary] backend started");
-                while let Some(event) = rx.blocking_recv() {
-                    match event {
-                        CommandEvent::Stdout(line) => {
-                            println!("[catenary] {}", String::from_utf8_lossy(&line).trim_end())
-                        }
-                        CommandEvent::Stderr(line) => {
-                            eprintln!("[catenary] {}", String::from_utf8_lossy(&line).trim_end())
-                        }
-                        _ => {}
+        *pid.lock().unwrap() = Some(child.id() as i32);
+        println!("[catenary] backend started");
+
+        let stdout = child.stdout.take().map(BufReader::new);
+        let stderr = child.stderr.take().map(BufReader::new);
+
+        let mut threads = Vec::new();
+        if let Some(stdout) = stdout {
+            threads.push(std::thread::spawn(move || {
+                for line in stdout.lines() {
+                    if let Ok(line) = line {
+                        println!("[catenary] {}", line.trim_end());
                     }
                 }
-            }
-            Err(err) => eprintln!("[catenary] failed to spawn the backend sidecar: {err}"),
+            }));
         }
+        if let Some(stderr) = stderr {
+            threads.push(std::thread::spawn(move || {
+                for line in stderr.lines() {
+                    if let Ok(line) = line {
+                        eprintln!("[catenary] {}", line.trim_end());
+                    }
+                }
+            }));
+        }
+
+        let _ = child.wait();
     });
 }
 
@@ -107,14 +135,14 @@ fn wait_for_backend() {
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
-    let backend_child: Arc<Mutex<Option<CommandChild>>> = Arc::new(Mutex::new(None));
-    let exit_child = backend_child.clone();
+    let backend_pid: Arc<Mutex<Option<i32>>> = Arc::new(Mutex::new(None));
+    let exit_pid = backend_pid.clone();
     tauri::Builder::default()
         .plugin(tauri_plugin_shell::init())
         .invoke_handler(tauri::generate_handler![set_window_size])
         .setup(|app| {
             build_menu(app)?;
-            start_backend(app.handle(), backend_child);
+            start_backend(backend_pid);
 
             let handle = app.handle().clone();
             std::thread::spawn(move || {
@@ -168,8 +196,10 @@ pub fn run() {
         .expect("error while building tauri application")
         .run(move |_app, event| {
             if let RunEvent::Exit = event {
-                if let Some(child) = exit_child.lock().unwrap().take() {
-                    let _ = child.kill();
+                if let Some(pid) = exit_pid.lock().unwrap().take() {
+                    unsafe {
+                        libc::kill(-pid, libc::SIGKILL);
+                    }
                     println!("[catenary] backend killed");
                 }
             }
