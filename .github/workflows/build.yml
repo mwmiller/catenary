@@ -121,14 +121,18 @@ jobs:
              src-tauri/binaries/catenary-backend-x86_64-unknown-linux-gnu
           chmod +x src-tauri/binaries/catenary-backend-x86_64-unknown-linux-gnu
 
-      - name: Build deb + AppImage
-        run: tauri build --bundles deb appimage
+      - name: Build deb + rpm + AppImage
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y rpm
+          tauri build --bundles deb rpm appimage
 
       - uses: actions/upload-artifact@v4
         with:
           name: desktop-linux
           path: |
             src-tauri/target/release/bundle/deb/*.deb
+            src-tauri/target/release/bundle/rpm/*.rpm
             src-tauri/target/release/bundle/appimage/*.AppImage
 
   shell-windows:
@@ -258,6 +262,7 @@ jobs:
           version="${GITHUB_REF_NAME#v}"
           cd release
           mv "$(find desktop-linux -type f -name '*.deb')"      "Catenary-${version}-linux-x86_64.deb"
+          mv "$(find desktop-linux -type f -name '*.rpm')"      "Catenary-${version}-linux-x86_64.rpm"
           mv "$(find desktop-linux -type f -name '*.AppImage')" "Catenary-${version}-linux-x86_64.AppImage"
           mv "$(find desktop-windows -type f -name '*.exe')"    "Catenary-${version}-windows-x86_64-setup.exe"
           mv "$(find desktop-macos -type f -name '*.zip')"      "Catenary-${version}-macos-aarch64.zip"
@@ -266,8 +271,10 @@ jobs:
           Catenary ${version} for all supported platforms.
 
           ### Linux (x86_64)
-          - \`Catenary-${version}-linux-x86_64.deb\` — Pop!_OS / Ubuntu / Debian:
+          - \`Catenary-${version}-linux-x86_64.deb\` — Debian / Ubuntu / Pop!_OS:
             \`sudo apt install ./Catenary-${version}-linux-x86_64.deb\`
+          - \`Catenary-${version}-linux-x86_64.rpm\` — Fedora / RHEL / openSUSE:
+            \`sudo dnf install ./Catenary-${version}-linux-x86_64.rpm\`
           - \`Catenary-${version}-linux-x86_64.AppImage\` — any distro; needs webkit2gtk first:
             \`sudo apt install libwebkit2gtk-4.1-0\`, then \`chmod +x\` the file and run it.
 
@@ -290,6 +297,7 @@ jobs:
           body_path: release/notes.md
           files: |
             release/Catenary-*-linux-x86_64.deb
+            release/Catenary-*-linux-x86_64.rpm
             release/Catenary-*-linux-x86_64.AppImage
             release/Catenary-*-windows-x86_64-setup.exe
             release/Catenary-*-macos-aarch64.zip
