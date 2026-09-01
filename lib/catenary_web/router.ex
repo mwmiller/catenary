@@ -22,6 +22,8 @@ defmodule CatenaryWeb.Router do
     get "/entries/:identity/:log_id/:seqnum", EntryController, :view
     get "/authors/:identity", ProfileController, :view
     post "/export", ExportController, :create
+    get "/export", ExportController, :create
+    post "/import", ImportController, :create
   end
 
   # Other scopes may use custom stacks.

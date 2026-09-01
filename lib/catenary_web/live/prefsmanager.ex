@@ -96,6 +96,14 @@ defmodule Catenary.Live.PrefsManager do
                       log_info_string(@store, k)
                     )}</span>
                     <span class="flex w-8 shrink-0 items-center justify-center">
+                      <a
+                        href={"/export?whom=" <> URI.encode_www_form(n)}
+                        download={n <> ".json"}
+                        class="rounded px-1.5 py-0.5 text-slate-400 dark:text-slate-500 transition-colors hover:bg-amber-100 hover:text-amber-700 dark:hover:bg-amber-900/40 dark:hover:text-amber-400"
+                        title="Export identity keys"
+                      >⇤</a>
+                    </span>
+                    <span class="flex w-8 shrink-0 items-center justify-center">
                       <%= if k == @identity do %>
                         <span class="text-slate-400 dark:text-slate-600" title="Current identity">⛒</span>
                       <% else %>
@@ -135,6 +143,38 @@ defmodule Catenary.Live.PrefsManager do
               <span class="min-w-0 flex-1 truncate text-xs text-slate-400 dark:text-slate-500">create and switch to</span>
               <span class="shrink-0 text-xs text-slate-400 dark:text-slate-500">none yet</span>
               <span class="flex w-8 shrink-0 items-center justify-center" />
+            </form>
+            <form
+              method="post"
+              action="/import"
+              enctype="multipart/form-data"
+              class="flex items-center gap-3 border-t border-slate-200 py-2 dark:border-slate-700"
+            >
+              <input type="hidden" name="_csrf_token" value={Phoenix.Controller.get_csrf_token()} />
+              <span class="flex w-12 shrink-0 items-center justify-start">
+                <button
+                  type="submit"
+                  class="rounded-md border border-slate-300 dark:border-slate-600 px-1.5 text-sm text-slate-500 dark:text-slate-400 transition-colors hover:border-amber-500 hover:text-amber-600 dark:hover:border-amber-400 dark:hover:text-amber-400"
+                  title="Import identity"
+                >⇥</button>
+              </span>
+              <label
+                for="identity-file-input"
+                class="w-40 shrink-0 cursor-pointer truncate rounded-md border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 px-2 py-1 text-sm text-slate-400 dark:text-slate-500 hover:border-amber-500 dark:hover:border-amber-400"
+                id="identity-file-label"
+                data-default="choose a .json file"
+              >
+                choose a .json file
+              </label>
+              <input
+                id="identity-file-input"
+                class="sr-only"
+                type="file"
+                name="identity_file"
+                accept="application/json,.json"
+                onchange={"const l = document.getElementById('identity-file-label'); l.textContent = this.files[0] ? this.files[0].name : l.dataset.default; if (this.files[0]) { this.closest('form').submit(); }"}
+              />
+              <span class="min-w-0 flex-1 truncate text-xs text-slate-400 dark:text-slate-500">import identity keys</span>
             </form>
             <div class="mt-3 flex items-center gap-2 border-t border-slate-200 dark:border-slate-700 pt-3">
               <label class="text-sm text-slate-600 dark:text-slate-300" for="facet_id">❖ Facet</label>
