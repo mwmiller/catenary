@@ -689,6 +689,10 @@ defmodule CatenaryWeb.Live do
      )}
   end
 
+  def handle_event("menu", %{"value" => motion}, socket) do
+    {:noreply, state_set(socket, Navigation.move_to(motion, :current, socket.assigns))}
+  end
+
   def handle_event("menu", _, socket), do: {:noreply, socket}
 
   # The native window reports its size back so we can remember it.

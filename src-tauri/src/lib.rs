@@ -30,6 +30,12 @@ fn build_menu(app: &tauri::App) -> tauri::Result<()> {
     let oases = MenuItemBuilder::with_id("oases", "Oases")
         .accelerator("CmdOrCtrl+O")
         .build(handle)?;
+    let unshown = MenuItemBuilder::with_id("unshown", "Unshown")
+        .accelerator("CmdOrCtrl+U")
+        .build(handle)?;
+    let profile = MenuItemBuilder::with_id("profile", "My Profile")
+        .accelerator("CmdOrCtrl+Shift+P")
+        .build(handle)?;
     let reload = MenuItemBuilder::with_id("reload", "Reload")
         .accelerator("CmdOrCtrl+R")
         .build(handle)?;
@@ -40,13 +46,17 @@ fn build_menu(app: &tauri::App) -> tauri::Result<()> {
     let catenary = SubmenuBuilder::new(handle, "Catenary")
         .item(&about)
         .separator()
+        .item(&prefs)
+        .separator()
         .item(&quit)
         .build()?;
     let go = SubmenuBuilder::new(handle, "Go")
         .item(&dashboard)
         .separator()
-        .item(&prefs)
         .item(&oases)
+        .item(&unshown)
+        .separator()
+        .item(&profile)
         .build()?;
     let view = SubmenuBuilder::new(handle, "View").item(&reload).build()?;
     let window = SubmenuBuilder::new(handle, "Window")
@@ -171,6 +181,16 @@ pub fn run() {
                     "catenary-menu",
                     json!({ "view": "oases", "entry": "none" }),
                 );
+            }
+            "unshown" => {
+                let _ = app.emit_to(
+                    "main",
+                    "catenary-menu",
+                    json!({ "view": "unshown", "entry": "all" }),
+                );
+            }
+            "profile" => {
+                let _ = app.emit_to("main", "catenary-menu", json!({ "value": "origin" }));
             }
             "reload" => {
                 if let Some(window) = app.get_webview_window("main") {
