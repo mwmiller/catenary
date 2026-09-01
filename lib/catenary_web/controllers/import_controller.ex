@@ -80,6 +80,9 @@ defmodule CatenaryWeb.ImportController do
 
   defp import_identity(%{"identity" => name, "secret_key" => sk}) do
     with {:ok, raw_sk} <- decode_secret_key(sk),
+         pk = Ed25519.derive_public_key(raw_sk),
+         pk62 = BaseX.Base62.encode(pk),
+         :ok <- check_key_not_present(pk62),
          taken =
            Baobab.Identity.list()
            |> Enum.map(fn {n, _k} -> n end)
@@ -90,6 +93,15 @@ defmodule CatenaryWeb.ImportController do
         {:error, reason} -> {:error, reason}
         _pk -> {:ok, chosen}
       end
+    end
+  end
+
+  # Refuse to import keys which already exist locally; auto-rename
+  # is only for name collisions with *different* keys.
+  defp check_key_not_present(pk62) do
+    case Enum.find(Baobab.Identity.list(), fn {_n, k} -> k == pk62 end) do
+      {name, _} -> {:error, "these keys already exist here as identity #{name}"}
+      nil -> :ok
     end
   end
 

@@ -52,6 +52,34 @@ defmodule CatenaryWeb.ImportControllerTest do
     Baobab.Identity.drop(existing <> "-1")
   end
 
+  test "fails when the keys already exist locally" do
+    existing = "test-import-dup-#{System.unique_integer()}"
+    sk = :crypto.strong_rand_bytes(32)
+    pk = Baobab.Identity.create(existing, sk)
+    assert is_binary(pk)
+
+    exported =
+      Jason.encode!(%{
+        "application" => "catenary",
+        "identity" => existing,
+        "key_encoding" => "base62",
+        "key_type" => "ed25519",
+        "public_key" => pk,
+        "secret_key" => BaseX.Base62.encode(sk)
+      })
+
+    conn =
+      conn_with_flash()
+      |> CatenaryWeb.ImportController.create(%{"identity_file" => upload(exported)})
+
+    assert conn.status == 302
+    assert Phoenix.Flash.get(conn.assigns.flash, :error) =~ "already exist here as identity"
+    # nothing new was created
+    names = Baobab.Identity.list() |> Enum.map(fn {n, _k} -> n end)
+    refute existing <> "-1" in names
+    Baobab.Identity.drop(existing)
+  end
+
   test "rejects an unrecognized file" do
     conn =
       conn_with_flash()
