@@ -229,6 +229,7 @@ defmodule CatenaryWeb.Live do
             ]}
             phx-click="nav-backward"
             title="Back"
+            disabled={@entry_back == []}
           >⤶</button>
           <button
             value="tags"
@@ -267,6 +268,7 @@ defmodule CatenaryWeb.Live do
             ]}
             phx-click="nav-forward"
             title="Forward"
+            disabled={@entry_fore == []}
           >⤷</button>
         </div>
 
@@ -279,8 +281,11 @@ defmodule CatenaryWeb.Live do
     """
   end
 
-  def stack_color([]), do: "bg-slate-100 dark:bg-slate-800"
-  def stack_color(_), do: "bg-slate-200 dark:bg-slate-700"
+  def stack_color([]) do
+    "disabled:opacity-40 disabled:cursor-default disabled:hover:bg-transparent"
+  end
+
+  def stack_color(_), do: ""
 
   defp activitybar(assigns) do
     ~H"""
