@@ -218,6 +218,14 @@ jobs:
         if: env.APPLE_CERTIFICATE == ''
         run: tauri build --bundles app --no-sign
 
+      - name: Create DMG installer
+        run: |
+          cd src-tauri/target/release/bundle/macos
+          hdiutil create \
+            -volname "Catenary" \
+            -srcfolder Catenary.app \
+            -ov -format UDZO "$GITHUB_WORKSPACE/Catenary-macos.dmg"
+
       - name: Zip Catenary.app for distribution
         run: |
           cd src-tauri/target/release/bundle/macos
@@ -226,7 +234,9 @@ jobs:
       - uses: actions/upload-artifact@v4
         with:
           name: desktop-macos
-          path: Catenary-macos.zip
+          path: |
+            Catenary-macos.zip
+            Catenary-macos.dmg
 
   publish:
     name: Publish GitHub Release
@@ -251,6 +261,7 @@ jobs:
           mv "$(find desktop-linux -type f -name '*.AppImage')" "Catenary-${version}-linux-x86_64.AppImage"
           mv "$(find desktop-windows -type f -name '*.exe')"    "Catenary-${version}-windows-x86_64-setup.exe"
           mv "$(find desktop-macos -type f -name '*.zip')"      "Catenary-${version}-macos-aarch64.zip"
+          mv "$(find desktop-macos -type f -name '*.dmg')"      "Catenary-${version}-macos-aarch64.dmg"
           cat > notes.md <<NOTES
           Catenary ${version} for all supported platforms.
 
@@ -265,6 +276,8 @@ jobs:
             Start-menu shortcuts and an uninstaller.
 
           ### macOS (Apple Silicon)
+          - \`Catenary-${version}-macos-aarch64.dmg\` — open and drag Catenary to
+            Applications (recommended; installs into /Applications).
           - \`Catenary-${version}-macos-aarch64.zip\` — unzip and drag to Applications.
           NOTES
 
@@ -280,3 +293,4 @@ jobs:
             release/Catenary-*-linux-x86_64.AppImage
             release/Catenary-*-windows-x86_64-setup.exe
             release/Catenary-*-macos-aarch64.zip
+            release/Catenary-*-macos-aarch64.dmg
