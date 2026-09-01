@@ -37,6 +37,20 @@ Native window resize events are reported back so the app can remember its
 window size. Choosing **Quit Catenary** terminates the backend and releases
 its port.
 
+## Install (end users)
+
+Ready-made installers are attached to each [GitHub release](https://github.com/mwmiller/catenary/releases):
+
+* **macOS** — `Catenary-<version>-macos-aarch64.dmg`: open it and drag Catenary
+  into Applications. (A `.zip` fallback is also provided.)
+* **Windows** — `Catenary-<version>-windows-x86_64-setup.exe`: run the
+  installer; it adds Start-menu shortcuts and an uninstaller.
+* **Linux**
+  * Debian / Ubuntu / Pop!_OS: `sudo apt install ./Catenary-<version>-linux-x86_64.deb`
+  * Fedora / RHEL / openSUSE: `sudo dnf install ./Catenary-<version>-linux-x86_64.rpm`
+  * Any other distro: download the `.AppImage`, make it executable
+    (`chmod +x`, requires `libwebkit2gtk-4.1-0`), and run it.
+
 Development iteration of the shell alone, with `mix phx.server` already running:
 
 ```
