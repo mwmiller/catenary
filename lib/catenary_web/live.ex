@@ -536,7 +536,20 @@ defmodule CatenaryWeb.Live do
   def handle_event("drop-id", %{"name" => whom}, socket) do
     Baobab.Identity.drop(whom)
 
-    {:noreply, state_set(socket, %{identities: Baobab.Identity.list()})}
+    # If we dropped the active identity, switch to another extant
+    # one (creating a working default if none remain)
+    new_identity =
+      case Enum.filter(socket.assigns.identities, fn {n, _} -> n != whom end) do
+        [{_n, key} | _] ->
+          key
+
+        [] ->
+          Preferences.get(:identity)
+      end
+
+    Preferences.set(:identity, new_identity)
+
+    {:noreply, state_set(socket, %{identity: new_identity, identities: Baobab.Identity.list()})}
   end
 
   def handle_event("drop-id", _, socket), do: {:noreply, socket}

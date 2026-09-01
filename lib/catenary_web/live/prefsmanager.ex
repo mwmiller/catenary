@@ -104,18 +104,14 @@ defmodule Catenary.Live.PrefsManager do
                       >⇤</a>
                     </span>
                     <span class="flex w-8 shrink-0 items-center justify-center">
-                      <%= if k == @identity do %>
-                        <span class="text-slate-400 dark:text-slate-600" title="Current identity">⛒</span>
-                      <% else %>
-                        <button
-                          type="button"
-                          class="rounded px-1.5 py-0.5 text-slate-400 dark:text-slate-500 transition-colors hover:bg-red-100 hover:text-red-700 dark:hover:bg-red-900/40 dark:hover:text-red-400"
-                          value={n}
-                          data-confirm={"Drop identity #{n}? This cannot be undone."}
-                          phx-click="drop-id"
-                          phx-value-name={n}
-                        >⛒</button>
-                      <% end %>
+                      <button
+                        type="button"
+                        class="rounded px-1.5 py-0.5 text-slate-400 dark:text-slate-500 transition-colors hover:bg-red-100 hover:text-red-700 dark:hover:bg-red-900/40 dark:hover:text-red-400"
+                        value={n}
+                        data-confirm={"Drop identity #{n}? This cannot be undone."}
+                        phx-click="drop-id"
+                        phx-value-name={n}
+                      >⛒</button>
                     </span>
                   </div>
                 <% end %>
