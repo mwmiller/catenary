@@ -25,7 +25,9 @@ defmodule CatenaryWeb.ImportControllerTest do
   test "imports a valid exported identity file" do
     conn =
       conn_with_flash()
-      |> CatenaryWeb.ImportController.create(%{"identity_file" => upload(export_json("test-import-alice"))})
+      |> CatenaryWeb.ImportController.create(%{
+        "identity_file" => upload(export_json("test-import-alice"))
+      })
 
     assert conn.status == 302
     names = Baobab.Identity.list() |> Enum.map(fn {n, _k} -> n end)
@@ -45,7 +47,7 @@ defmodule CatenaryWeb.ImportControllerTest do
 
     assert conn.status == 302
     names = Baobab.Identity.list() |> Enum.map(fn {n, _k} -> n end)
-    assert existing <> "-1" in names
+    assert (existing <> "-1") in names
     # the pre-existing identity's keys must be untouched
     assert Baobab.Identity.key(existing, :secret) != BaseX.Base62.decode(@sk)
     Baobab.Identity.drop(existing)
@@ -76,7 +78,7 @@ defmodule CatenaryWeb.ImportControllerTest do
     assert Phoenix.Flash.get(conn.assigns.flash, :error) =~ "already exist here as identity"
     # nothing new was created
     names = Baobab.Identity.list() |> Enum.map(fn {n, _k} -> n end)
-    refute existing <> "-1" in names
+    refute (existing <> "-1") in names
     Baobab.Identity.drop(existing)
   end
 

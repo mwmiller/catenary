@@ -62,9 +62,10 @@ defmodule CatenaryWeb.ImportController do
 
   # Returns an unused name derived from the exported identity name
   defp available_name(base, taken) do
-    cond do
-      not MapSet.member?(taken, base) -> base
-      true -> available_suffix(base, 1, taken)
+    if MapSet.member?(taken, base) do
+      available_suffix(base, 1, taken)
+    else
+      base
     end
   end
 
@@ -82,14 +83,15 @@ defmodule CatenaryWeb.ImportController do
     with {:ok, raw_sk} <- decode_secret_key(sk),
          pk = Ed25519.derive_public_key(raw_sk),
          pk62 = BaseX.Base62.encode(pk),
-         :ok <- check_key_not_present(pk62),
-         taken =
-           Baobab.Identity.list()
-           |> Enum.map(fn {n, _k} -> n end)
-           |> MapSet.new(),
-         chosen = available_name(name, taken),
-         create_result = Baobab.Identity.create(chosen, raw_sk) do
-      case create_result do
+         :ok <- check_key_not_present(pk62) do
+      taken =
+        Baobab.Identity.list()
+        |> Enum.map(fn {n, _k} -> n end)
+        |> MapSet.new()
+
+      chosen = available_name(name, taken)
+
+      case Baobab.Identity.create(chosen, raw_sk) do
         {:error, reason} -> {:error, reason}
         _pk -> {:ok, chosen}
       end

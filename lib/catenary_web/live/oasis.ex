@@ -15,9 +15,9 @@ defmodule Catenary.Live.OasisExplorer do
        nodes: nodes,
        opened: assigns.opened,
        connect_open: Map.get(assigns, :connect_open, false),
-        manual: Map.get(assigns, :manual, %{}),
-        bootstrap: Map.fetch!(assigns, :bootstrap)
-      )}
+       manual: Map.get(assigns, :manual, %{}),
+       bootstrap: Map.fetch!(assigns, :bootstrap)
+     )}
   end
 
   @impl true

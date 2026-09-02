@@ -96,63 +96,67 @@ fn build_menu(app: &tauri::App) -> tauri::Result<()> {
     Ok(())
 }
 
-fn start_backend(pid: Arc<Mutex<Option<i32>>>) {
+// Spawns the backend synchronously and returns its PID once recorded, so
+// there is never a window where a quit would miss the PID and orphan the
+// backend. Output pumping and reaping continue on background threads.
+fn start_backend() -> Option<i32> {
+    let mut exe = match std::env::current_exe() {
+        Ok(exe) => exe,
+        Err(err) => {
+            eprintln!("[catenary] unable to resolve the app executable: {err}");
+            return None;
+        }
+    };
+    exe.set_file_name("catenary-backend");
+
+    let mut command = StdCommand::new(exe);
+    #[cfg(unix)]
+    command
+        .arg("--no-halt")
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped())
+        .process_group(0);
+    #[cfg(windows)]
+    command
+        .arg("--no-halt")
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped())
+        .creation_flags(CREATE_NEW_PROCESS_GROUP);
+
+    let mut child = match command.spawn() {
+        Ok(child) => child,
+        Err(err) => {
+            eprintln!("[catenary] failed to spawn the backend: {err}");
+            return None;
+        }
+    };
+
+    let stdout = child.stdout.take().map(BufReader::new);
+    let stderr = child.stderr.take().map(BufReader::new);
+    let pid = child.id() as i32;
+
+    if let Some(stdout) = stdout {
+        std::thread::spawn(move || {
+            for line in stdout.lines().map_while(Result::ok) {
+                println!("[catenary] {}", line.trim_end());
+            }
+        });
+    }
+    if let Some(stderr) = stderr {
+        std::thread::spawn(move || {
+            for line in stderr.lines().map_while(Result::ok) {
+                eprintln!("[catenary] {}", line.trim_end());
+            }
+        });
+    }
+
+    // Reap the child so it doesn't linger as a zombie after it exits.
     std::thread::spawn(move || {
-        let mut exe = match std::env::current_exe() {
-            Ok(exe) => exe,
-            Err(err) => {
-                eprintln!("[catenary] unable to resolve the app executable: {err}");
-                return;
-            }
-        };
-        exe.set_file_name("catenary-backend");
-
-        let mut command = StdCommand::new(exe);
-        #[cfg(unix)]
-        command
-            .arg("--no-halt")
-            .stdout(Stdio::piped())
-            .stderr(Stdio::piped())
-            .process_group(0);
-        #[cfg(windows)]
-        command
-            .arg("--no-halt")
-            .stdout(Stdio::piped())
-            .stderr(Stdio::piped())
-            .creation_flags(CREATE_NEW_PROCESS_GROUP);
-
-        let mut child = match command.spawn() {
-            Ok(child) => child,
-            Err(err) => {
-                eprintln!("[catenary] failed to spawn the backend: {err}");
-                return;
-            }
-        };
-
-        *pid.lock().unwrap() = Some(child.id() as i32);
-        println!("[catenary] backend started");
-
-        let stdout = child.stdout.take().map(BufReader::new);
-        let stderr = child.stderr.take().map(BufReader::new);
-
-        let mut threads = Vec::new();
-        if let Some(stdout) = stdout {
-            threads.push(std::thread::spawn(move || {
-                for line in stdout.lines().map_while(Result::ok) {
-                    println!("[catenary] {}", line.trim_end());
-                }
-            }));
-        }
-        if let Some(stderr) = stderr {
-            threads.push(std::thread::spawn(move || {
-                for line in stderr.lines().map_while(Result::ok) {
-                    eprintln!("[catenary] {}", line.trim_end());
-                }
-            }));
-        }
-
         let _ = child.wait();
     });
+
+    println!("[catenary] backend started");
+    Some(pid)
 }
 
 fn wait_for_backend() {
@@ -175,9 +179,11 @@ pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_shell::init())
         .invoke_handler(tauri::generate_handler![set_window_size])
-        .setup(|app| {
+        .setup(move |app| {
             build_menu(app)?;
-            start_backend(backend_pid);
+            // Spawn synchronously so the PID is recorded before any event
+            // (including a fast quit) can be processed.
+            *backend_pid.lock().unwrap() = start_backend();
 
             let handle = app.handle().clone();
             std::thread::spawn(move || {
@@ -225,16 +231,25 @@ pub fn run() {
             _ => {}
         })
         .on_window_event(|window, event| {
-            if let tauri::WindowEvent::Resized(size) = event {
-                let scale = window.scale_factor().unwrap_or(1.0);
-                let logical = size.to_logical::<f64>(scale);
-                let _ = window.emit(
-                    "catenary-resize",
-                    json!({
-                        "width": logical.width.to_string(),
-                        "height": logical.height.to_string()
-                    }),
-                );
+            match event {
+                tauri::WindowEvent::Resized(size) => {
+                    let scale = window.scale_factor().unwrap_or(1.0);
+                    let logical = size.to_logical::<f64>(scale);
+                    let _ = window.emit(
+                        "catenary-resize",
+                        json!({
+                            "width": logical.width.to_string(),
+                            "height": logical.height.to_string()
+                        }),
+                    );
+                }
+                // Closing the app window quits the app (and thus kills the
+                // backend) even on macOS, where the default is to keep the
+                // process alive without windows.
+                tauri::WindowEvent::Destroyed => {
+                    window.app_handle().exit(0);
+                }
+                _ => {}
             }
         })
         .build(tauri::generate_context!())

@@ -4,7 +4,7 @@ defmodule Catenary.MixProject do
   def project do
     [
       app: :catenary,
-      version: "0.74.0",
+      version: "0.79.0",
       elixir: "~> 1.18",
       elixirc_paths: elixirc_paths(Mix.env()),
       start_permanent: Mix.env() == :prod,
@@ -70,8 +70,7 @@ defmodule Catenary.MixProject do
       {:telemetry_poller, "~> 1.0"},
       {:jason, "~> 1.2"},
       {:bandit, "~> 1.0"},
-      {:credo, "~> 1.7", only: [:dev, :test], runtime: false},
-      {:tidewave, "~> 0.6", only: :dev}
+      {:credo, "~> 1.7", only: [:dev, :test], runtime: false}
     ]
   end
 

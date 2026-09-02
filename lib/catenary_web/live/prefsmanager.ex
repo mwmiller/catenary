@@ -168,7 +168,7 @@ defmodule Catenary.Live.PrefsManager do
                 type="file"
                 name="identity_file"
                 accept="application/json,.json"
-                onchange={"const l = document.getElementById('identity-file-label'); l.textContent = this.files[0] ? this.files[0].name : l.dataset.default; if (this.files[0]) { this.closest('form').submit(); }"}
+                onchange="const l = document.getElementById('identity-file-label'); l.textContent = this.files[0] ? this.files[0].name : l.dataset.default; if (this.files[0]) { this.closest('form').submit(); }"
               />
               <span class="min-w-0 flex-1 truncate text-xs text-slate-400 dark:text-slate-500">import identity keys</span>
             </form>
