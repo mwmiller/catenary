@@ -32,6 +32,18 @@ defmodule Catenary.Indices do
     update(rest)
   end
 
+  # Synchronous update: blocks until the index worker has folded the current
+  # store into its ETS table. Use on write paths where the UI re-renders
+  # immediately after the write, so fresh index data is visible at once.
+  def update_sync(index) when not is_list(index), do: update_sync([index])
+
+  def update_sync([]), do: :ok
+
+  def update_sync([index | rest]) do
+    GenServer.call(index, :update)
+    update_sync(rest)
+  end
+
   # Cast :update to every index worker, bypassing the store-hash gate used
   # by update/0/1. Used once at startup after Baobab's Log.Acceptor has had
   # time to populate :status dets, so workers index against the live store.

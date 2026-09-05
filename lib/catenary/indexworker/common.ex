@@ -52,6 +52,20 @@ defmodule Catenary.IndexWorker.Common do
         {:noreply, %{state | indexed: mapped_curr}}
       end
 
+      # Shared body for the synchronous and asynchronous update paths; returns
+      # the new state. Callers wrap it in the appropriate GenServer reply shape.
+      defp run_update(%{indexed: seen} = state) do
+        Status.set(unquote(na), unquote(run), :running)
+        clump_id = Preferences.get(:clump_id)
+        current = clump_id |> Baobab.stored_info()
+
+        {mapped_curr, todo} = updated_logs(current, seen, {%{}, []})
+        do_index(todo, clump_id)
+
+        Status.set(unquote(na), unquote(idle), :idle)
+        %{state | indexed: mapped_curr}
+      end
+
       def force_rebuild(state) do
         Status.set(unquote(na), unquote(run), :running)
         clump_id = Preferences.get(:clump_id)
@@ -81,7 +95,13 @@ defmodule Catenary.IndexWorker.Common do
       defp updated_logs([_ | rest], seen, acc), do: updated_logs(rest, seen, acc)
 
       @impl true
-      def handle_cast(:update, state), do: update_from_logs(state)
+      def handle_cast(:update, state), do: {:noreply, run_update(state)}
+
+      # Synchronous variant: blocks until the ETS table reflects the current
+      # store. Used by log writers that re-render the UI immediately after
+      # writing, so the fresh index is visible without another render cycle.
+      @impl true
+      def handle_call(:update, _from, state), do: {:reply, :ok, run_update(state)}
 
       @impl true
       def handle_cast(:force_rebuild, state) do
