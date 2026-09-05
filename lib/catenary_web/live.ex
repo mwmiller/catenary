@@ -16,8 +16,8 @@ defmodule CatenaryWeb.Live do
     clump_id = Preferences.get(:clump_id)
 
     {view, entry} =
-      case params["view"] do
-        view_str when is_binary(view_str) and view_str != "" ->
+      case params do
+        %{"view" => view_str} when is_binary(view_str) and view_str != "" ->
           {String.to_existing_atom(view_str), :all}
 
         _ ->
