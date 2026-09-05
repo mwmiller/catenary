@@ -546,6 +546,28 @@ defmodule Catenary.Live.EntryViewer do
     e -> malformed(e, cbor)
   end
 
+  # Fallback for any recognized log without a purpose-built viewer (e.g.
+  # :challenge): render the decoded payload as an inspect dump in a fenced
+  # markdown code block. Falls through the specific clauses above, so it also
+  # keeps new log types renderable before a dedicated card exists.
+  defp extract_type(cbor, %{name: lname}) do
+    {:ok, data, ""} = CBOR.decode(cbor)
+
+    title =
+      case data["type"] do
+        type when is_binary(type) and type != "" -> String.capitalize(type)
+        _ -> String.capitalize(Atom.to_string(lname))
+      end
+
+    %{
+      "title" => title,
+      "back-refs" => maybe_refs(data["references"]),
+      "body" => Phoenix.HTML.raw(MDEx.to_html!("```\n" <> inspect(data) <> "\n```"))
+    }
+  rescue
+    e -> malformed(e, cbor)
+  end
+
   defp key_link(key),
     do:
       Display.entry_icon_link({:profile, key}, 2) <>
