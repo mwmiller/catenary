@@ -3,7 +3,7 @@ defmodule Catenary.Live.PrefsManager do
   LiveComponent for managing and displaying user preferences.
   """
   use Phoenix.LiveComponent
-  alias Catenary.Display
+  alias Catenary.{Display, Preferences}
 
   @impl true
   def update(assigns, socket) do
@@ -13,7 +13,6 @@ defmodule Catenary.Live.PrefsManager do
      assign(
        socket,
        Map.merge(assigns, %{
-         blocked: blocked_map_set(assigns.clump_id),
          ac: ac,
          lc: lc,
          ec: ec,
@@ -212,13 +211,40 @@ defmodule Catenary.Live.PrefsManager do
             <h2 class="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-400 dark:text-slate-500">
               Accept log types
             </h2>
-            <form method="post" id="accept-form" phx-submit="new-entry">
+            <form method="post" id="accept-form" phx-change="accept-change" phx-submit="new-entry">
               <input type="hidden" name="log_id" value="1337" />
               <input type="hidden" name="listed" value="accept" />
               <div class="grid grid-cols-3 gap-1">
                 <%= for {s, a} <- Display.all_pretty_log_pairs do %>
                   <label class="flex items-center gap-1.5 text-sm text-slate-700 dark:text-slate-300">
-                    {log_accept_input(a, @blocked) |> Phoenix.HTML.raw()}&nbsp;{s}
+                    <%= if a == :graph do %>
+                      ☑︎<input type="hidden" name={"log_name-#{a}"} value={a} />
+                    <% else %>
+                      <input
+                        type="checkbox"
+                        name={"log_name-#{a}"}
+                        value={a}
+                        checked={MapSet.member?(@accepted_logs, a)}
+                        class="h-4 w-4 rounded border-slate-300 dark:border-slate-600 text-amber-500 dark:text-amber-400 focus:ring-1 focus:ring-amber-500/60 dark:focus:ring-400/60"
+                      />
+                    <% end %>
+                    &nbsp;{s}
+                  </label>
+                <% end %>
+              </div>
+              <h2 class="mt-4 mb-2 text-xs font-semibold uppercase tracking-wide text-slate-400 dark:text-slate-500">
+                Accept families
+              </h2>
+              <div class="grid grid-cols-3 gap-1">
+                <%= for {name, _tag} <- QuaggaDef.families() do %>
+                  <label class="flex items-center gap-1.5 text-sm text-slate-700 dark:text-slate-300">
+                    <input
+                      type="checkbox"
+                      name={"family-#{name}"}
+                      value={name}
+                      checked={family_checked?(name, @challenge_checked)}
+                      class="h-4 w-4 rounded border-slate-300 dark:border-slate-600 text-amber-500 dark:text-amber-400 focus:ring-1 focus:ring-amber-500/60 dark:focus:ring-400/60"
+                    />&nbsp;{name}
                   </label>
                 <% end %>
               </div>
@@ -263,27 +289,14 @@ defmodule Catenary.Live.PrefsManager do
     """
   end
 
-  defp log_accept_input(:graph, _blocked),
-    do: "☑︎ <input type=\"hidden\" name=\"log_name-graph\" value=\"graph\">"
-
-  defp log_accept_input(name, blocked) do
-    logs = QuaggaDef.logs_for_name(name) |> MapSet.new()
-    # We'll assume that if any one is blocked we meant
-    # to block them all.
-    checked =
-      case MapSet.intersection(blocked, logs) |> Enum.count() do
-        0 -> " checked "
-        _ -> ""
-      end
-
-    ln = Atom.to_string(name)
-
-    ~s(<input class="h-4 w-4 rounded border-slate-300 dark:border-slate-600 text-amber-500 dark:text-amber-400 focus:ring-1 focus:ring-amber-500/60 dark:focus:ring-amber-400/60" type="checkbox"  name="log_name-) <>
-      ln <> ~s(" value=") <> ln <> "\"" <> checked <> "/>"
-  end
-
-  defp blocked_map_set(clump_id) do
-    clump_id |> Baobab.ClumpMeta.blocks_list() |> MapSet.new()
+  defp family_checked?(name, challenge_checked) do
+    if challenge_checked do
+      tag = QuaggaDef.families()[name]
+      clump_id = Preferences.get(:clump_id)
+      not Catenary.BlockLog.blocked_family?(tag, clump_id)
+    else
+      false
+    end
   end
 
   defp log_info_string(store, k) do
