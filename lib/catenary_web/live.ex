@@ -73,9 +73,10 @@ defmodule CatenaryWeb.Live do
          opened: 0,
          clumps: clumps,
           clump_id: clump_id,
-          identity: whoami,
-          facet_id: facet_id,
-          accepted_logs: accepted_log_names()
+           identity: whoami,
+           facet_id: facet_id,
+           accepted_logs: accepted_log_names(),
+           index_version: 0
        }
      )}
   end
@@ -99,6 +100,7 @@ defmodule CatenaryWeb.Live do
       <.live_component
         module={Catenary.Live.PrefsManager}
         id={:prefs}
+        index_version={@index_version}
         clumps={@clumps}
         clump_id={@clump_id}
         identity={@identity}
@@ -118,7 +120,7 @@ defmodule CatenaryWeb.Live do
 
     ~H"""
     <.three_column_layout {assigns}>
-      <.live_component module={Catenary.Live.TagViewer} id={:tags} entry={@tag} />
+      <.live_component module={Catenary.Live.TagViewer} id={:tags} index_version={@index_version} entry={@tag} />
     </.three_column_layout>
     """
   end
@@ -126,7 +128,7 @@ defmodule CatenaryWeb.Live do
   def render(%{view: :tags} = assigns) do
     ~H"""
     <.three_column_layout {assigns}>
-      <.live_component module={Catenary.Live.TagExplorer} id={:tags} entry={@entry} />
+      <.live_component module={Catenary.Live.TagExplorer} id={:tags} index_version={@index_version} entry={@entry} />
     </.three_column_layout>
     """
   end
@@ -137,6 +139,7 @@ defmodule CatenaryWeb.Live do
       <.live_component
         module={Catenary.Live.ImageExplorer}
         id={:images}
+        index_version={@index_version}
         entry={:poster}
         aliases={@aliases}
       />
@@ -152,6 +155,7 @@ defmodule CatenaryWeb.Live do
       <.live_component
         module={Catenary.Live.UnshownExplorer}
         id={:unshown}
+        index_version={@index_version}
         which={@entry}
         clump_id={@clump_id}
         oases={@oases}
@@ -167,6 +171,7 @@ defmodule CatenaryWeb.Live do
       <.live_component
         module={Catenary.Live.AliasExplorer}
         id={:aliases}
+        index_version={@index_version}
         alias={:all}
         aliases={@aliases}
       />
@@ -180,6 +185,7 @@ defmodule CatenaryWeb.Live do
       <.live_component
         module={Catenary.Live.OasisExplorer}
         id={:oases}
+        index_version={@index_version}
         oases={@oases}
         opened={@opened}
         aliases={@aliases}
@@ -197,6 +203,7 @@ defmodule CatenaryWeb.Live do
       <.live_component
         module={Catenary.Live.ChallengesExplorer}
         id={:challenges}
+        index_version={@index_version}
         entry={:all}
         identity={@identity}
         aliases={@aliases}
@@ -213,6 +220,7 @@ defmodule CatenaryWeb.Live do
       <.live_component
         module={Catenary.Live.BackgammonView}
         id={:game}
+        index_version={@index_version}
         game_id={@game_id}
         entry={@entry}
         identity={@identity}
@@ -230,6 +238,7 @@ defmodule CatenaryWeb.Live do
       <.live_component
         module={Catenary.Live.EntryViewer}
         id={:entry}
+        index_version={@index_version}
         store={@store}
         identity={@identity}
         entry={@entry}
@@ -333,7 +342,7 @@ defmodule CatenaryWeb.Live do
 
         <!-- Right: index status -->
         <div class="shrink-0">
-          <.live_component module={Catenary.Live.IndexStatus} id={:indices} indexing={@indexing} />
+          <.live_component module={Catenary.Live.IndexStatus} id={:indices} index_version={@index_version} indexing={@indexing} />
         </div>
       </div>
     </div>
@@ -352,6 +361,7 @@ defmodule CatenaryWeb.Live do
       <.live_component
         module={Catenary.Live.Navigation}
         id={:nav}
+        index_version={@index_version}
         uploads={@uploads}
         entry={@entry}
         extra_nav={@extra_nav}
@@ -380,56 +390,12 @@ defmodule CatenaryWeb.Live do
 
   def handle_info(<<"toggle-", _::binary>> = event, socket), do: handle_event(event, nil, socket)
 
-  # This includes updating the index status, might as well do everything
-  # until its proven slow. On the game view a reindex also nudges the board
-  # component so a fold advance (our own publish or the opponent's move) is
-  # reflected live; BackgammonView.update/2 re-reads the game row from the index.
+  # Index workers broadcast :index_change on the "ui" topic after every pass.
+  # Bumping the monotonic version counter changes the parent's assigns, which
+  # forces every LiveComponent in the current view to re-render and re-read
+  # from the freshly-updated ETS tables (tags, reactions, mentions, etc.).
   def handle_info(:index_change, socket) do
-    case socket.assigns do
-      %{view: :game, entry: {:game, gid}} ->
-        send_update(Catenary.Live.BackgammonView,
-          id: :game,
-          game_id: gid,
-          entry: {:game, gid},
-          identity: socket.assigns.identity,
-          aliases: socket.assigns.aliases,
-          clump_id: socket.assigns.clump_id,
-          facet_id: socket.assigns.facet_id
-        )
-
-      %{view: :challenges} ->
-        send_update(Catenary.Live.ChallengesExplorer,
-          id: :challenges,
-          entry: :all,
-          identity: socket.assigns.identity,
-          aliases: socket.assigns.aliases
-        )
-
-      %{view: :prefs} ->
-        send_update(Catenary.Live.PrefsManager,
-          id: :prefs,
-          clumps: socket.assigns.clumps,
-          clump_id: socket.assigns.clump_id,
-          identity: socket.assigns.identity,
-          identities: socket.assigns.identities,
-          store: socket.assigns.store
-        )
-
-      %{view: :entries} ->
-        send_update(Catenary.Live.EntryViewer,
-          id: :entry,
-          store: socket.assigns.store,
-          entry: socket.assigns.entry,
-          clump_id: socket.assigns.clump_id,
-          identity: socket.assigns.identity,
-          aliases: socket.assigns.aliases
-        )
-
-      _ ->
-        :ok
-    end
-
-    {:noreply, state_set(socket, %{})}
+    {:noreply, state_set(socket, %{index_version: socket.assigns.index_version + 1})}
   end
 
   def handle_info(%{view: :dashboard}, socket) do
