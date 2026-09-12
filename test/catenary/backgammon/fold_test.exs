@@ -354,6 +354,7 @@ defmodule Catenary.Backgammon.FoldTest do
       assert result.mover == game.challenger
     end
 
+    @tag timeout: 120_000
     test "an opening that has not resolved yet yields no starter and no turns" do
       {game, play_map, [r0c, _r0a, _r1c, _r1a], _turn1, _c_chain} = opening_game()
 

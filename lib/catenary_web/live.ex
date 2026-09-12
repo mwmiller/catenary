@@ -415,6 +415,16 @@ defmodule CatenaryWeb.Live do
           store: socket.assigns.store
         )
 
+      %{view: :entries} ->
+        send_update(Catenary.Live.EntryViewer,
+          id: :entry,
+          store: socket.assigns.store,
+          entry: socket.assigns.entry,
+          clump_id: socket.assigns.clump_id,
+          identity: socket.assigns.identity,
+          aliases: socket.assigns.aliases
+        )
+
       _ ->
         :ok
     end
