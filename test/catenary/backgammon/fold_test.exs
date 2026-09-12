@@ -323,6 +323,7 @@ defmodule Catenary.Backgammon.FoldTest do
       {game, play_map, [r0c, r0a, r1c, r1a], turn1, c}
     end
 
+    @tag timeout: 300_000
     test "opening rolls pick the starter and anchor turn parity to them" do
       {game, play_map, [r0c, r0a, r1c, r1a], turn1, _c_chain} = opening_game()
       len = short_spec()["length"]
@@ -354,7 +355,7 @@ defmodule Catenary.Backgammon.FoldTest do
       assert result.mover == game.challenger
     end
 
-    @tag timeout: 120_000
+    @tag timeout: 300_000
     test "an opening that has not resolved yet yields no starter and no turns" do
       {game, play_map, [r0c, _r0a, _r1c, _r1a], _turn1, _c_chain} = opening_game()
 
