@@ -136,6 +136,10 @@ defmodule Catenary.Backgammon.ChainRecoveryTest do
           recalc_challenger_opens(spec, game_id)
         end
 
+      # Recompute opening dice from the (possibly regenerated) chains
+      d_c = Chain.dice(c0_cur, accept_reveal, 1) |> hd()
+      d_a = Chain.dice(a0_cur, c0_next, 1) |> hd()
+
       # Build game metadata with correct commitments
       game = %{
         challenger: "pk-challenger",
@@ -167,9 +171,10 @@ defmodule Catenary.Backgammon.ChainRecoveryTest do
         "r_next" => hex(a0_next)
       }
 
-      # Turn 1: challenger moves
+      # Turn 1: challenger moves (uses opening dice as the first roll)
       {c1_cur, c1_next} = Chain.reveal_pair(chall_chain, len - 2)
-      [d1a, d1b] = Chain.dice(c1_cur, a0_next)
+      d1a = d_c
+      d1b = d_a
       play1 = Engine.legal_plays(Engine.initial(), {d1a, d1b}) |> hd()
 
       turn1 = %{
