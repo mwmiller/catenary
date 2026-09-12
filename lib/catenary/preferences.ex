@@ -14,7 +14,6 @@ defmodule Catenary.Preferences do
     :view,
     :facet_id,
     :entry,
-    :reject,
     :automention,
     :autosync,
     :winsize
@@ -45,7 +44,6 @@ defmodule Catenary.Preferences do
     do: Application.get_env(:catenary, :clumps) |> Map.keys() |> hd
 
   defp default(:shown), do: %{}
-  defp default(:reject), do: %{}
   defp default(:facet_id), do: 0
   defp default(:winsize), do: {1193, 787}
 
@@ -60,11 +58,6 @@ defmodule Catenary.Preferences do
   # We'll hope they keep the values sane on their own
   defp valid?(val, :shown) when is_map(val), do: true
   defp valid?(_, :shown), do: false
-
-  # `:reject` should be a map of mapsets.
-  # We'll hope they keep the values sane on their own
-  defp valid?(val, :reject) when is_map(val), do: true
-  defp valid?(_, :reject), do: false
 
   # This is all confused at present, so assume it's fine.
   defp valid?(_, :entry), do: true
@@ -186,15 +179,15 @@ defmodule Catenary.Preferences do
     end
   end
 
-  def reject_log_name_set(rejects) do
-    set(:reject, Map.put(get(:reject), get(:clump_id), MapSet.new(rejects)))
-  end
-
   # This is actually "not rejected"
   # Sometimes people don't have sets.
   # New logs should be allowed until they are rejected
   def accept_log_name?(type) do
-    rejects = get(:reject) |> Map.get(get(:clump_id), MapSet.new())
-    not MapSet.member?(rejects, type)
+    clump_id = get(:clump_id)
+
+    case QuaggaDef.logs_for_name(type) do
+      [] -> true
+      [log_id | _] -> not Baobab.ClumpMeta.blocked?(log_id, clump_id)
+    end
   end
 end

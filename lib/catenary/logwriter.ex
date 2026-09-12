@@ -28,7 +28,7 @@ defmodule Catenary.LogWriter do
     entry = {Baobab.Identity.as_base62(a), l, e}
     maybe_post_mentions(body, entry, socket, Preferences.get(:automention))
     maybe_tag(entry, vals, socket)
-    Indices.update_sync(:timelines)
+    Indices.update(:timelines)
     entry
   end
 
@@ -81,7 +81,7 @@ defmodule Catenary.LogWriter do
     entry = {Baobab.Identity.as_base62(a), l, e}
     maybe_post_mentions(body, entry, socket, Preferences.get(:automention))
     maybe_tag(entry, vals, socket)
-    Indices.update_sync([:timelines, :references])
+    Indices.update([:timelines, :references])
     entry
   end
 
@@ -102,7 +102,7 @@ defmodule Catenary.LogWriter do
       |> CBOR.encode()
       |> append_log_for_socket(53, socket)
 
-    Indices.update_sync([:aliases, :references])
+    Indices.update([:aliases, :references])
     {Baobab.Identity.as_base62(a), l, e}
   end
 
@@ -132,7 +132,7 @@ defmodule Catenary.LogWriter do
         |> CBOR.encode()
         |> append_log_for_socket(749, socket)
 
-        Indices.update_sync([:tags, :references])
+        Indices.update([:tags, :references])
         # Here we send them back to the referenced post which should now have tags applied
         # They can see the actual tagging post from the footer (or profile)
         references
@@ -175,7 +175,7 @@ defmodule Catenary.LogWriter do
         |> CBOR.encode()
         |> append_log_for_socket(121, socket)
 
-        Indices.update_sync([:mentions, :references])
+        Indices.update([:mentions, :references])
         # Here we send them back to the referenced post which should now have tags applied
         # They can see the actual tagging post from the footer (or profile)
         references
@@ -207,7 +207,7 @@ defmodule Catenary.LogWriter do
       |> CBOR.encode()
       |> append_log_for_socket(1337, socket)
 
-    Indices.update_sync([:graph, :references])
+    Indices.update([:graph, :references])
     {Baobab.Identity.as_base62(a), l, e}
   end
 
@@ -218,9 +218,6 @@ defmodule Catenary.LogWriter do
         } = values,
         socket
       ) do
-    # We want to know about which logs we knew at the time of
-    # message creation, that way we don't need to make suppositions at
-    # message read time
     fl = QuaggaDef.log_defs() |> Enum.map(fn {_k, v} -> Atom.to_string(v.name) end)
 
     pl = Catenary.checkbox_expander(values, "log_name-")
@@ -233,18 +230,36 @@ defmodule Catenary.LogWriter do
         "reject" -> %{"accept" => dl, "reject" => pl}
       end
 
+    all_family_names =
+      QuaggaDef.families() |> Enum.map(fn {name, _tag} -> Atom.to_string(name) end)
+
+    fam_blocked = "challenge" in dl
+
+    fam_data =
+      if fam_blocked do
+        %{"block_families" => all_family_names, "unblock_families" => []}
+      else
+        accepted_fams = Catenary.checkbox_expander(values, "family-")
+        blocked_fams = Enum.reject(all_family_names, fn s -> s in accepted_fams end)
+
+        case {blocked_fams, accepted_fams} do
+          {[], []} -> %{}
+          _ -> %{"block_families" => blocked_fams, "unblock_families" => accepted_fams}
+        end
+      end
+
     %Baobab.Entry{author: a, log_id: l, seqnum: e} =
       Map.merge(
         %{
           "action" => "logs",
           "published" => DateTime.utc_now() |> DateTime.to_string()
         },
-        arl
+        Map.merge(arl, fam_data)
       )
       |> CBOR.encode()
       |> append_log_for_socket(1337, socket)
 
-    Indices.update_sync(:graph)
+    Indices.update(:graph)
     {Baobab.Identity.as_base62(a), l, e}
   end
 
@@ -265,7 +280,7 @@ defmodule Catenary.LogWriter do
     |> CBOR.encode()
     |> append_log_for_socket(101, socket)
 
-    Indices.update_sync([:reactions, :references])
+    Indices.update([:reactions, :references])
     to
   end
 
@@ -280,7 +295,7 @@ defmodule Catenary.LogWriter do
     |> CBOR.encode()
     |> append_log_for_socket(121, socket)
 
-    Indices.update_sync([:mentions, :references])
+    Indices.update([:mentions, :references])
     to
   end
 
@@ -310,7 +325,7 @@ defmodule Catenary.LogWriter do
       |> append_log_for_socket(360, socket)
 
     me = Baobab.Identity.as_base62(a)
-    Indices.update_sync(:about)
+    Indices.update(:about)
     {:profile, me}
   end
 
@@ -319,8 +334,189 @@ defmodule Catenary.LogWriter do
       when li in ["8008", "8009", "8010"] do
     lid = String.to_integer(li)
     %Baobab.Entry{author: a, log_id: l, seqnum: e} = append_log_for_socket(data, lid, socket)
-    Indices.update_sync(:images)
+    Indices.update(:images)
     {Baobab.Identity.as_base62(a), l, e}
+  end
+
+  # Backgammon challenge log (777)
+  def new_entry(
+        %{
+          "log_id" => "777",
+          "type" => type,
+          "family" => family
+        } = values,
+        socket
+      )
+      when type in ["challenge", "accept"] and family >= 1 and family <= 255 do
+    %Baobab.Entry{author: a, log_id: l, seqnum: e} =
+      %{
+        "type" => type,
+        "game_id" => Map.fetch!(values, "game_id"),
+        "family" => family,
+        "player" => Map.fetch!(values, "player"),
+        "role" => Map.get(values, "role"),
+        "to" => Map.get(values, "to"),
+        "chain_spec" => Map.get(values, "chain_spec"),
+        "chain_commit" => Map.get(values, "chain_commit"),
+        "reveal" => Map.get(values, "reveal"),
+        "published" => DateTime.utc_now() |> DateTime.to_string()
+      }
+      |> CBOR.encode()
+      |> append_log_for_socket(777, socket)
+
+    Indices.update(:challenges)
+    {Baobab.Identity.as_base62(a), l, e}
+  end
+
+  def new_entry(%{"log_id" => "777", "type" => "withdraw", "game_id" => game_id}, socket) do
+    %Baobab.Entry{author: a, log_id: l, seqnum: e} =
+      %{
+        "type" => "withdraw",
+        "game_id" => game_id,
+        "published" => DateTime.utc_now() |> DateTime.to_string()
+      }
+      |> CBOR.encode()
+      |> append_log_for_socket(777, socket)
+
+    Indices.update(:challenges)
+    {Baobab.Identity.as_base62(a), l, e}
+  end
+
+  # Backgammon game play log (a derived log): the accepter's kickoff entry
+  # opening the game's play stream. `log_id` is the full derived id — base
+  # plus the writer's device facet — so this appends directly rather than via
+  # `append_log_for_socket` (whose `facet_log` rejects derived bases).
+  def new_entry(%{"log_id" => li, "type" => "play", "game_id" => game_id} = values, socket)
+      when is_binary(li) do
+    case Integer.parse(li) do
+      {log_id, ""} ->
+        %Baobab.Entry{author: a, log_id: l, seqnum: e} =
+          %{
+            "type" => "play",
+            "game_id" => game_id,
+            "family" => Map.fetch!(values, "family"),
+            "player" => Map.fetch!(values, "player"),
+            "role" => Map.get(values, "role"),
+            "challenger" => Map.get(values, "challenger"),
+            "chain_spec" => Map.get(values, "chain_spec"),
+            "chain_commit" => Map.get(values, "chain_commit"),
+            "challenger_commit" => Map.get(values, "challenger_commit"),
+            "reveal" => Map.get(values, "reveal"),
+            "game_base" => Map.get(values, "game_base"),
+            "game_log_id" => Map.get(values, "game_log_id"),
+            "published" => DateTime.utc_now() |> DateTime.to_string()
+          }
+          |> CBOR.encode()
+          |> Baobab.append_log(Catenary.id_for_key(socket.assigns.identity),
+            log_id: log_id,
+            clump_id: socket.assigns.clump_id
+          )
+
+        {Baobab.Identity.as_base62(a), l, e}
+
+      _ ->
+        {:profile, socket.assigns.identity}
+    end
+  end
+
+  # An opening-roll entry on the game's play log, appended to the full derived
+  # id (base plus the writer's facet) just like the accepter's kickoff `play`
+  # entry. After the write the challenges index refolds so the opponent's half
+  # can close the round.
+  def new_entry(%{"log_id" => li, "type" => "roll"} = values, socket)
+      when is_binary(li) do
+    case Integer.parse(li) do
+      {log_id, ""} ->
+        %Baobab.Entry{author: a, log_id: l, seqnum: e} =
+          %{
+            "type" => "roll",
+            "game_id" => Map.fetch!(values, "game_id"),
+            "player" => Map.fetch!(values, "player"),
+            "round" => Map.fetch!(values, "round"),
+            "reveals" => Map.fetch!(values, "reveals"),
+            "r_cur" => Map.fetch!(values, "r_cur"),
+            "r_next" => Map.fetch!(values, "r_next"),
+            "note" => Map.get(values, "note", "")
+          }
+          |> CBOR.encode()
+          |> Baobab.append_log(Catenary.id_for_key(socket.assigns.identity),
+            log_id: log_id,
+            clump_id: socket.assigns.clump_id
+          )
+
+        Catenary.Indices.update(:challenges)
+
+        {Baobab.Identity.as_base62(a), l, e}
+
+      _ ->
+        {:profile, socket.assigns.identity}
+    end
+  end
+
+  # A resign entry on a running game's play log, appended to the full derived
+  # id (base plus the writer's device facet). After the write the challenges
+  # index refolds so the game shows as finished with a winner.
+  def new_entry(%{"log_id" => li, "type" => "resign"} = values, socket)
+      when is_binary(li) do
+    case Integer.parse(li) do
+      {log_id, ""} ->
+        %Baobab.Entry{author: a, log_id: l, seqnum: e} =
+          %{
+            "type" => "resign",
+            "game_id" => Map.fetch!(values, "game_id"),
+            "player" => Map.fetch!(values, "player"),
+            "turn" => Map.fetch!(values, "turn"),
+            "note" => Map.get(values, "note", "")
+          }
+          |> CBOR.encode()
+          |> Baobab.append_log(Catenary.id_for_key(socket.assigns.identity),
+            log_id: log_id,
+            clump_id: socket.assigns.clump_id
+          )
+
+        Catenary.Indices.update(:challenges)
+
+        {Baobab.Identity.as_base62(a), l, e}
+
+      _ ->
+        {:profile, socket.assigns.identity}
+    end
+  end
+
+  # A turn entry on a running game's play log (a derived log), appended
+  # directly to the full derived id (base plus the writer's device facet) just
+  # like the accepter's kickoff `play` entry. After the write the challenges
+  # index refolds so the board advances and the mover flips.
+  def new_entry(%{"log_id" => li, "type" => "turn"} = values, socket)
+      when is_binary(li) do
+    case Integer.parse(li) do
+      {log_id, ""} ->
+        %Baobab.Entry{author: a, log_id: l, seqnum: e} =
+          %{
+            "type" => "turn",
+            "game_id" => Map.fetch!(values, "game_id"),
+            "player" => Map.fetch!(values, "player"),
+            "turn" => Map.fetch!(values, "turn"),
+            "roll" => Map.fetch!(values, "roll"),
+            "moves" => Map.fetch!(values, "moves"),
+            "r_cur" => Map.fetch!(values, "r_cur"),
+            "r_next" => Map.fetch!(values, "r_next"),
+            "reveals" => Map.fetch!(values, "reveals"),
+            "note" => Map.get(values, "note", "")
+          }
+          |> CBOR.encode()
+          |> Baobab.append_log(Catenary.id_for_key(socket.assigns.identity),
+            log_id: log_id,
+            clump_id: socket.assigns.clump_id
+          )
+
+        Catenary.Indices.update(:challenges)
+
+        {Baobab.Identity.as_base62(a), l, e}
+
+      _ ->
+        {:profile, socket.assigns.identity}
+    end
   end
 
   # Punt
@@ -347,7 +543,7 @@ defmodule Catenary.LogWriter do
         socket
       )
 
-    Indices.update_sync(:tags)
+    Indices.update(:tags)
     tag_entry
   end
 
@@ -390,7 +586,7 @@ defmodule Catenary.LogWriter do
             socket
           )
 
-        Indices.update_sync(:mentions)
+        Indices.update(:mentions)
         mentions_entry
     end
   end
