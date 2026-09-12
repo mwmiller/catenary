@@ -10,8 +10,10 @@ defmodule Catenary.IndexWorker.Timelines do
   Timeline Indices
   """
 
-  def do_index(todo, clump_id) do
+  def do_index(todo, clump_id, prev_seen) do
     todo |> build_index(clump_id)
+
+    prev_seen
   end
 
   defp build_index([], _), do: :ok

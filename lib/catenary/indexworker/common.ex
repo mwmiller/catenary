@@ -46,24 +46,22 @@ defmodule Catenary.IndexWorker.Common do
         current = clump_id |> Baobab.stored_info()
 
         {mapped_curr, todo} = updated_logs(current, seen, {%{}, []})
-        do_index(todo, clump_id)
+        game_seen = do_index(todo, clump_id, seen)
 
         Status.set(unquote(na), unquote(idle), :idle)
-        {:noreply, %{state | indexed: mapped_curr}}
+        {:noreply, %{state | indexed: Map.merge(mapped_curr, game_seen)}}
       end
 
-      # Shared body for the synchronous and asynchronous update paths; returns
-      # the new state. Callers wrap it in the appropriate GenServer reply shape.
       defp run_update(%{indexed: seen} = state) do
         Status.set(unquote(na), unquote(run), :running)
         clump_id = Preferences.get(:clump_id)
         current = clump_id |> Baobab.stored_info()
 
         {mapped_curr, todo} = updated_logs(current, seen, {%{}, []})
-        do_index(todo, clump_id)
+        game_seen = do_index(todo, clump_id, seen)
 
         Status.set(unquote(na), unquote(idle), :idle)
-        %{state | indexed: mapped_curr}
+        %{state | indexed: Map.merge(mapped_curr, game_seen)}
       end
 
       def force_rebuild(state) do
@@ -72,10 +70,10 @@ defmodule Catenary.IndexWorker.Common do
         current = clump_id |> Baobab.stored_info()
 
         {mapped_curr, todo} = updated_logs(current, %{}, {%{}, []})
-        do_index(todo, clump_id)
+        game_seen = do_index(todo, clump_id, %{})
 
         Status.set(unquote(na), unquote(idle), :idle)
-        {:noreply, %{state | indexed: mapped_curr}}
+        {:noreply, %{state | indexed: Map.merge(mapped_curr, game_seen)}}
       end
 
       defp updated_logs([], _, acc), do: acc
@@ -97,17 +95,26 @@ defmodule Catenary.IndexWorker.Common do
       @impl true
       def handle_cast(:update, state), do: {:noreply, run_update(state)}
 
-      # Synchronous variant: blocks until the ETS table reflects the current
-      # store. Used by log writers that re-render the UI immediately after
-      # writing, so the fresh index is visible without another render cycle.
       @impl true
       def handle_call(:update, _from, state), do: {:reply, :ok, run_update(state)}
 
       @impl true
       def handle_cast(:force_rebuild, state) do
-        Indices.empty_tables(unquote(empty))
+        wipe_for_rebuild()
         force_rebuild(state)
       end
+
+      # How a manual reindex clears the local table before the full log pass
+      # refills it. Workers that rebuild in place override this with :ok and
+      # prune their own stale rows once the pass completes.
+      def wipe_for_rebuild, do: Indices.empty_tables(unquote(empty))
+
+      # Default: no-op. Workers override to do their indexing work and return
+      # a map of keys to track for incremental fold caching (currently only
+      # the challenges worker returns a non-empty map).
+      def do_index(_todo, _clump_id, prev_seen), do: prev_seen
+
+      defoverridable force_rebuild: 1, wipe_for_rebuild: 0, do_index: 3
     end
   end
 end

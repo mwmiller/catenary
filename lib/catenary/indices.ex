@@ -5,8 +5,6 @@ defmodule Catenary.Indices do
   Functions to manage indices
   """
 
-  # This list is a problem
-  # Not one I am going to solve today
   @indices [
     :oases,
     :references,
@@ -17,65 +15,38 @@ defmodule Catenary.Indices do
     :mentions,
     :about,
     :images,
+    :challenges,
     :graph
   ]
   @table_options [:public, :named_table]
 
   def status, do: Status.get_all()
 
+  # Cast :update to every index worker. The worker's store-hash gate skips
+  # the full log pass when nothing has changed.
   def update(indices \\ @indices)
   def update(index) when not is_list(index), do: update([index])
-  def update([]), do: :ok
 
-  def update([index | rest]) do
-    GenServer.cast(index, :update)
-    update(rest)
+  def update(indices) when is_list(indices) do
+    Enum.each(indices, &GenServer.cast(&1, :update))
   end
 
-  # Synchronous update: blocks until the index worker has folded the current
-  # store into its ETS table. Use on write paths where the UI re-renders
-  # immediately after the write, so fresh index data is visible at once.
-  def update_sync(index) when not is_list(index), do: update_sync([index])
-
-  def update_sync([]), do: :ok
-
-  def update_sync([index | rest]) do
-    GenServer.call(index, :update)
-    update_sync(rest)
-  end
-
-  # Cast :update to every index worker, bypassing the store-hash gate used
-  # by update/0/1. Used once at startup after Baobab's Log.Acceptor has had
-  # time to populate :status dets, so workers index against the live store.
-  def force_update(indices \\ @indices)
-
-  def force_update(index) when not is_list(index), do: force_update([index])
-
-  def force_update([]), do: :ok
-
-  def force_update([index | rest]) do
-    GenServer.cast(index, :update)
-    force_update(rest)
-  end
+  # Alias kept for callers that want the intent to be explicit.
+  def force_update(indices \\ @indices), do: update(indices)
 
   def force_rebuild(indices \\ @indices)
   def force_rebuild(index) when not is_list(index), do: force_rebuild([index])
-  def force_rebuild([]), do: :ok
 
-  def force_rebuild([index | rest]) do
-    GenServer.cast(index, :force_rebuild)
-    force_rebuild(rest)
+  def force_rebuild(indices) when is_list(indices) do
+    Enum.each(indices, &GenServer.cast(&1, :force_rebuild))
   end
 
   def reset do
     empty_tables(@indices)
   end
 
-  def empty_tables([]), do: :ok
-
-  def empty_tables([curr | rest]) do
-    empty_table(curr)
-    empty_tables(rest)
+  def empty_tables(indices) when is_list(indices) do
+    Enum.each(indices, &empty_table/1)
   end
 
   def empty_table(name) do

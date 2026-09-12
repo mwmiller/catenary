@@ -11,19 +11,62 @@ defmodule Catenary.IndexWorker.Images do
   Write clump logged images to the file system
   """
 
-  @img_root Path.join(["priv", "static"])
-  @img_cat Path.join([@img_root, "cat_images"])
+  @img_root Application.compile_env(:catenary, :application_dir, "~/.catenary")
+            |> Path.expand()
+            |> Path.join("images")
+  @img_cat @img_root
 
-  def do_index(todo, clump_id) do
-    # I'm going to avoid the sync for deletion for now
-    # I will handle that with a preference screen cache clear
-    # Instead we write out all of the new stuff
+  @doc """
+  Clear the image cache on disk for the current clump and rebuild from Baobab.
+  Overrides the default ETS-only wipe so stale files are also removed.
+  """
+  def wipe_for_rebuild do
+    Indices.empty_tables([:images])
+
+    @img_cat
+    |> Path.join(Preferences.get(:clump_id))
+    |> File.rm_rf()
+
+    :ok
+  end
+
+  @doc """
+  Remove cached image files and ETS entries for the given set of log_ids.
+  """
+  def purge_log_ids(log_id_set, clump_id) do
+    clump_dir = Path.join([@img_cat, clump_id])
+
+    with {:ok, authors} <- File.ls(clump_dir) do
+      Enum.each(authors, &purge_author_dir(&1, clump_dir, log_id_set))
+    end
+
+    Indices.empty_tables([:images])
+    Indices.update(:images)
+    :ok
+  end
+
+  defp purge_author_dir(author, clump_dir, log_id_set) do
+    author_dir = Path.join([clump_dir, author])
+
+    with {:ok, dirs} <- File.ls(author_dir) do
+      Enum.each(dirs, &purge_dir_if_blocked(&1, author_dir, log_id_set))
+    end
+  end
+
+  defp purge_dir_if_blocked(dir, author_dir, log_id_set) do
+    {lid, _} = Integer.parse(dir)
+    if lid in log_id_set, do: File.rm_rf(Path.join([author_dir, dir]))
+  end
+
+  def do_index(todo, clump_id, prev_seen) do
     :ok = write_missing(todo, clump_id)
-    # And then see what's on the disk
+
     clump_id
     |> scan_clump()
     |> accumulate_entries(%{})
     |> then(fn m -> :ets.insert(:images, {:map, m}) end)
+
+    prev_seen
   end
 
   def scan_clump(clump) do
@@ -64,13 +107,12 @@ defmodule Catenary.IndexWorker.Images do
   defp fill_missing({who, log_id, _} = last, clump_id, seq) do
     entry = {who, log_id, seq}
     src = Catenary.image_src_for_entry(entry, clump_id)
-    filename = Path.join([@img_root, src])
+    filename = Path.join([@img_root, String.trim_leading(src, "/cat_images")])
 
     case File.stat(filename) do
       {:error, _} ->
         case Baobab.log_entry(who, seq, log_id: log_id, clump_id: clump_id) do
           %Baobab.Entry{payload: data} ->
-            # Extra work here, but should be cheap.
             File.mkdir_p(Path.dirname(filename))
             File.write(filename, data, [:binary])
             {src, entry}
@@ -108,7 +150,7 @@ defmodule Catenary.IndexWorker.Images do
     # we should know they exist at this point
     # but racing!
     size =
-      case File.stat(Path.join([@img_root, filename])) do
+      case File.stat(Path.join([@img_root, String.trim_leading(filename, "/cat_images")])) do
         {:ok, %{size: s}} -> s
         _ -> 0
       end

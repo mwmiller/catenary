@@ -10,11 +10,13 @@ defmodule Catenary.IndexWorker.About do
   About Indices
   """
 
-  def do_index(todo, clump_id) do
+  def do_index(todo, clump_id, prev_seen) do
     todo
     |> gather_updates(clump_id, %{})
     |> Map.to_list()
     |> build_index(clump_id)
+
+    prev_seen
   end
 
   defp gather_updates([], _, acc), do: acc

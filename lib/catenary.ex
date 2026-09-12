@@ -24,11 +24,19 @@ defmodule Catenary do
   def image_logs, do: @image_logs
 
   def mime_for_entry({_, l, _}) do
-    %{name: mime} = l |> QuaggaDef.base_log() |> QuaggaDef.log_def()
-    mime
+    case l |> QuaggaDef.base_log() |> QuaggaDef.log_def() do
+      %{name: mime} -> mime
+      _ -> QuaggaDef.family_for_block(l)
+    end
   end
 
   def ext_for_entry(entry), do: entry |> mime_for_entry |> Atom.to_string()
+
+  def images_dir do
+    Application.get_env(:catenary, :application_dir, "~/.catenary")
+    |> Path.expand()
+    |> Path.join("images")
+  end
 
   def image_src_for_entry({a, l, e} = entry, clump_id) do
     Path.join([

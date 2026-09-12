@@ -4,6 +4,7 @@ defmodule Catenary.IndexSup do
   alias Catenary.IndexWorker.{
     About,
     Aliases,
+    Challenges,
     Graph,
     Images,
     Mentions,
@@ -37,6 +38,7 @@ defmodule Catenary.IndexSup do
       References,
       Timelines,
       About,
+      Challenges,
       Oases
     ]
 

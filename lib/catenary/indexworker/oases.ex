@@ -26,7 +26,7 @@ defmodule Catenary.IndexWorker.Oases do
     end
   end
 
-  def do_index(_todo, clump_id) do
+  def do_index(_todo, clump_id, prev_seen) do
     # Rebuild from the full store rather than just the incremental diff.
     # The index worker's initial :continue load can race Baobab's async
     # :status load, so a diff against the cold store would index nothing
@@ -37,6 +37,8 @@ defmodule Catenary.IndexWorker.Oases do
     |> extract_recents(clump_id, [])
     |> build_index(@display_count)
     |> Catenary.State.update_oases()
+
+    prev_seen
   end
 
   defp build_index(all, count) do
