@@ -15,6 +15,10 @@ defmodule Catenary.MixProject do
     ]
   end
 
+  def cli do
+    [preferred_envs: [precommit: :test]]
+  end
+
   defp releases do
     [
       catenary: [
@@ -50,9 +54,11 @@ defmodule Catenary.MixProject do
   # Type `mix help deps` for examples and options.
   defp deps do
     [
+      {:tidewave, "~> 0.9", only: [:dev]},
       {:baby, "~> 0.42.0"},
       {:baobab, "~> 0.41"},
       {:quagga_def, ">= 0.0.0"},
+      {:scrypt_ex, "~> 0.1.0"},
       {:cbor, "~> 1.0"},
       {:mdex, "~> 0.13"},
       {:excon, "~> 4.0"},
@@ -86,7 +92,8 @@ defmodule Catenary.MixProject do
       precommit: [
         "format --check-formatted",
         "credo --strict",
-        "compile --force --warnings-as-errors"
+        "compile --force --warnings-as-errors",
+        "test"
       ],
       "assets.deploy": ["tailwind default --minify", "esbuild default --minify", "phx.digest"]
     ]

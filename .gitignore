@@ -42,3 +42,6 @@ npm-debug.log
 /dist/
 /burrito_out/
 
+
+# Tidewave recordings
+tmp/
