@@ -1,6 +1,6 @@
 [package]
 name = "catenary"
-version = "0.101.2"
+version = "0.101.3"
 description = "Native shell for the Catenary feed"
 authors = ["Catenary"]
 edition = "2021"
