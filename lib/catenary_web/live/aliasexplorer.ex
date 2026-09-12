@@ -20,7 +20,10 @@ defmodule Catenary.Live.AliasExplorer do
     <div id="alias-explore-wrap" class="content-wrap">
       <div class="flex flex-col gap-4">
         <h1 class="text-lg font-semibold text-slate-800 dark:text-slate-100">Alias Explorer</h1>
-        <div class="grid grid-cols-3 gap-2">
+        <div :if={@card["aliases"] == ""} class="text-sm text-slate-400 dark:text-slate-500">
+          No alias messages.
+        </div>
+        <div :if={@card["aliases"] != ""} class="grid grid-cols-3 gap-2">
           {@card["aliases"]}
         </div>
       </div>
@@ -33,9 +36,14 @@ defmodule Catenary.Live.AliasExplorer do
       am
       |> Map.to_list()
       |> Enum.sort_by(fn {_a, n} -> String.downcase(n) end)
-      |> to_links(as)
 
-    %{"aliases" => aliases}
+    content =
+      case aliases do
+        [] -> ""
+        _ -> to_links(aliases, as)
+      end
+
+    %{"aliases" => content}
   end
 
   defp extract(_, _), do: :none

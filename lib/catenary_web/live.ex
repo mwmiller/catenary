@@ -4,7 +4,16 @@ defmodule CatenaryWeb.Live do
   """
   use CatenaryWeb, :live_view
   require Logger
-  alias Catenary.{Display, LogWriter, Navigation, Preferences}
+
+  alias Catenary.{
+    Backgammon.Chain,
+    Backgammon.Game,
+    Display,
+    IndexWorker.Challenges,
+    LogWriter,
+    Navigation,
+    Preferences
+  }
 
   def mount(params, session, socket) do
     # Making sure these exist, but also faux docs
@@ -63,9 +72,10 @@ defmodule CatenaryWeb.Live do
          me: self(),
          opened: 0,
          clumps: clumps,
-         clump_id: clump_id,
-         identity: whoami,
-         facet_id: facet_id
+          clump_id: clump_id,
+          identity: whoami,
+          facet_id: facet_id,
+          accepted_logs: accepted_log_names()
        }
      )}
   end
@@ -96,6 +106,8 @@ defmodule CatenaryWeb.Live do
         store={@store}
         facet_id={@facet_id}
         aliases={@aliases}
+        accepted_logs={@accepted_logs}
+        challenge_checked={Map.get(assigns, :challenge_checked, Preferences.accept_log_name?(:challenge))}
       />
     </.three_column_layout>
     """
@@ -179,6 +191,39 @@ defmodule CatenaryWeb.Live do
     """
   end
 
+  def render(%{view: :challenges} = assigns) do
+    ~H"""
+    <.three_column_layout {assigns}>
+      <.live_component
+        module={Catenary.Live.ChallengesExplorer}
+        id={:challenges}
+        entry={:all}
+        identity={@identity}
+        aliases={@aliases}
+      />
+    </.three_column_layout>
+    """
+  end
+
+  def render(%{view: :game, entry: {:game, gid}} = assigns) do
+    assigns = assign(assigns, game_id: gid)
+
+    ~H"""
+    <.three_column_layout {assigns}>
+      <.live_component
+        module={Catenary.Live.BackgammonView}
+        id={:game}
+        game_id={@game_id}
+        entry={@entry}
+        identity={@identity}
+        aliases={@aliases}
+        clump_id={@clump_id}
+        facet_id={@facet_id}
+      />
+    </.three_column_layout>
+    """
+  end
+
   def render(%{view: :entries} = assigns) do
     ~H"""
     <.three_column_layout {assigns}>
@@ -232,12 +277,14 @@ defmodule CatenaryWeb.Live do
             disabled={@entry_back == []}
           >⤶</button>
           <button
+            :if={Preferences.accept_log_name?(:tag)}
             value="tags"
             phx-click="toview"
             title="Tags"
             class="px-2 py-1 rounded hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors text-lg leading-none"
           >#</button>
           <button
+            :if={Preferences.accept_log_name?(:oasis)}
             value="oases"
             phx-click="toview"
             title="Peers"
@@ -250,17 +297,29 @@ defmodule CatenaryWeb.Live do
             class="px-2 py-1 rounded hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors text-lg leading-none"
           >◎</button>
           <button
+            :if={Preferences.accept_log_name?(:alias)}
             value="aliases"
             phx-click="toview"
             title="Aliases"
             class="px-2 py-1 rounded hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors text-lg leading-none"
           >~</button>
           <button
+            :if={
+              Preferences.accept_log_name?(:gif) or Preferences.accept_log_name?(:png) or
+                Preferences.accept_log_name?(:jpeg)
+            }
             value="images"
             phx-click="toview"
             title="Images"
             class="px-2 py-1 rounded hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors text-lg leading-none"
           >▣</button>
+          <button
+            :if={Preferences.accept_log_name?(:challenge)}
+            value="challenges"
+            phx-click="toview"
+            title="Challenges"
+            class="px-2 py-1 rounded hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors text-lg leading-none"
+          >⚄</button>
           <button
             class={[
               stack_color(@entry_fore),
@@ -322,8 +381,44 @@ defmodule CatenaryWeb.Live do
   def handle_info(<<"toggle-", _::binary>> = event, socket), do: handle_event(event, nil, socket)
 
   # This includes updating the index status, might as well do everything
-  # until its proven slow
+  # until its proven slow. On the game view a reindex also nudges the board
+  # component so a fold advance (our own publish or the opponent's move) is
+  # reflected live; BackgammonView.update/2 re-reads the game row from the index.
   def handle_info(:index_change, socket) do
+    case socket.assigns do
+      %{view: :game, entry: {:game, gid}} ->
+        send_update(Catenary.Live.BackgammonView,
+          id: :game,
+          game_id: gid,
+          entry: {:game, gid},
+          identity: socket.assigns.identity,
+          aliases: socket.assigns.aliases,
+          clump_id: socket.assigns.clump_id,
+          facet_id: socket.assigns.facet_id
+        )
+
+      %{view: :challenges} ->
+        send_update(Catenary.Live.ChallengesExplorer,
+          id: :challenges,
+          entry: :all,
+          identity: socket.assigns.identity,
+          aliases: socket.assigns.aliases
+        )
+
+      %{view: :prefs} ->
+        send_update(Catenary.Live.PrefsManager,
+          id: :prefs,
+          clumps: socket.assigns.clumps,
+          clump_id: socket.assigns.clump_id,
+          identity: socket.assigns.identity,
+          identities: socket.assigns.identities,
+          store: socket.assigns.store
+        )
+
+      _ ->
+        :ok
+    end
+
     {:noreply, state_set(socket, %{})}
   end
 
@@ -417,16 +512,22 @@ defmodule CatenaryWeb.Live do
   end
 
   def handle_event("image-save", _params, socket) do
-    # It's limited to a single entry.. so I hope this matches
-    [image_entry] =
-      consume_uploaded_entries(socket, :image, fn %{path: path}, %{client_type: mime} = _entry ->
-        %{
-          "log_id" => QuaggaDef.base_log(mime) |> Integer.to_string(),
-          "data" => File.read!(path)
-        }
-      end)
+    case consume_uploaded_entries(socket, :image, fn %{path: path},
+                                                     %{client_type: mime} = _entry ->
+           %{
+             "log_id" => QuaggaDef.base_log(mime) |> Integer.to_string(),
+             "data" => File.read!(path)
+           }
+         end) do
+      [image_entry] ->
+        handle_event("new-entry", image_entry, %{
+          socket
+          | assigns: Map.put(socket.assigns, :extra_nav, :none)
+        })
 
-    handle_event("new-entry", image_entry, socket)
+      [] ->
+        {:noreply, socket}
+    end
   end
 
   def handle_event("shown-set", %{"value" => entries_string}, socket) do
@@ -596,7 +697,7 @@ defmodule CatenaryWeb.Live do
   end
 
   def handle_event(<<"toggle-", which::binary>>, _, socket) do
-    tog = String.to_atom(which)
+    tog = String.to_existing_atom(which)
 
     show_now =
       case socket.assigns.extra_nav do
@@ -635,6 +736,200 @@ defmodule CatenaryWeb.Live do
     {:noreply, state_set(socket, Navigation.move_to("back", :current, socket.assigns))}
   end
 
+  # Challenge log (777) actions from the Challenges area.
+
+  # Family 0x1 (backgammon) uses a provably-fair scrypt chain; other families
+  # are created without one (generated but not committed) for now.
+  def handle_event("new-challenge", %{"family" => family} = params, socket) do
+    publish_challenge(family, challenge_target(params), socket)
+  end
+
+  def handle_event("new-challenge", _, socket), do: {:noreply, socket}
+
+  def handle_event("challenge-author", %{"value" => to}, socket) when is_binary(to) do
+    publish_challenge(
+      QuaggaDef.family_tag(:backgammon) |> Integer.to_string(),
+      to,
+      socket
+    )
+  end
+
+  def handle_event("challenge-author", _, socket), do: {:noreply, socket}
+
+  def handle_event(
+        "accept-challenge",
+        %{"value" => game_id, "family" => family} = accept_params,
+        socket
+      ) do
+    with {tag, ""} <- Integer.parse(family),
+         true <- tag >= 1 and tag <= 255,
+         {:ok, gid} <- Base.decode16(game_id, case: :lower),
+         challenger when is_binary(challenger) and challenger != "" <-
+           Map.get(accept_params, "challenger") do
+      {chain_commit, reveal} =
+        if tag == QuaggaDef.family_tag(:backgammon) do
+          chain = chain_seed(socket, gid, "accepter") |> Chain.generate()
+
+          # Make the just-built chain available immediately: the game row is in
+          # the table from the challenge, so my_reveals lands on it when the
+          # accepter opens the game.
+          Chain.cache_put(game_id, "accepter", chain)
+
+          {
+            chain |> Chain.commit() |> Base.encode16(case: :lower),
+            chain |> List.last() |> Base.encode16(case: :lower)
+          }
+        end
+
+      accept =
+        %{
+          "log_id" => "777",
+          "type" => "accept",
+          "game_id" => gid,
+          "family" => tag,
+          "player" => socket.assigns.identity,
+          "role" => "accepter",
+          "chain_spec" => Chain.spec(),
+          "chain_commit" => chain_commit,
+          "reveal" => reveal
+        }
+
+      LogWriter.new_entry(accept, socket)
+
+      publish_play_entry(socket, gid, tag, challenger, chain_commit, reveal, accept_params)
+
+      # Jump the challenges explorer to the Running tab so the just-accepted
+      # game is visible (it leaves the Open list the moment the accepter is set).
+      send_update(Catenary.Live.ChallengesExplorer, id: :challenges, tab: :running)
+
+      # The explorer jumping to the Running tab with the live game row on it
+      # is all the feedback an accept needs.
+      {:noreply, state_set(socket, %{view: :challenges, entry: :all})}
+    else
+      _ -> {:noreply, socket}
+    end
+  end
+
+  def handle_event("withdraw-challenge", %{"value" => game_id}, socket) do
+    case Base.decode16(game_id, case: :lower) do
+      {:ok, gid} ->
+        LogWriter.new_entry(
+          %{"log_id" => "777", "type" => "withdraw", "game_id" => gid},
+          socket
+        )
+
+        # The row leaving the Running list is all the feedback a withdraw
+        # needs.
+        {:noreply, state_set(socket, %{view: :challenges, entry: :all})}
+
+      _ ->
+        {:noreply, socket}
+    end
+  end
+
+  def handle_event("play-game", %{"value" => game_id}, socket) do
+    if String.match?(game_id, ~r/^[0-9a-f]{64}$/) do
+      # Skip state_set (which may trigger a heavy reindex) and jump straight
+      # to the game view.  The game row is already in the :challenges ETS
+      # table from the index worker, so BackgammonView can pick it up immediately.
+      back = [
+        %{
+          view: socket.assigns.view,
+          entry: socket.assigns.entry,
+          entry_back: socket.assigns.entry_back,
+          entry_fore: socket.assigns.entry_fore
+        }
+      ]
+
+      {:noreply,
+       assign(socket, %{
+         view: :game,
+         entry: {:game, game_id},
+         entry_back: back ++ socket.assigns.entry_back,
+         entry_fore: []
+       })}
+    else
+      {:noreply, socket}
+    end
+  end
+
+  def handle_event("publish-roll", %{"game_id" => game_id} = params, socket)
+      when is_binary(game_id) do
+    with {:ok, row} <- game_row(game_id),
+         true <- row.mover == socket.assigns.identity,
+         {:ok, remaining, r_cur, r_next} <- reveal_pair_for(row, socket),
+         {:ok, gid} <- Base.decode16(game_id, case: :lower) do
+      entry =
+        Game.roll_entry(
+          socket.assigns.identity,
+          gid,
+          get_in(row, [:opener, :rounds]) || 0,
+          remaining,
+          r_cur,
+          r_next,
+          note: Map.get(params, "note", "")
+        )
+
+      write_play_entry(socket, row, entry)
+    end
+
+    {:noreply, socket}
+  end
+
+  def handle_event("publish-roll", _, socket), do: {:noreply, socket}
+
+  def handle_event("publish-turn", %{"game_id" => game_id} = params, socket)
+      when is_binary(game_id) do
+    with {:ok, row} <- game_row(game_id),
+         true <- row.mover == socket.assigns.identity,
+         {turn, ""} <- Integer.parse(Map.get(params, "turn", "")),
+         roll when is_binary(roll) and roll != "" <- Map.get(params, "roll"),
+         moves when is_binary(moves) <- Map.get(params, "moves", ""),
+         {:ok, remaining, r_cur, r_next} <- reveal_pair_for(row, socket),
+         {:ok, gid} <- Base.decode16(game_id, case: :lower) do
+      entry =
+        Game.turn_entry(
+          socket.assigns.identity,
+          gid,
+          turn,
+          roll,
+          moves,
+          r_cur,
+          r_next,
+          reveals: remaining,
+          note: Map.get(params, "note", "")
+        )
+
+      write_play_entry(socket, row, entry)
+    end
+
+    {:noreply, socket}
+  end
+
+  def handle_event("publish-turn", _, socket), do: {:noreply, socket}
+
+  def handle_event("publish-resign", %{"game_id" => game_id} = params, socket)
+      when is_binary(game_id) do
+    with {:ok, row} <- game_row(game_id),
+         true <- row.mover == socket.assigns.identity,
+         {turn, ""} <- Integer.parse(Map.get(params, "turn", "")),
+         {:ok, gid} <- Base.decode16(game_id, case: :lower) do
+      entry =
+        Game.resign_entry(
+          socket.assigns.identity,
+          gid,
+          turn,
+          note: Map.get(params, "note", "")
+        )
+
+      write_play_entry(socket, row, entry)
+    end
+
+    {:noreply, socket}
+  end
+
+  def handle_event("publish-resign", _, socket), do: {:noreply, socket}
+
   def handle_event("new-entry", values, socket) do
     {:noreply,
      state_set(
@@ -645,6 +940,23 @@ defmodule CatenaryWeb.Live do
          socket.assigns
        )
      )}
+  end
+
+  def handle_event("accept-change", values, socket) do
+    all_log_names =
+      QuaggaDef.log_defs() |> Enum.map(fn {_k, v} -> v.name end)
+
+    checked =
+      all_log_names
+      |> Enum.filter(fn name -> Map.has_key?(values, "log_name-#{name}") end)
+      |> MapSet.new()
+
+    challenge_checked = MapSet.member?(checked, :challenge)
+
+    {:noreply,
+     socket
+     |> assign(accepted_logs: checked)
+     |> assign(challenge_checked: challenge_checked)}
   end
 
   def handle_event("connect", %{"value" => where}, socket) do
@@ -721,9 +1033,89 @@ defmodule CatenaryWeb.Live do
 
   def handle_event("window-resize", _, socket), do: {:noreply, socket}
 
+  defp game_row(game_id) do
+    case Challenges.game(game_id) do
+      nil -> :error
+      row -> {:ok, row}
+    end
+  end
+
+  # The mover-author's own next two reveals, straight from their cached chain
+  # and the fold's live remaining count. Mirrors BackgammonView.my_reveals so the
+  # roll the play UI showed is exactly what lands on the log.
+  defp reveal_pair_for(row, socket) do
+    identity = socket.assigns.identity
+    role = game_role(row, identity)
+
+    with role when is_binary(role) <- role,
+         remaining when is_integer(remaining) and remaining >= 2 <-
+           Map.get(row, :remaining, %{})
+           |> Map.get(identity, Chain.spec()["length"]),
+         chain when is_list(chain) <- chain_for(row, role, socket),
+         {r_cur, r_next} <- Chain.reveal_pair(chain, remaining) do
+      {:ok, remaining, r_cur, r_next}
+    else
+      _ -> :error
+    end
+  end
+
+  defp game_role(row, identity) do
+    cond do
+      identity == row.challenger -> "challenger"
+      identity == row.accepter -> "accepter"
+      true -> nil
+    end
+  end
+
+  # The chain from the game-row cache, building + backfilling on a cold cache
+  # (the ~10s scrypt walk is pre-warmed on BackgammonView mount and cached at
+  # accept).
+  defp chain_for(row, role, socket) do
+    case Chain.cache_get(row, role) do
+      chain when is_list(chain) ->
+        chain
+
+      _ ->
+        with {:ok, gid} <- Base.decode16(row.game_id, case: :lower) do
+          chain = chain_seed(socket, gid, role) |> Chain.generate()
+
+          Chain.cache_put(row.game_id, role, chain)
+          chain
+        end
+    end
+  end
+
+  # Append a play-log entry (roll or turn) on the author's own facet of the
+  # game's derived log; LogWriter refolds the challenges index after the write.
+  defp write_play_entry(socket, row, entry) do
+    with {:ok, gid} <- Base.decode16(row.game_id, case: :lower) do
+      base =
+        Game.game_base(
+          row.challenger,
+          row.accepter,
+          gid,
+          QuaggaDef.family_tag(:backgammon)
+        )
+
+      log_id = Game.game_log_id(base, socket.assigns.facet_id)
+
+      LogWriter.new_entry(Map.put(entry, "log_id", Integer.to_string(log_id)), socket)
+    end
+  end
+
   defp menu_entry("none"), do: :none
   defp menu_entry("all"), do: :all
   defp menu_entry(entry) when is_binary(entry), do: String.to_existing_atom(entry)
+
+  # A blank target means an open challenge; a key directs it to that player
+  # only. Challenging yourself is meaningless, so it is ignored and no log
+  # gets written.
+  defp challenge_target(params) do
+    case params |> Map.get("to", "") |> String.trim() do
+      "" -> nil
+      whom -> whom
+    end
+  end
 
   @prefs_keys Preferences.keys()
   defp do_prefs([]), do: :ok
@@ -734,6 +1126,13 @@ defmodule CatenaryWeb.Live do
   end
 
   defp do_prefs([_ | rest]), do: do_prefs(rest)
+
+  defp accepted_log_names do
+    QuaggaDef.log_defs()
+    |> Enum.filter(fn {_k, v} -> Preferences.accept_log_name?(v.name) end)
+    |> Enum.map(fn {_k, v} -> v.name end)
+    |> MapSet.new()
+  end
 
   defp state_set(socket, from_caller) when is_map(from_caller) do
     full_socket = assign(socket, from_caller)
@@ -900,4 +1299,98 @@ defmodule CatenaryWeb.Live do
   end
 
   defp manual_connected_in?(_, _, _), do: false
+
+  # Derive a provably-fair chain seed from the logged-in identity's secret and
+  # the game context, so the chain is recoverable from the logs alone.
+  # Game IDs are always the raw 32-byte binary here; the hex string form only
+  # exists in the UI layer and is decoded before this is called.
+  defp chain_seed(socket, game_id, role) when byte_size(game_id) == 32 do
+    secret =
+      case Catenary.id_for_key(socket.assigns.identity) do
+        name when is_binary(name) -> Baobab.Identity.key(name, :secret)
+        _ -> :error
+      end
+
+    Chain.seed_for(secret, game_id, role)
+  end
+
+  # Publish a challenge entry on log 777. When `to` is a base62 key the game
+  # is addressed to that player only; otherwise it is open to any accepter.
+  defp publish_challenge(family, to, socket) do
+    with {tag, ""} <- Integer.parse(family),
+         true <- tag >= 0 and tag <= 255,
+         # A self-directed challenge would sit unacceptably in your own
+         # "To you" list forever; refuse to write it.
+         false <- to == socket.assigns.identity do
+      game_id = :crypto.strong_rand_bytes(32)
+
+      chain_commit =
+        if tag == QuaggaDef.family_tag(:backgammon) do
+          chain_seed(socket, game_id, "challenger")
+          |> Chain.generate()
+          |> Chain.commit()
+          |> Base.encode16(case: :lower)
+        end
+
+      challenge =
+        %{
+          "log_id" => "777",
+          "type" => "challenge",
+          "game_id" => game_id,
+          "family" => tag,
+          "player" => socket.assigns.identity,
+          "role" => "challenger",
+          "chain_spec" => Chain.spec(),
+          "chain_commit" => chain_commit
+        }
+
+      challenge =
+        case to do
+          nil -> challenge
+          _ -> Map.put(challenge, "to", to)
+        end
+
+      LogWriter.new_entry(challenge, socket)
+
+      {:noreply, state_set(socket, %{view: :challenges, entry: :all})}
+    else
+      _ -> {:noreply, socket}
+    end
+  end
+
+  # Second write on accept: the accepter's kickoff entry on the game's play
+  # log (a derived log), so the play stream reconstructs on its own. It lands
+  # on the accepter's own device facet and carries the full game context
+  # (players, chain spec/commits, the accepter's first reveal, base + log id).
+  defp publish_play_entry(socket, gid, tag, challenger, chain_commit, reveal, params) do
+    with challenger_commit when is_binary(challenger_commit) and challenger_commit != "" <-
+           Map.get(params, "challenge_commit"),
+         {:ok, cc} <- Base.decode16(challenger_commit, case: :lower) do
+      game_base =
+        Game.game_base(challenger, socket.assigns.identity, gid, tag)
+
+      game_log_id = Game.game_log_id(game_base, socket.assigns.facet_id)
+
+      play =
+        Game.play_entry(
+          socket.assigns.identity,
+          gid,
+          tag,
+          challenger,
+          game_base,
+          game_log_id: game_log_id,
+          chain_commit: unhex(chain_commit),
+          challenger_commit: cc,
+          reveal: unhex(reveal),
+          chain_spec: Chain.spec()
+        )
+
+      LogWriter.new_entry(Map.put(play, "log_id", Integer.to_string(game_log_id)), socket)
+    else
+      _ -> :ok
+    end
+  end
+
+  defp unhex(nil), do: nil
+  defp unhex(hex), do: Base.decode16!(hex, case: :lower)
 end

@@ -28,7 +28,7 @@ defmodule Catenary.Live.ImageExplorer do
       <div class="flex flex-col gap-5">
         <div class="flex items-center justify-between gap-3">
           <h1 class="text-lg font-semibold text-slate-800 dark:text-slate-100">Image Explorer</h1>
-          <div class="flex gap-1 rounded-lg bg-slate-100 dark:bg-slate-800 p-1">
+          <div :if={@card != %{}} class="flex gap-1 rounded-lg bg-slate-100 dark:bg-slate-800 p-1">
             <%= for a <- @card |> Map.keys |> Enum.sort do %>
               <button
                 value={a}
@@ -41,15 +41,19 @@ defmodule Catenary.Live.ImageExplorer do
             <% end %>
           </div>
         </div>
-        <%= for {t, g} <- (@card[@entry] || []) |> Enum.sort do %>
-          <div class="flex flex-col gap-2">
-            <h4 class="text-xs tracking-wide text-slate-400 dark:text-slate-500">{t}</h4>
-            <div class="flex flex-row flex-wrap gap-2">
-              <%= for i <- g do %>
-                {i}
-              <% end %>
+        <%= if @card == %{} or (@card[@entry] || []) == [] do %>
+          <p class="text-sm text-slate-400 dark:text-slate-500">No image messages.</p>
+        <% else %>
+          <%= for {t, g} <- (@card[@entry] || []) |> Enum.sort do %>
+            <div class="flex flex-col gap-2">
+              <h4 class="text-xs tracking-wide text-slate-400 dark:text-slate-500">{t}</h4>
+              <div class="flex flex-row flex-wrap gap-2">
+                <%= for i <- g do %>
+                  {i}
+                <% end %>
+              </div>
             </div>
-          </div>
+          <% end %>
         <% end %>
       </div>
     </div>

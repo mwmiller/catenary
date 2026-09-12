@@ -72,10 +72,17 @@ defmodule Catenary.Live.UnshownExplorer do
 
   defp group_entries(entries, clump_id) do
     entries
-    |> Enum.group_by(fn {_, l, _} -> QuaggaDef.base_log(l) end)
+    |> Enum.group_by(fn {_, l, _} -> group_key(l) end)
     |> Map.to_list()
     |> prettify(clump_id)
     |> Enum.sort(:asc)
+  end
+
+  defp group_key(log_id) do
+    case QuaggaDef.family_for_block(log_id) do
+      :unknown -> QuaggaDef.base_log(log_id)
+      family -> family
+    end
   end
 
   defp prettify(entries, clump_id, acc \\ [])

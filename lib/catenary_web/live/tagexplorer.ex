@@ -19,6 +19,9 @@ defmodule Catenary.Live.TagExplorer do
     <div id="tag-explore-wrap" class="content-wrap">
       <div class="flex flex-col gap-5">
         <h1 class="text-lg font-semibold text-slate-800 dark:text-slate-100">Tag Explorer</h1>
+        <p :if={@card["tags"] == []} class="text-sm text-slate-400 dark:text-slate-500">
+          No tag messages.
+        </p>
         <%= for g <- @card["tags"] do %>
           <div class="flex flex-row flex-wrap gap-2">
             {g}

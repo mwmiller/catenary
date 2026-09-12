@@ -16,8 +16,10 @@ defmodule Catenary.Live.Navigation do
     displayed_info =
       case {view, entry} do
         {:entries, {_a, l, _e}} ->
-          %{name: n} = QuaggaDef.log_def(l)
-          {:log, n}
+          case QuaggaDef.log_def(l) do
+            %{name: n} -> {:log, n}
+            _ -> {:family, QuaggaDef.family_for_block(l)}
+          end
 
         {:entries, {pseudo, _}} when is_atom(pseudo) ->
           {:pseudo, pseudo}
@@ -31,14 +33,18 @@ defmodule Catenary.Live.Navigation do
 
     blocked = Catenary.blocked?(entry, clump_id)
 
+    forced_extra_nav = force_extra_nav(displayed_info, assigns[:extra_nav])
+
     na =
       Map.merge(assigns, %{
         view: view,
+        entry: entry,
         displayed_info: displayed_info,
         identity: identity,
         whom: whom,
         ali: ali,
-        blocked: blocked
+        blocked: blocked,
+        extra_nav: forced_extra_nav
       })
 
     {:ok,
@@ -65,6 +71,13 @@ defmodule Catenary.Live.Navigation do
         </div>
         <div class="flex items-center gap-1">
           {for post_type <- [:journal, :image], do: post_button_for(post_type)}
+          <button
+            type="button"
+            phx-click="toggle-challenge"
+            title="New challenge"
+            aria-label="New challenge — posts to a log"
+            class={post_button_cls()}
+          >⚄</button>
         </div>
         <%= if displayed_matches([:log], @displayed_info) do %>
           <div class="flex items-center gap-1">
@@ -85,6 +98,75 @@ defmodule Catenary.Live.Navigation do
       <%= if displayed_matches([:log], @displayed_info) do %>
         {log_posting_form(assigns, :reply, source_title(@entry, @clump_id))}
       <% end %>
+    </div>
+    """
+  end
+
+  # When the view has an author in context (a profile, or any entry's
+  # author), the challenge is directed to them: only they may accept it.
+  defp extra_nav(%{:extra_nav => :challenge, :whom => whom} = assigns)
+       when is_binary(whom) and whom != "" and whom != assigns.identity do
+    ~H"""
+    <div id="challenge-nav" class={panel_cls()}>
+      {help_text(
+        "Issue a challenge on your challenge log. This one is directed to the author you are viewing — only they may accept it."
+      )}
+      <form
+        method="post"
+        id="challenge-form"
+        phx-submit="new-challenge"
+        class="flex flex-col gap-3 mt-3"
+      >
+        <input type="hidden" name="log_id" value="777" />
+        <input type="hidden" name="to" value={@whom} />
+        <div class="flex items-center gap-2">
+          {Display.scaled_avatar(@whom, 2) |> Phoenix.HTML.raw()}
+          <span class="min-w-0 truncate text-sm text-slate-700 dark:text-slate-300">
+            {Display.short_id(@whom, @aliases)}
+          </span>
+        </div>
+        <label for="family" class={label_cls()}>Family</label>
+        <select id="family" name="family" class={input_cls()}>
+          <%= for {name, tag} <- QuaggaDef.families() do %>
+            <option value={tag}>{name}</option>
+          <% end %>
+        </select>
+        {Display.log_submit_button()}
+      </form>
+    </div>
+    """
+  end
+
+  # No author in context: an open challenge by default, with an optional
+  # target key to direct it. Known aliases are offered for picking.
+  defp extra_nav(%{:extra_nav => :challenge} = assigns) do
+    ~H"""
+    <div id="challenge-nav" class={panel_cls()}>
+      {help_text(
+        "Issue a public challenge on your challenge log. Pick the game family; games with random elements may use provably fair elements."
+      )}
+      <form
+        method="post"
+        id="challenge-form"
+        phx-submit="new-challenge"
+        class="flex flex-col gap-3 mt-3"
+      >
+        <input type="hidden" name="log_id" value="777" />
+        <label for="family" class={label_cls()}>Family</label>
+        <select id="family" name="family" class={input_cls()}>
+          <%= for {name, tag} <- QuaggaDef.families() do %>
+            <option value={tag}>{name}</option>
+          <% end %>
+        </select>
+        <label for="challenge-to" class={label_cls()}>To</label>
+        <select id="challenge-to" name="to" class={input_cls()}>
+          <option value="">— anyone —</option>
+          <%= for {pk, name} <- Enum.sort_by(alias_options(), fn {_, n} -> n end) do %>
+            <option value={pk}>{name}</option>
+          <% end %>
+        </select>
+        {Display.log_submit_button()}
+      </form>
     </div>
     """
   end
@@ -261,15 +343,6 @@ defmodule Catenary.Live.Navigation do
   defp extra_nav(%{:extra_nav => :image} = assigns) do
     ~H"""
     <div id="images-nav" class={panel_cls()}>
-      <%= if displayed_matches(Catenary.image_logs(), @displayed_info) do %>
-        <form id="set-avatar-form" phx-submit="new-entry" class="flex flex-col gap-3">
-          <input type="hidden" name="log_id" value="360" />
-          <input type="hidden" name="avatar" value={Catenary.index_to_string(@entry)} />
-          <h4 class="text-sm font-semibold">Set this image as your avatar</h4>
-          {Display.log_submit_button()}
-        </form>
-        <div class="my-3 border-t border-slate-200 dark:border-slate-700"></div>
-      <% end %>
       <form
         id="imageupload-form"
         phx-submit="image-save"
@@ -296,7 +369,34 @@ defmodule Catenary.Live.Navigation do
     """
   end
 
+  defp extra_nav(%{:extra_nav => :image_avatar} = assigns) do
+    ~H"""
+    <div id="image-avatar-nav" class={panel_cls()}>
+      <form id="set-avatar-form" phx-submit="new-entry" class="flex flex-col gap-3">
+        <input type="hidden" name="log_id" value="360" />
+        <input type="hidden" name="avatar" value={Catenary.index_to_string(@entry)} />
+        <h4 class="text-sm font-semibold">Set this image as your avatar</h4>
+        {Display.log_submit_button()}
+      </form>
+    </div>
+    """
+  end
+
   defp extra_nav(_), do: ""
+
+  defp force_extra_nav({:log, name}, :none) when name in [:jpeg, :png, :gif],
+    do: :image_avatar
+
+  defp force_extra_nav(_displayed_info, fallback), do: fallback
+
+  # Known aliases as {key, name} pairs, offered for picking a challenge
+  # target. Anything the user has not aliased can still be pasted in.
+  defp alias_options do
+    case Catenary.alias_state() do
+      {:ok, aliases} when is_map(aliases) -> Enum.to_list(aliases)
+      _ -> []
+    end
+  end
 
   defp panel_cls,
     do: "rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-3"

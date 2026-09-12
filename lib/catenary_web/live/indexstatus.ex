@@ -8,11 +8,25 @@ defmodule Catenary.Live.IndexStatus do
     {:ok, assign(socket, assigns)}
   end
 
+  @log_type_map %{
+    about: [:about],
+    aliases: [:alias],
+    challenges: [:challenge],
+    graph: [:graph],
+    images: [:gif, :png, :jpeg],
+    mentions: [:mention],
+    oases: [:oasis],
+    reactions: [:react],
+    references: [:reply],
+    tags: [:tag],
+    timelines: [:journal]
+  }
+
   @impl true
   def render(assigns) do
     ~H"""
     <div class="status flex items-center gap-1 font-mono text-xs text-center mx-1 w-max">
-      <%= for {which, {char, state}} <- @indexing do %>
+      <%= for {which, {char, state}} <- visible_indices(@indexing) do %>
         <div class={pill_class(state)} title={pill_title(which, state)}>{char}</div>
       <% end %>
       <button
@@ -24,6 +38,13 @@ defmodule Catenary.Live.IndexStatus do
       >⏵</button>
     </div>
     """
+  end
+
+  defp visible_indices(indexing) do
+    Enum.filter(indexing, fn {which, _} ->
+      logs = Map.get(@log_type_map, which, [])
+      logs == [] or Enum.any?(logs, &Catenary.Preferences.accept_log_name?/1)
+    end)
   end
 
   defp pill_class(:running),

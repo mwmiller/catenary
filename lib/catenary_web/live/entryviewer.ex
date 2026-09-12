@@ -124,6 +124,7 @@ defmodule Catenary.Live.EntryViewer do
     {tabs, as_of} = profile_timeline(a, settings)
     others = profile_others(settings, a)
     mentions = profile_mentions(a)
+    challenge = challenge_button(a, settings)
     key = key_link(a)
 
     Preferences.mark_entry(:shown, entry)
@@ -135,7 +136,7 @@ defmodule Catenary.Live.EntryViewer do
         "title" => clump_id <> " Overview",
         "back-refs" => [],
         "tags" => [],
-        "body" => Phoenix.HTML.raw(about <> mentions <> tabs <> others <> key),
+        "body" => Phoenix.HTML.raw(challenge <> about <> mentions <> tabs <> others <> key),
         "published" => as_of
       },
       from_refs(entry)
@@ -145,6 +146,7 @@ defmodule Catenary.Live.EntryViewer do
   def extract({a, l, e} = entry, settings) do
     clump_id = Keyword.get(settings, :clump_id)
     ldef = l |> QuaggaDef.base_log() |> QuaggaDef.log_def()
+    ldef = if ldef == %{}, do: %{name: QuaggaDef.family_for_block(l)}, else: ldef
     lname = ldef.name
 
     payload = payload_for({a, l, e}, lname, clump_id)
@@ -173,8 +175,18 @@ defmodule Catenary.Live.EntryViewer do
     Map.merge(extract_type(payload, ldef), base)
   rescue
     e ->
-      Logger.warning(e)
+      Logger.warning(Exception.message(e))
       :error
+  end
+
+  # A directed challenge goes only to this player; it is an amber "log
+  # writing" action like the other post buttons, so it uses the ⚄ glyph.
+  defp challenge_button(a, settings) do
+    if a != Keyword.get(settings, :identity, "") do
+      ~s(<div class="flex justify-end"><button type="button" value="#{a}" phx-click="challenge-author" title="Challenge to backgammon" aria-label="Challenge to backgammon — writes a log" class="rounded-md bg-amber-500 hover:bg-amber-400 active:bg-amber-600 dark:bg-amber-400 dark:hover:bg-amber-300 dark:active:bg-amber-500 text-white dark:text-slate-900 text-sm font-semibold px-2 py-1 shadow-sm transition-colors">⚄</button></div>)
+    else
+      ""
+    end
   end
 
   defp payload_for({a, l, e}, lname, clump_id) do
@@ -478,12 +490,7 @@ defmodule Catenary.Live.EntryViewer do
 
       "logs" ->
         Map.merge(common, %{
-          "body" =>
-            Phoenix.HTML.raw(
-              "Accept: " <>
-                Enum.join(data["accept"], ", ") <>
-                "<br/>Reject: " <> Enum.join(data["reject"], ", ")
-            )
+          "body" => Phoenix.HTML.raw(graph_logs_body(data))
         })
     end
   rescue
@@ -546,8 +553,27 @@ defmodule Catenary.Live.EntryViewer do
     e -> malformed(e, cbor)
   end
 
-  # Fallback for any recognized log without a purpose-built viewer (e.g.
-  # :challenge): render the decoded payload as an inspect dump in a fenced
+  # Challenge log (777) entries: challenge, accept, and withdraw. The game ID
+  # is shown in its compact Base62 display form, matching the challenges
+  # explorer; the wire form (raw bytes) and hex index form are never shown.
+  defp extract_type(cbor, %{name: :challenge}) do
+    {:ok, data, ""} = CBOR.decode(cbor)
+
+    %{
+      "title" => Display.entry_title(:challenge, data),
+      "back-refs" => maybe_refs(data["references"]),
+      "body" =>
+        Phoenix.HTML.raw(
+          challenge_header(data) <>
+            challenge_detail(data)
+        )
+    }
+  rescue
+    e -> malformed(e, cbor)
+  end
+
+  # Fallback for any recognized log without a purpose-built viewer
+  # render the decoded payload as an inspect dump in a fenced
   # markdown code block. Falls through the specific clauses above, so it also
   # keeps new log types renderable before a dedicated card exists.
   defp extract_type(cbor, %{name: lname}) do
@@ -566,6 +592,131 @@ defmodule Catenary.Live.EntryViewer do
     }
   rescue
     e -> malformed(e, cbor)
+  end
+
+  defp graph_logs_body(data) do
+    accept = Map.get(data, "accept", [])
+    reject = Map.get(data, "reject", [])
+    unblk_fams = Map.get(data, "unblock_families", [])
+    blk_fams = Map.get(data, "block_families", [])
+
+    log_lines =
+      case {accept, reject} do
+        {[], []} ->
+          ""
+
+        {acc, rej} ->
+          "Accept: " <> Enum.join(acc, ", ") <> "<br/>Reject: " <> Enum.join(rej, ", ")
+      end
+
+    fam_lines =
+      Enum.join(
+        Enum.reject(
+          [
+            if(unblk_fams != [], do: "Unblock families: " <> Enum.join(unblk_fams, ", ")),
+            if(blk_fams != [], do: "Block families: " <> Enum.join(blk_fams, ", "))
+          ],
+          &is_nil/1
+        ),
+        "<br/>"
+      )
+
+    Enum.reject([log_lines, fam_lines], &(&1 == ""))
+    |> Enum.join("<br/><br/>")
+  end
+
+  defp challenge_header(data) do
+    family =
+      case QuaggaDef.family_name(data["family"]) do
+        :unknown -> "family #{data["family"]}"
+        name -> Atom.to_string(name)
+      end
+
+    ~s(<div class="flex items-center gap-2 flex-wrap">) <>
+      ~s(<span class="px-1.5 py-0.5 rounded text-[10px] font-bold uppercase bg-purple-500 text-white">) <>
+      String.upcase(family) <>
+      ~s(</span>) <>
+      ~s(<span class="text-sm font-mono break-all">) <>
+      Display.pretty_game_id(data["game_id"]) <>
+      ~s(</span></div>)
+  end
+
+  defp challenge_detail(data) do
+    case data["type"] do
+      "challenge" ->
+        row("Challenger", key_link(data["player"])) <>
+          directed_to(data["to"]) <>
+          row("Role", data["role"]) <>
+          chain_rows(data)
+
+      "accept" ->
+        row("Accepter", key_link(data["player"])) <>
+          row("Role", data["role"]) <>
+          chain_rows(data) <>
+          first_reveal(data["reveal"])
+
+      "withdraw" ->
+        by =
+          case data["player"] do
+            pk when is_binary(pk) -> key_link(pk)
+            _ -> ~s(<span class="italic text-slate-400">unknown</span>)
+          end
+
+        row("By", by) <>
+          ~s(<p class="text-slate-500 dark:text-slate-400 mt-3 italic">This challenge was withdrawn and can no longer be accepted.</p>)
+
+      _ ->
+        ""
+    end
+  end
+
+  defp directed_to(to) when is_binary(to),
+    do: row("Directed to", key_link(to))
+
+  defp directed_to(_),
+    do:
+      ~s(<div class="flex gap-2"><span class="w-24 shrink-0 text-slate-500 dark:text-slate-400">Open to</span><span class="text-slate-700 dark:text-slate-200">any accepter</span></div>)
+
+  # The committed provably-fair chain: spec constants plus the hex commitment.
+  defp chain_rows(data) do
+    commit =
+      case data["chain_commit"] do
+        cc when is_binary(cc) ->
+          ~s(<span class="font-mono text-xs break-all">) <> cc <> ~s(</span>)
+
+        _ ->
+          ~s(<span class="italic text-slate-400">none</span>)
+      end
+
+    spec =
+      case data["chain_spec"] do
+        %{"salt" => salt, "n" => n, "r" => r, "p" => p, "length" => len} ->
+          ~s(<span class="font-mono text-xs">) <>
+            "scrypt(N=#{n}, r=#{r}, p=#{p}) × #{len}, salt “#{salt}”" <>
+            ~s(</span>)
+
+        _ ->
+          ~s(<span class="italic text-slate-400">not specified</span>)
+      end
+
+    row("Chain commit", commit) <> row("Chain spec", spec)
+  end
+
+  # The accepter's first reveal rides on the accept entry.
+  defp first_reveal(reveal) when is_binary(reveal),
+    do:
+      row("First reveal", ~s(<span class="font-mono text-xs break-all">) <> reveal <> ~s(</span>))
+
+  defp first_reveal(_), do: ""
+
+  defp row(label, value) do
+    ~s(<div class="flex gap-2 mt-1">) <>
+      ~s(<span class="w-24 shrink-0 text-slate-500 dark:text-slate-400">) <>
+      label <>
+      ~s(</span>) <>
+      ~s(<span class="text-slate-700 dark:text-slate-200 break-all">) <>
+      value <>
+      ~s(</span></div>)
   end
 
   defp key_link(key),
