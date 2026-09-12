@@ -24,7 +24,10 @@ defmodule Catenary.Display do
   @doc """
   Emit an avatar scaled and styled per parameters
   """
-  def scaled_avatar(id, mag, classes \\ []) do
+  def scaled_avatar(id, mag, classes \\ [])
+  def scaled_avatar(nil, _mag, _classes), do: {:safe, ""}
+
+  def scaled_avatar(id, mag, classes) do
     ss = Integer.to_string(mag * 8)
 
     uri =
@@ -33,6 +36,21 @@ defmodule Catenary.Display do
           p = Catenary.image_src_for_entry({a, l, e}, cid)
           :ets.insert(:avatars, {id, p})
           p
+
+        [{^id, v}] when is_binary(v) ->
+          path =
+            v
+            |> String.trim_leading("/cat_images")
+            |> then(&Path.join(Catenary.images_dir(), &1))
+
+          case File.exists?(path) do
+            true ->
+              v
+
+            false ->
+              :ets.delete(:avatars, id)
+              write_svg_identicon(id, mag)
+          end
 
         [{^id, v}] ->
           v
@@ -56,10 +74,9 @@ defmodule Catenary.Display do
   end
 
   defp write_svg_identicon(id, mag) do
-    fs = Path.join([Application.app_dir(:catenary), "priv", "static"])
     idd = Path.join(["/cat_images", "identicons"])
     srv = Path.join([idd, id])
-    file = Path.join([fs, srv])
+    file = Path.join([Catenary.images_dir(), "identicons", id <> ".svg"])
     Excon.ident(id, type: :framed, magnification: mag, filename: file)
     srv <> ".svg"
   end
@@ -114,8 +131,10 @@ defmodule Catenary.Display do
   Extract or create a title for given entry data
   """
   def entry_title(log_id, data) when is_integer(log_id) do
-    %{name: n} = QuaggaDef.log_def(log_id)
-    entry_title(n, data)
+    case QuaggaDef.log_def(log_id) do
+      %{name: n} -> entry_title(n, data)
+      _ -> entry_title(QuaggaDef.family_for_block(log_id), data)
+    end
   end
 
   @image_logs Catenary.image_logs()
@@ -135,8 +154,55 @@ defmodule Catenary.Display do
   defp faux_title(:react, _), do: "Reaction"
   defp faux_title(:oasis, %{"name" => name}), do: "Oasis: " <> name
   defp faux_title(:tag, _), do: "Tagging"
+  defp faux_title(:challenge, %{"type" => "challenge"}), do: "Backgammon Challenge"
+  defp faux_title(:challenge, %{"type" => "accept"}), do: "Challenge Accepted"
+  defp faux_title(:challenge, %{"type" => "withdraw"}), do: "Challenge Withdrawn"
+  defp faux_title(:challenge, _), do: "Challenge Log Entry"
+
+  defp faux_title(:backgammon, %{"type" => "roll", "player" => p}),
+    do: "Roll: " <> pretty_player(p)
+
+  defp faux_title(:backgammon, %{"type" => "turn", "player" => p, "turn" => t}),
+    do: "Turn " <> to_string(t) <> ": " <> pretty_player(p)
+
+  defp faux_title(:backgammon, %{"type" => "turn", "player" => p}),
+    do: "Turn: " <> pretty_player(p)
+
+  defp faux_title(:backgammon, %{"type" => "resign", "player" => p}),
+    do: "Resign: " <> pretty_player(p)
+
+  defp faux_title(:backgammon, _), do: "Backgammon"
   defp faux_title(_, _), do: "untitled"
+
+  @doc """
+  Render a game ID in its human display form: compact Base62 (43 chars),
+  alphabetically consistent with identity keys.
+
+  Accepts the canonical raw 32-byte binary (as carried in CBOR entries) or
+  the lowercase-hex form (as used in index/UI strings). Returns `""` for
+  anything else.
+  """
+  @spec pretty_game_id(binary()) :: String.t()
+  def pretty_game_id(bin) when byte_size(bin) == 32, do: BaseX.Base62.encode(bin)
+
+  def pretty_game_id(hex) when is_binary(hex) do
+    case Base.decode16(hex, case: :lower) do
+      {:ok, bin} -> pretty_game_id(bin)
+      :error -> ""
+    end
+  end
+
+  def pretty_game_id(_), do: ""
   defp wrap_added_title(title), do: "⸤" <> title <> "⸣"
+
+  defp pretty_player(p) when is_binary(p) do
+    case Catenary.id_for_key(p) do
+      nil -> String.slice(p, 0, 12) <> "…"
+      alias_name -> alias_name
+    end
+  end
+
+  defp pretty_player(_), do: "unknown"
 
   # Let's not delve into why I hate using templates
   @doc """
@@ -148,20 +214,18 @@ defmodule Catenary.Display do
   end
 
   @doc """
-  Turn an integer log_id into a "nice" string.
+  Turn an integer log_id or atom into a "nice" string.
   """
-  def pretty_log_name(log_id) do
-    case QuaggaDef.log_id_unpack(log_id) do
-      {base_log, _} ->
-        base_log
-        |> QuaggaDef.log_def()
-        |> Map.get(:name, :unknown)
-        |> cap_atom_string
+  def pretty_log_name(log_id) when is_integer(log_id) do
+    {base_log, _} = QuaggaDef.log_id_unpack(log_id)
 
-      _ ->
-        ""
-    end
+    base_log
+    |> QuaggaDef.log_def()
+    |> Map.get(:name, :unknown)
+    |> cap_atom_string
   end
+
+  def pretty_log_name(family) when is_atom(family), do: cap_atom_string(family)
 
   @doc """
   Return all known log types with an array of {pretty_string, atom}

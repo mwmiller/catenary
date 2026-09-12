@@ -12,21 +12,54 @@ defmodule CatenaryWeb.ImportController do
   def create(conn, %{"identity_file" => %Plug.Upload{} = upload} = _params) do
     case import_file(upload.path) do
       {:ok, name} ->
-        conn
-        |> put_flash(:info, "Imported identity as #{name}")
-        |> redirect(to: "/")
+        respond(conn, :ok, "Imported identity as #{name}")
 
       {:error, reason} ->
-        conn
-        |> put_flash(:error, "Import failed: #{reason}")
-        |> redirect(to: "/")
+        respond(conn, :error, "Import failed: #{reason}")
     end
   end
 
   def create(conn, _params) do
+    respond(conn, :error, "Import failed: no identity file provided")
+  end
+
+  # We deliberately render the outcome as its own small page rather than a
+  # flash: the form is a plain multipart POST, and the result — especially a
+  # failure and why it happened — deserves to stay on screen until the
+  # reader is done with it. The upload replaced the current page, so there
+  # is nothing to return to but the app itself.
+  defp respond(conn, :ok, message) do
     conn
-    |> put_flash(:error, "Import failed: no identity file provided")
-    |> redirect(to: "/")
+    |> put_root_layout(false)
+    |> html(page(message))
+  end
+
+  defp respond(conn, :error, message) do
+    conn
+    |> put_status(422)
+    |> put_root_layout(false)
+    |> html(page(message))
+  end
+
+  defp page(message) do
+    safe = message |> Phoenix.HTML.html_escape() |> Phoenix.HTML.safe_to_string()
+
+    """
+    <!DOCTYPE html>
+    <html lang="en">
+      <head>
+        <meta charset="utf-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <title>Catenary — identity import</title>
+      </head>
+      <body style="margin:0;font-family:ui-sans-serif,system-ui,sans-serif;background:#0f172a;display:flex;align-items:center;justify-content:center;min-height:100vh;">
+        <div style="max-width:28rem;padding:2rem;text-align:center;">
+          <p style="margin:0 0 1.5rem;color:#e2e8f0;font-size:0.95rem;line-height:1.5;">#{safe}</p>
+          <a href="/" style="color:#fbbf24;font-size:0.9rem;">return to catenary</a>
+        </div>
+      </body>
+    </html>
+    """
   end
 
   defp import_file(path) do

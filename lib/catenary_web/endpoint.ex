@@ -20,7 +20,22 @@ defmodule CatenaryWeb.Endpoint do
     at: "/",
     from: :catenary,
     gzip: false,
-    only: ~w(assets fonts images favicon.ico robots.txt cat_images)
+    only: ~w(assets fonts images favicon.ico robots.txt)
+
+  # Serve images directly from the application images directory.
+  # No symlink needed — this points at the real storage path.
+  plug Plug.Static,
+    at: "/cat_images",
+    from:
+      Application.compile_env(:catenary, :application_dir, "~/.catenary")
+      |> Path.expand()
+      |> Path.join("images"),
+    gzip: false
+
+  # Tidewave (browser eval / MCP server). Dev only; never in releases.
+  if Mix.env() == :dev do
+    plug Tidewave
+  end
 
   # Code reloading can be explicitly enabled under the
   # :code_reloader configuration of your endpoint.
