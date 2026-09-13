@@ -390,11 +390,20 @@ defmodule Catenary.Live.Navigation do
   defp force_extra_nav(_displayed_info, fallback), do: fallback
 
   # Known aliases as {key, name} pairs, offered for picking a challenge
-  # target. Anything the user has not aliased can still be pasted in.
+  # target.  The user's own identity keys are excluded.
   defp alias_options do
+    my_keys =
+      Baobab.Identity.list()
+      |> Enum.map(fn {_n, k} -> k end)
+      |> MapSet.new()
+
     case Catenary.alias_state() do
-      {:ok, aliases} when is_map(aliases) -> Enum.to_list(aliases)
-      _ -> []
+      {:ok, aliases} when is_map(aliases) ->
+        aliases
+        |> Enum.reject(fn {k, _v} -> MapSet.member?(my_keys, k) end)
+
+      _ ->
+        []
     end
   end
 

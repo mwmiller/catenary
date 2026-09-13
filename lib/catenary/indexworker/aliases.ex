@@ -17,7 +17,8 @@ defmodule Catenary.IndexWorker.Aliases do
     result =
       Baobab.stored_info(clump_id)
       |> Enum.filter(fn {a, l, _} -> a in keepers and l in @logs_of_interest end)
-      |> build_index(clump_id, %{})
+      |> build_index(clump_id, [])
+      |> Map.new()
 
     Catenary.State.set_aliases(result)
     prev_seen
@@ -33,8 +34,10 @@ defmodule Catenary.IndexWorker.Aliases do
     )
   end
 
-  # This could maybe give up on a CBOR failure, eventually
-  # Right now we have a lot of mixed types
+  # Each entry is {whom, alias_name}.  Because entries are processed in
+  # chronological order, the latest assignment of a name wins: if "Quagga"
+  # is reassigned from key A to key B, key A loses the name.
+
   defp entries_index([], _, acc), do: acc
 
   defp entries_index([entry | rest], clump_id, acc) do
@@ -42,7 +45,18 @@ defmodule Catenary.IndexWorker.Aliases do
       try do
         %Baobab.Entry{payload: payload} = entry
         {:ok, data, ""} = CBOR.decode(payload)
-        Map.put(acc, data["whom"], data["alias"])
+        whom = data["whom"]
+        name = data["alias"]
+
+        # Find and remove any previous owner of this name
+        prev_owner =
+          Enum.find_value(acc, fn
+            {k, ^name} -> k
+            _ -> nil
+          end)
+
+        acc = if prev_owner, do: List.keydelete(acc, prev_owner, 0), else: acc
+        List.keystore(acc, whom, 0, {whom, name})
       rescue
         _ -> acc
       end
