@@ -1,4 +1,4 @@
-defmodule Catenary.Backgammon.Engine do
+defmodule Catenary.Games.Backgammon.Engine do
   @moduledoc """
   Position model and move rules for Catenary backgammon.
 
@@ -73,12 +73,12 @@ defmodule Catenary.Backgammon.Engine do
 
   ## Examples
 
-      iex> b = Catenary.Backgammon.Engine.initial()
-      iex> b == Catenary.Backgammon.Engine.mirror(b)
+      iex> b = Catenary.Games.Backgammon.Engine.initial()
+      iex> b == Catenary.Games.Backgammon.Engine.mirror(b)
       true
 
-      iex> b = %Catenary.Backgammon.Engine{points: %{4 => 2, 20 => -1}, bar: 1, off: 2}
-      iex> mirror = Catenary.Backgammon.Engine.mirror(b)
+      iex> b = %Catenary.Games.Backgammon.Engine{points: %{4 => 2, 20 => -1}, bar: 1, off: 2}
+      iex> mirror = Catenary.Games.Backgammon.Engine.mirror(b)
       iex> mirror.points
       %{5 => 1, 21 => -2}
       iex> mirror.bar
@@ -107,10 +107,10 @@ defmodule Catenary.Backgammon.Engine do
 
   ## Examples
 
-      iex> Catenary.Backgammon.Engine.roll_dies({3, 5})
+      iex> Catenary.Games.Backgammon.Engine.roll_dies({3, 5})
       [3, 5]
 
-      iex> Catenary.Backgammon.Engine.roll_dies({4, 4})
+      iex> Catenary.Games.Backgammon.Engine.roll_dies({4, 4})
       [4, 4, 4, 4]
 
   """
@@ -123,11 +123,11 @@ defmodule Catenary.Backgammon.Engine do
 
   ## Examples
 
-      iex> Catenary.Backgammon.Engine.count(Catenary.Backgammon.Engine.initial(), 1)
+      iex> Catenary.Games.Backgammon.Engine.count(Catenary.Games.Backgammon.Engine.initial(), 1)
       -2
-      iex> Catenary.Backgammon.Engine.count(Catenary.Backgammon.Engine.initial(), 13)
+      iex> Catenary.Games.Backgammon.Engine.count(Catenary.Games.Backgammon.Engine.initial(), 13)
       5
-      iex> Catenary.Backgammon.Engine.count(Catenary.Backgammon.Engine.initial(), 6)
+      iex> Catenary.Games.Backgammon.Engine.count(Catenary.Games.Backgammon.Engine.initial(), 6)
       5
 
   """
@@ -248,13 +248,13 @@ defmodule Catenary.Backgammon.Engine do
   Every **maximal** play for a roll: all move sequences that consume the dice
   as far as possible (never leaving a die playable). Doubles expand to four
   dice. Each play is returned as a list of `{from, to}` moves with the moves
-  ordered for Magriel rendering (`Catenary.Backgammon.Notation.turn/1`).
+  ordered for Magriel rendering (`Catenary.Games.Backgammon.Notation.turn/1`).
   Duplicate plays (same moves in different generation order) are removed.
 
   ## Examples
 
-      iex> b = %Catenary.Backgammon.Engine{points: %{6 => 2, 3 => 1}}
-      iex> Catenary.Backgammon.Engine.legal_plays(b, {2, 5})
+      iex> b = %Catenary.Games.Backgammon.Engine{points: %{6 => 2, 3 => 1}}
+      iex> Catenary.Games.Backgammon.Engine.legal_plays(b, {2, 5})
       [[{3, 1}, {1, :off}], [{6, 1}, {1, :off}], [{6, 1}, {3, 1}], [{6, 1}, {6, 4}], [{6, 4}, {3, :off}], [{6, 4}, {4, :off}]]
 
   """
@@ -309,12 +309,12 @@ defmodule Catenary.Backgammon.Engine do
 
   ## Examples
 
-      iex> b = %Catenary.Backgammon.Engine{points: %{6 => 2, 3 => 1}}
-      iex> Catenary.Backgammon.Engine.legal_play?(b, {2, 5}, [{6, 4}, {6, 1}])
+      iex> b = %Catenary.Games.Backgammon.Engine{points: %{6 => 2, 3 => 1}}
+      iex> Catenary.Games.Backgammon.Engine.legal_play?(b, {2, 5}, [{6, 4}, {6, 1}])
       true
-      iex> Catenary.Backgammon.Engine.legal_play?(b, {2, 5}, [{6, 4}])
+      iex> Catenary.Games.Backgammon.Engine.legal_play?(b, {2, 5}, [{6, 4}])
       false
-      iex> Catenary.Backgammon.Engine.legal_play?(b, {2, 5}, [])
+      iex> Catenary.Games.Backgammon.Engine.legal_play?(b, {2, 5}, [])
       false
 
   """
@@ -379,13 +379,13 @@ defmodule Catenary.Backgammon.Engine do
 
   ## Examples
 
-      iex> b = Catenary.Backgammon.Engine.initial()
-      iex> Catenary.Backgammon.Engine.pips(b, :actor)
+      iex> b = Catenary.Games.Backgammon.Engine.initial()
+      iex> Catenary.Games.Backgammon.Engine.pips(b, :actor)
       167
-      iex> Catenary.Backgammon.Engine.pips(b, :opponent)
+      iex> Catenary.Games.Backgammon.Engine.pips(b, :opponent)
       167
 
-      iex> Catenary.Backgammon.Engine.pips(%Catenary.Backgammon.Engine{}, :actor)
+      iex> Catenary.Games.Backgammon.Engine.pips(%Catenary.Games.Backgammon.Engine{}, :actor)
       0
   """
   @spec pips(Engine.t(), :actor | :opponent) :: non_neg_integer()
@@ -412,9 +412,9 @@ defmodule Catenary.Backgammon.Engine do
 
   ## Examples
 
-      iex> b = %Catenary.Backgammon.Engine{points: %{6 => 2, 3 => 1}}
-      iex> Catenary.Backgammon.Engine.apply(b, [{3, 1}, {6, 1}])
-      %Catenary.Backgammon.Engine{points: %{6 => 1, 1 => 2}}
+      iex> b = %Catenary.Games.Backgammon.Engine{points: %{6 => 2, 3 => 1}}
+      iex> Catenary.Games.Backgammon.Engine.apply(b, [{3, 1}, {6, 1}])
+      %Catenary.Games.Backgammon.Engine{points: %{6 => 1, 1 => 2}}
 
   """
   @spec apply(t(), [move()]) :: t()

@@ -1,4 +1,4 @@
-defmodule Catenary.Backgammon.Notation do
+defmodule Catenary.Games.Backgammon.Notation do
   @moduledoc """
   Standard Magriel notation for backgammon messages.
 
@@ -23,16 +23,16 @@ defmodule Catenary.Backgammon.Notation do
 
   ## Examples
 
-      iex> Catenary.Backgammon.Notation.move(13, 8)
+      iex> Catenary.Games.Backgammon.Notation.move(13, 8)
       "13/8"
 
-      iex> Catenary.Backgammon.Notation.move(:bar, 20)
+      iex> Catenary.Games.Backgammon.Notation.move(:bar, 20)
       "bar/20"
 
-      iex> Catenary.Backgammon.Notation.move(6, :off)
+      iex> Catenary.Games.Backgammon.Notation.move(6, :off)
       "6/off"
 
-      iex> Catenary.Backgammon.Notation.move(:bar, :off)
+      iex> Catenary.Games.Backgammon.Notation.move(:bar, :off)
       "bar/off"
 
   """
@@ -54,13 +54,13 @@ defmodule Catenary.Backgammon.Notation do
 
   ## Examples
 
-      iex> Catenary.Backgammon.Notation.turn([{13, 8}, {13, 8}])
+      iex> Catenary.Games.Backgammon.Notation.turn([{13, 8}, {13, 8}])
       "13/8 13/8"
 
-      iex> Catenary.Backgammon.Notation.turn([{6, :off}])
+      iex> Catenary.Games.Backgammon.Notation.turn([{6, :off}])
       "6/off"
 
-      iex> Catenary.Backgammon.Notation.turn([])
+      iex> Catenary.Games.Backgammon.Notation.turn([])
       ""
 
   """
@@ -79,13 +79,13 @@ defmodule Catenary.Backgammon.Notation do
 
   ## Examples
 
-      iex> Catenary.Backgammon.Notation.parse("13/8 13/8")
+      iex> Catenary.Games.Backgammon.Notation.parse("13/8 13/8")
       [{13, 8}, {13, 8}]
 
-      iex> Catenary.Backgammon.Notation.parse("bar/20 6/off")
+      iex> Catenary.Games.Backgammon.Notation.parse("bar/20 6/off")
       [{:bar, 20}, {6, :off}]
 
-      iex> Catenary.Backgammon.Notation.parse("")
+      iex> Catenary.Games.Backgammon.Notation.parse("")
       []
 
   """
@@ -121,10 +121,10 @@ defmodule Catenary.Backgammon.Notation do
 
   ## Examples
 
-      iex> Catenary.Backgammon.Notation.point_name(13)
+      iex> Catenary.Games.Backgammon.Notation.point_name(13)
       "13-point"
 
-      iex> Catenary.Backgammon.Notation.point_name(:bar)
+      iex> Catenary.Games.Backgammon.Notation.point_name(:bar)
       "bar"
 
   """

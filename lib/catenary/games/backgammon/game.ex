@@ -1,4 +1,4 @@
-defmodule Catenary.Backgammon.Game do
+defmodule Catenary.Games.Backgammon.Game do
   @moduledoc """
   Game identity, log derivation, and challenge messages for Catenary
   backgammon.
@@ -26,9 +26,9 @@ defmodule Catenary.Backgammon.Game do
   need nothing beyond the message and their identity secret.
   """
 
-  alias Catenary.Backgammon.Chain
+  alias Catenary.Games.Backgammon.Chain
 
-  @chain_length Catenary.Backgammon.Chain.spec()["length"]
+  @chain_length Catenary.Games.Backgammon.Chain.spec()["length"]
 
   @doc """
   The chain spec that travels with challenge and accept messages.
@@ -63,12 +63,12 @@ defmodule Catenary.Backgammon.Game do
       iex> pk1 = "abc123"
       iex> pk2 = "def456"
       iex> game_id = :crypto.strong_rand_bytes(32)
-      iex> base = Catenary.Backgammon.Game.game_base(pk1, pk2, game_id)
+      iex> base = Catenary.Games.Backgammon.Game.game_base(pk1, pk2, game_id)
       iex> QuaggaDef.reserved_base_log?(base)
       true
 
       iex> QuaggaDef.family_for_block(
-      ...>   Catenary.Backgammon.Game.game_base("abc123", "def456", :crypto.strong_rand_bytes(32))
+      ...>   Catenary.Games.Backgammon.Game.game_base("abc123", "def456", :crypto.strong_rand_bytes(32))
       ...> )
       :backgammon
 
@@ -93,10 +93,10 @@ defmodule Catenary.Backgammon.Game do
 
   ## Examples
 
-      iex> Catenary.Backgammon.Game.game_log_id(0, 0)
+      iex> Catenary.Games.Backgammon.Game.game_log_id(0, 0)
       0
 
-      iex> Catenary.Backgammon.Game.game_log_id(0, 1)
+      iex> Catenary.Games.Backgammon.Game.game_log_id(0, 1)
       0x0100000000000000
 
   """
@@ -371,13 +371,13 @@ defmodule Catenary.Backgammon.Game do
 
   ## Examples
 
-      iex> Catenary.Backgammon.Game.roll_string(3, 5)
+      iex> Catenary.Games.Backgammon.Game.roll_string(3, 5)
       "3-5"
 
-      iex> Catenary.Backgammon.Game.roll_string(5, 3)
+      iex> Catenary.Games.Backgammon.Game.roll_string(5, 3)
       "5-3"
 
-      iex> Catenary.Backgammon.Game.roll_string(4, 4)
+      iex> Catenary.Games.Backgammon.Game.roll_string(4, 4)
       "4-4"
 
   """
@@ -391,10 +391,10 @@ defmodule Catenary.Backgammon.Game do
 
   ## Examples
 
-      iex> Catenary.Backgammon.Game.parse_roll("3-5")
+      iex> Catenary.Games.Backgammon.Game.parse_roll("3-5")
       {3, 5}
 
-      iex> Catenary.Backgammon.Game.parse_roll("4-4")
+      iex> Catenary.Games.Backgammon.Game.parse_roll("4-4")
       {4, 4}
 
   """

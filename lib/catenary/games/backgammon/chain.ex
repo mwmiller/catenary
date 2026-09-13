@@ -1,4 +1,4 @@
-defmodule Catenary.Backgammon.Chain do
+defmodule Catenary.Games.Backgammon.Chain do
   @moduledoc """
   Provably-fair scrypt chain for Catenary backgammon.
 
@@ -63,11 +63,11 @@ defmodule Catenary.Backgammon.Chain do
 
   ## Examples
 
-      iex> spec = Catenary.Backgammon.Chain.spec()
+      iex> spec = Catenary.Games.Backgammon.Chain.spec()
       iex> spec["salt"]
       "catenary:bg:chain"
 
-      iex> Catenary.Backgammon.Chain.spec()["length"]
+      iex> Catenary.Games.Backgammon.Chain.spec()["length"]
       256
 
   """
@@ -91,7 +91,7 @@ defmodule Catenary.Backgammon.Chain do
   ## Examples
 
       iex> prev = :crypto.hash(:sha256, "seed")
-      iex> next = Catenary.Backgammon.Chain.derive(prev)
+      iex> next = Catenary.Games.Backgammon.Chain.derive(prev)
       iex> byte_size(next)
       32
 
@@ -112,7 +112,7 @@ defmodule Catenary.Backgammon.Chain do
 
       iex> secret = :crypto.strong_rand_bytes(32)
       iex> game_id = :crypto.strong_rand_bytes(32)
-      iex> seed = Catenary.Backgammon.Chain.seed_for(secret, game_id, "challenger")
+      iex> seed = Catenary.Games.Backgammon.Chain.seed_for(secret, game_id, "challenger")
       iex> byte_size(seed)
       32
 
@@ -140,8 +140,8 @@ defmodule Catenary.Backgammon.Chain do
   ## Examples
 
       iex> seed = :crypto.strong_rand_bytes(32)
-      iex> spec = %{Catenary.Backgammon.Chain.spec() | "length" => 5}
-      iex> chain = Catenary.Backgammon.Chain.generate(seed, spec)
+      iex> spec = %{Catenary.Games.Backgammon.Chain.spec() | "length" => 5}
+      iex> chain = Catenary.Games.Backgammon.Chain.generate(seed, spec)
       iex> length(chain)
       5
 
@@ -209,7 +209,7 @@ defmodule Catenary.Backgammon.Chain do
   ## Examples
 
       iex> chain = for _ <- 1..3, do: :crypto.strong_rand_bytes(32)
-      iex> commitment = Catenary.Backgammon.Chain.commit(chain)
+      iex> commitment = Catenary.Games.Backgammon.Chain.commit(chain)
       iex> byte_size(commitment)
       32
 
@@ -256,7 +256,7 @@ defmodule Catenary.Backgammon.Chain do
 
       iex> a = :crypto.strong_rand_bytes(32)
       iex> b = :crypto.strong_rand_bytes(32)
-      iex> [d1, d2] = Catenary.Backgammon.Chain.dice(a, b)
+      iex> [d1, d2] = Catenary.Games.Backgammon.Chain.dice(a, b)
       iex> d1 in 1..6 and d2 in 1..6
       true
 
@@ -297,9 +297,9 @@ defmodule Catenary.Backgammon.Chain do
 
   ## Examples
 
-      iex> spec = %{Catenary.Backgammon.Chain.spec() | "length" => 5}
-      iex> chain = Catenary.Backgammon.Chain.generate(:crypto.strong_rand_bytes(32), spec)
-      iex> {r_cur, r_next} = Catenary.Backgammon.Chain.reveal_pair(chain, 5)
+      iex> spec = %{Catenary.Games.Backgammon.Chain.spec() | "length" => 5}
+      iex> chain = Catenary.Games.Backgammon.Chain.generate(:crypto.strong_rand_bytes(32), spec)
+      iex> {r_cur, r_next} = Catenary.Games.Backgammon.Chain.reveal_pair(chain, 5)
       iex> [c1, c2 | _] = Enum.reverse(chain)
       iex> {r_cur, r_next} == {c1, c2}
       true
@@ -327,11 +327,11 @@ defmodule Catenary.Backgammon.Chain do
   ## Examples
 
       iex> seed = :crypto.strong_rand_bytes(32)
-      iex> chain = Catenary.Backgammon.Chain.generate(seed, %{Catenary.Backgammon.Chain.spec() | "length" => 10})
-      iex> commit = Catenary.Backgammon.Chain.commit(chain)
-      iex> Catenary.Backgammon.Chain.verify_first(List.last(chain), commit)
+      iex> chain = Catenary.Games.Backgammon.Chain.generate(seed, %{Catenary.Games.Backgammon.Chain.spec() | "length" => 10})
+      iex> commit = Catenary.Games.Backgammon.Chain.commit(chain)
+      iex> Catenary.Games.Backgammon.Chain.verify_first(List.last(chain), commit)
       :ok
-      iex> Catenary.Backgammon.Chain.verify_first(:crypto.strong_rand_bytes(32), commit)
+      iex> Catenary.Games.Backgammon.Chain.verify_first(:crypto.strong_rand_bytes(32), commit)
       {:error, "reveal does not match commitment"}
 
   """
@@ -357,12 +357,12 @@ defmodule Catenary.Backgammon.Chain do
   ## Examples
 
       iex> seed = :crypto.strong_rand_bytes(32)
-      iex> short = %{Catenary.Backgammon.Chain.spec() | "length" => 10}
-      iex> chain = Catenary.Backgammon.Chain.generate(seed, short)
+      iex> short = %{Catenary.Games.Backgammon.Chain.spec() | "length" => 10}
+      iex> chain = Catenary.Games.Backgammon.Chain.generate(seed, short)
       iex> [b, a | _] = Enum.reverse(chain)
-      iex> Catenary.Backgammon.Chain.verify_next(a, b, short)
+      iex> Catenary.Games.Backgammon.Chain.verify_next(a, b, short)
       :ok
-      iex> Catenary.Backgammon.Chain.verify_next(
+      iex> Catenary.Games.Backgammon.Chain.verify_next(
       ...>   :crypto.strong_rand_bytes(32), List.last(chain), short)
       {:error, "reveal does not extend the chain"}
 

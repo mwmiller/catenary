@@ -1,7 +1,7 @@
-defmodule Catenary.Backgammon.EngineTest do
+defmodule Catenary.Games.Backgammon.EngineTest do
   use ExUnit.Case, async: true
 
-  alias Catenary.Backgammon.Engine
+  alias Catenary.Games.Backgammon.Engine
 
   doctest Engine
 

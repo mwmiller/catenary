@@ -1,4 +1,4 @@
-defmodule Catenary.Backgammon.GameReplaySnapshotsTest do
+defmodule Catenary.Games.Backgammon.GameReplaySnapshotsTest do
   @moduledoc """
   Full game replay test with per-turn position snapshots.
 
@@ -8,7 +8,7 @@ defmodule Catenary.Backgammon.GameReplaySnapshotsTest do
   """
   use ExUnit.Case, async: true
 
-  alias Catenary.Backgammon.{Engine, Notation}
+  alias Catenary.Games.Backgammon.{Engine, Notation}
 
   # Magriel vs Svobodny — 20 turns from Robertie's transcript.
   # White's moves are in Black's coordinate system (Robertie convention).

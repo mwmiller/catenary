@@ -5,7 +5,7 @@ defmodule Catenary.Live.BackgammonView do
   publish), and a replay scrubber that steps through every folded turn.
 
   A game row comes from the `:challenges` index (keyed by hex `game_id`). The
-  index worker folds the play log (see `Catenary.Backgammon.Fold`), which
+  index worker folds the play log (see `Catenary.Games.Backgammon.Fold`), which
   resolves the opening rolls, the starter, and the board/turn state, landing
   them on the row. This component draws it and drives the next entry.
 
@@ -34,10 +34,10 @@ defmodule Catenary.Live.BackgammonView do
   use Phoenix.LiveComponent
 
   alias Catenary.{
-    Backgammon.Chain,
-    Backgammon.Engine,
-    Backgammon.Game,
-    Backgammon.Notation,
+    Games.Backgammon.Chain,
+    Games.Backgammon.Engine,
+    Games.Backgammon.Game,
+    Games.Backgammon.Notation,
     Display,
     LogWriter
   }

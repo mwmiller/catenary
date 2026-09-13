@@ -6,7 +6,7 @@ defmodule Catenary.IndexWorker.Challenges do
     indica: {"🎲", "▢"},
     logs: QuaggaDef.logs_for_name(:challenge)
 
-  alias Catenary.Backgammon.Fold
+  alias Catenary.Games.Backgammon.Fold
 
   @moduledoc """
   Index of backgammon challenges.

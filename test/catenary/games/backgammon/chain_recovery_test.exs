@@ -1,4 +1,4 @@
-defmodule Catenary.Backgammon.ChainRecoveryTest do
+defmodule Catenary.Games.Backgammon.ChainRecoveryTest do
   @moduledoc """
   End-to-end test for chain re-derivation on a fresh device.
 
@@ -8,7 +8,7 @@ defmodule Catenary.Backgammon.ChainRecoveryTest do
   """
   use ExUnit.Case, async: true
 
-  alias Catenary.Backgammon.{Chain, Engine, Fold, Game, Notation}
+  alias Catenary.Games.Backgammon.{Chain, Engine, Fold, Game, Notation}
 
   defp hex(bin), do: Base.encode16(bin, case: :lower)
 

@@ -1,7 +1,7 @@
-defmodule Catenary.Backgammon.FoldTest do
+defmodule Catenary.Games.Backgammon.FoldTest do
   use ExUnit.Case, async: true
 
-  alias Catenary.Backgammon.{Chain, Engine, Fold, Game, Notation}
+  alias Catenary.Games.Backgammon.{Chain, Engine, Fold, Game, Notation}
 
   defp entry(map) do
     %Baobab.Entry{author: "a", log_id: 1, seqnum: 1, payload: CBOR.encode(map)}

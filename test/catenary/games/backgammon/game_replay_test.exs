@@ -1,7 +1,7 @@
-defmodule Catenary.Backgammon.GameReplayTest do
+defmodule Catenary.Games.Backgammon.GameReplayTest do
   use ExUnit.Case, async: true
 
-  alias Catenary.Backgammon.{Engine, Notation}
+  alias Catenary.Games.Backgammon.{Engine, Notation}
 
   # Magriel vs Svobodny from Bill Robertie's "Backgammon for Serious Players".
   # The transcript uses Black's perspective throughout (Robertie convention):

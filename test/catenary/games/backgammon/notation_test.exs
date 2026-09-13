@@ -1,7 +1,7 @@
-defmodule Catenary.Backgammon.NotationTest do
+defmodule Catenary.Games.Backgammon.NotationTest do
   use ExUnit.Case, async: true
 
-  alias Catenary.Backgammon.Notation
+  alias Catenary.Games.Backgammon.Notation
 
   doctest Notation
 

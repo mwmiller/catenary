@@ -6,8 +6,8 @@ defmodule CatenaryWeb.Live do
   require Logger
 
   alias Catenary.{
-    Backgammon.Chain,
-    Backgammon.Game,
+    Games.Backgammon.Chain,
+    Games.Backgammon.Game,
     Display,
     IndexWorker.Challenges,
     LogWriter,

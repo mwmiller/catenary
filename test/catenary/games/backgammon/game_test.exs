@@ -1,7 +1,7 @@
-defmodule Catenary.Backgammon.GameTest do
+defmodule Catenary.Games.Backgammon.GameTest do
   use ExUnit.Case, async: true
 
-  alias Catenary.Backgammon.{Chain, Game}
+  alias Catenary.Games.Backgammon.{Chain, Game}
 
   doctest Game
 

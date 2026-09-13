@@ -1,4 +1,4 @@
-defmodule Catenary.Backgammon.Fold do
+defmodule Catenary.Games.Backgammon.Fold do
   @moduledoc """
   Fold a backgammon game's play log into a replayable position + history,
   including the opening-roll sequence that decides who moves first.
@@ -41,7 +41,7 @@ defmodule Catenary.Backgammon.Fold do
   carries the reason (`:none` when the fold succeeds).
   """
 
-  alias Catenary.Backgammon.{Chain, Engine, Game, Notation}
+  alias Catenary.Games.Backgammon.{Chain, Engine, Game, Notation}
 
   @type entry :: %{optional(String.t()) => term()}
 
