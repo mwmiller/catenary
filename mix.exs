@@ -41,7 +41,7 @@ defmodule Catenary.MixProject do
   def application do
     [
       mod: {Catenary.Application, []},
-      extra_applications: [:logger, :runtime_tools, :observer]
+      extra_applications: [:logger, :runtime_tools]
     ]
   end
 

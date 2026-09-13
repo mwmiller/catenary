@@ -62,7 +62,14 @@ fn build_menu(app: &tauri::App) -> tauri::Result<()> {
         .accelerator("CmdOrCtrl+R")
         .build(handle)?;
     let close_window = PredefinedMenuItem::close_window(handle, None)?;
-    let about = PredefinedMenuItem::about(handle, Some("About Catenary"), None)?;
+    let about = PredefinedMenuItem::about(
+        handle,
+        Some("About Catenary"),
+        Some(vec![tauri::menu::AboutMetadata {
+            license: Some("MIT".into()),
+            ..Default::default()
+        }]),
+    )?;
     let quit = PredefinedMenuItem::quit(handle, Some("Quit Catenary"))?;
 
     let catenary = SubmenuBuilder::new(handle, "Catenary")

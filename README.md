@@ -1,8 +1,30 @@
 # Catenary
 
-A distributed, self-sovereign feed reader with an Elixir/Phoenix heart and a
-native desktop shell. The UI is a Phoenix LiveView served from a locally bound
-endpoint and rendered inside a [Tauri](https://tauri.app) webview.
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+
+## What is it?
+
+A peer-to-peer feed reader and publishing platform. Each user owns their
+identity (a cryptographic keypair) and their content (signed, append-only
+logs). There is no server, no account, and no third party that can censor
+or revoke anything published.
+
+## How it works
+
+Catenary peers find each other and exchange data using a gossip protocol —
+there is no central server coordinating anything. Once two nodes connect,
+they each say what they have and what they want, and swap entries directly.
+
+Each type of content (journal posts, replies, images, tags, game moves, etc.)
+lives in its own append-only log, signed by its author. Because logs are
+independent, each node can choose exactly which types of content to carry.
+A node can follow someone's journal but not their game moves by blocking
+that content type — the node simply won't store or relay it. Blocking works
+by content type, by author, or by entire families of derived logs.
+
+Multiple devices can share the same identity — a phone and a laptop each
+write to their own slot within a content type. Other nodes see the combined
+log as a single, coherent sequence.
 
 ## Quick start (dev server)
 
@@ -13,67 +35,23 @@ mix deps.get
 mix phx.server      # serves http://localhost:14041
 ```
 
-Visit [`localhost:14041`](http://localhost:14041) in a browser.
-
 ## Desktop app
 
-The native shell runs the Elixir backend as a Burrito-wrapped binary (spawned
-as a Tauri sidecar) and draws the LiveView in the webview:
+The native shell wraps the Elixir backend in a [Tauri](https://tauri.app)
+webview. Build everything with:
 
 ```
-scripts/build-app.sh
+scripts/build-app.sh           # full build (backend + shell)
+cd src-tauri && cargo tauri dev # iterate on shell with mix phx.server running
 ```
 
-This builds the backend release and the `catenary.app` shell. The shell's menu
-bar has a **Go** menu with keyboard shortcuts for quick navigation:
+## Install
 
-| Item | Shortcut | View |
-|------|----------|------|
-| Dashboard | ⌘D | LiveDashboard |
-| Preferences | ⌘, | Settings |
-| Oases | ⌘O | Peers/Nodes |
+Installers are on each [GitHub release](https://github.com/mwmiller/catenary/releases):
 
-Native window resize events are reported back so the app can remember its
-window size. Choosing **Quit Catenary** terminates the backend and releases
-its port.
-
-## Install (end users)
-
-Ready-made installers are attached to each [GitHub release](https://github.com/mwmiller/catenary/releases):
-
-* **macOS** — `Catenary-<version>-macos-aarch64.dmg`: open it and drag Catenary
-  into Applications. (A `.zip` fallback is also provided.)
-* **Windows** — `Catenary-<version>-windows-x86_64-setup.exe`: run the
-  installer; it adds Start-menu shortcuts and an uninstaller.
-* **Linux**
-  * Debian / Ubuntu / Pop!_OS: `sudo apt install ./Catenary-<version>-linux-x86_64.deb`
-  * Fedora / RHEL / openSUSE: `sudo dnf install ./Catenary-<version>-linux-x86_64.rpm`
-  * Any other distro: download the `.AppImage`, make it executable
-    (`chmod +x`, requires `libwebkit2gtk-4.1-0`), and run it.
-
-Development iteration of the shell alone, with `mix phx.server` already running:
-
-```
-cd src-tauri && cargo tauri dev
-```
-
-## Connecting to peers
-
-The **Peers** view (⇆ in the navigation bar) is the Oasis Explorer:
-
-* **Announced oases (◉)** — recently announced oases are listed with their
-  operator and clump identity. Click a row's **⇆** to connect; a green **⥀**
-  marks an established connection. A muted **⥀** means a sync is being
-  attempted.
-* **Manual connect (⌖)** — enter a peer's host and port in the separate
-  fields (pre-filled with the clump's bootstrap node) and click **⇆**. The
-  entered peer is tracked below the form: pulsing **↯** while connecting,
-  green **⥀** once connected, and **⛒** if the connection could not be
-  established within 20 seconds. Malformed targets (empty host, non-numeric
-  or out-of-range port) are ignored with a warning in the log. Both IPv4 and
-  IPv6 peers are supported.
-
-Status indicators are glyphs throughout; hover them for tooltips.
+* **macOS** — `.dmg` (drag into Applications)
+* **Windows** — `.exe` installer
+* **Linux** — `.deb`, `.rpm`, or `.AppImage`
 
 ## Tests
 
@@ -81,18 +59,12 @@ Status indicators are glyphs throughout; hover them for tooltips.
 mix test
 ```
 
-## Release (self-contained backend)
+## Release
 
 ```
-MIX_ENV=prod mix release
+scripts/build-app.sh           # backend + Tauri shell
+MIX_ENV=prod mix release       # backend only
 ```
 
-Burrito wraps the release into a single executable under `burrito_out/`
-(`catenary_macos`, `catenary_linux`, or `catenary.exe`). The desktop build
-copies that artifact into `src-tauri/binaries/` for bundling.
-
-## Learn more
-
-  * Official website: https://www.phoenixframework.org/
-  * Tauri docs: https://v2.tauri.app/
-  * Source: https://github.com/phoenixframework/phoenix
+Backend binaries land in `burrito_out/`. The desktop build copies them
+into `src-tauri/binaries/` for bundling.
