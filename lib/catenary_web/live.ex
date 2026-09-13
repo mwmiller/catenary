@@ -394,8 +394,12 @@ defmodule CatenaryWeb.Live do
   # Bumping the monotonic version counter changes the parent's assigns, which
   # forces every LiveComponent in the current view to re-render and re-read
   # from the freshly-updated ETS tables (tags, reactions, mentions, etc.).
+  #
+  # Skip the expensive content_hash check: the index workers have already
+  # processed the diff, so triggering another Indices.update() via the hash
+  # gate would be redundant and creates a feedback loop during replication.
   def handle_info(:index_change, socket) do
-    {:noreply, state_set(socket, %{index_version: socket.assigns.index_version + 1})}
+    {:noreply, state_set(socket, %{index_version: socket.assigns.index_version + 1}, skip_hash: true)}
   end
 
   def handle_info(%{view: :dashboard}, socket) do
@@ -1110,22 +1114,31 @@ defmodule CatenaryWeb.Live do
     |> MapSet.new()
   end
 
-  defp state_set(socket, from_caller) when is_map(from_caller) do
+  defp state_set(socket, from_caller) when is_map(from_caller),
+    do: state_set(socket, from_caller, [])
+
+  defp state_set(socket, _from_caller), do: socket
+
+  defp state_set(socket, from_caller, opts) when is_map(from_caller) do
     full_socket = assign(socket, from_caller)
     do_prefs(from_caller |> Map.to_list())
     state = full_socket.assigns
     clump_id = state.clump_id
-    shash = Baobab.Persistence.content_hash(clump_id)
 
-    # The index update here is excessive.
-    si =
-      case state.store_hash do
-        ^shash ->
-          state.store
+    {si, shash} =
+      if opts[:skip_hash] do
+        {Baobab.stored_info(clump_id), state.store_hash}
+      else
+        shash = Baobab.Persistence.content_hash(clump_id)
 
-        _ ->
-          Catenary.Indices.update()
-          Baobab.stored_info(clump_id)
+        case state.store_hash do
+          ^shash ->
+            {state.store, shash}
+
+          _ ->
+            Catenary.Indices.update()
+            {Baobab.stored_info(clump_id), shash}
+        end
       end
 
     assign(full_socket,
@@ -1141,8 +1154,6 @@ defmodule CatenaryWeb.Live do
       opened: Baby.Connection.Registry.active() |> Enum.count()
     )
   end
-
-  defp state_set(socket, _from_caller), do: socket
 
   defp connector_wrap(host, port, socket) do
     Baby.connect(host, port,
