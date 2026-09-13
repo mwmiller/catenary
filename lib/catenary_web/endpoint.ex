@@ -23,14 +23,9 @@ defmodule CatenaryWeb.Endpoint do
     only: ~w(assets fonts images favicon.ico robots.txt)
 
   # Serve images directly from the application images directory.
-  # No symlink needed — this points at the real storage path.
-  plug Plug.Static,
-    at: "/cat_images",
-    from:
-      Application.compile_env(:catenary, :application_dir, "~/.catenary")
-      |> Path.expand()
-      |> Path.join("images"),
-    gzip: false
+  # Path is resolved at runtime because Application.compile_env bakes in
+  # the GHA runner's home directory when the Burrito release is built there.
+  plug :serve_cat_images
 
   # Tidewave (browser eval / MCP server). Dev only; never in releases.
   if Mix.env() == :dev do
@@ -61,4 +56,13 @@ defmodule CatenaryWeb.Endpoint do
   plug Plug.Head
   plug Plug.Session, @session_options
   plug CatenaryWeb.Router
+
+  defp serve_cat_images(conn, _opts) do
+    from =
+      Application.get_env(:catenary, :application_dir, "~/.catenary")
+      |> Path.expand()
+      |> Path.join("images")
+
+    Plug.Static.call(conn, Plug.Static.init(at: "/cat_images", from: from, gzip: false))
+  end
 end

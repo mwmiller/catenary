@@ -11,10 +11,11 @@ defmodule Catenary.IndexWorker.Images do
   Write clump logged images to the file system
   """
 
-  @img_root Application.compile_env(:catenary, :application_dir, "~/.catenary")
-            |> Path.expand()
-            |> Path.join("images")
-  @img_cat @img_root
+  defp img_root do
+    Application.get_env(:catenary, :application_dir, "~/.catenary")
+    |> Path.expand()
+    |> Path.join("images")
+  end
 
   @doc """
   Clear the image cache on disk for the current clump and rebuild from Baobab.
@@ -23,7 +24,7 @@ defmodule Catenary.IndexWorker.Images do
   def wipe_for_rebuild do
     Indices.empty_tables([:images])
 
-    @img_cat
+    img_root()
     |> Path.join(Preferences.get(:clump_id))
     |> File.rm_rf()
 
@@ -34,7 +35,7 @@ defmodule Catenary.IndexWorker.Images do
   Remove cached image files and ETS entries for the given set of log_ids.
   """
   def purge_log_ids(log_id_set, clump_id) do
-    clump_dir = Path.join([@img_cat, clump_id])
+    clump_dir = Path.join([img_root(), clump_id])
 
     with {:ok, authors} <- File.ls(clump_dir) do
       Enum.each(authors, &purge_author_dir(&1, clump_dir, log_id_set))
@@ -71,9 +72,9 @@ defmodule Catenary.IndexWorker.Images do
 
   def scan_clump(clump) do
     clump
-    |> then(fn c -> Path.join([@img_cat, c, "**"]) end)
+    |> then(fn c -> Path.join([img_root(), c, "**"]) end)
     |> Path.wildcard()
-    |> Enum.map(fn p -> Path.relative_to(p, @img_cat) end)
+    |> Enum.map(fn p -> Path.relative_to(p, img_root()) end)
     |> files_to_entries([])
   end
 
@@ -107,7 +108,7 @@ defmodule Catenary.IndexWorker.Images do
   defp fill_missing({who, log_id, _} = last, clump_id, seq) do
     entry = {who, log_id, seq}
     src = Catenary.image_src_for_entry(entry, clump_id)
-    filename = Path.join([@img_root, String.trim_leading(src, "/cat_images")])
+    filename = Path.join([img_root(), String.trim_leading(src, "/cat_images")])
 
     case File.stat(filename) do
       {:error, _} ->
@@ -150,7 +151,7 @@ defmodule Catenary.IndexWorker.Images do
     # we should know they exist at this point
     # but racing!
     size =
-      case File.stat(Path.join([@img_root, String.trim_leading(filename, "/cat_images")])) do
+      case File.stat(Path.join([img_root(), String.trim_leading(filename, "/cat_images")])) do
         {:ok, %{size: s}} -> s
         _ -> 0
       end
