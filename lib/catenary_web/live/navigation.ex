@@ -109,7 +109,7 @@ defmodule Catenary.Live.Navigation do
     ~H"""
     <div id="challenge-nav" class={panel_cls()}>
       {help_text(
-        "Issue a challenge on your challenge log. This one is directed to the author you are viewing — only they may accept it."
+        "Issue a challenge on your challenge log. This one is directed to the author you are viewing — only they may accept it. For guaranteed integrity, some challenges may take a moment to appear."
       )}
       <form
         method="post"
@@ -143,7 +143,7 @@ defmodule Catenary.Live.Navigation do
     ~H"""
     <div id="challenge-nav" class={panel_cls()}>
       {help_text(
-        "Issue a public challenge on your challenge log. Pick the game family; games with random elements may use provably fair elements."
+        "Issue a public challenge on your challenge log. Pick the game family; games with random elements may use provably fair elements. For guaranteed integrity, some challenges may take a moment to appear."
       )}
       <form
         method="post"
