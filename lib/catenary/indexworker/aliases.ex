@@ -8,14 +8,15 @@ defmodule Catenary.IndexWorker.Aliases do
   Alias Indices
   """
 
-  def do_index(todo, clump_id, prev_seen) do
-    # This should be always small enough that MapSet
-    # would be overkill
+  def do_index(_todo, clump_id, prev_seen) do
+    # Always process ALL alias entries — not just the incremental todo —
+    # so the latest entry for each whom-key replaces any previous one.
+    # Aliases are small enough that a full pass is cheap.
     keepers = Baobab.Identity.list() |> Enum.map(fn {_n, k} -> k end)
 
     result =
-      todo
-      |> Enum.filter(fn {a, _, _} -> a in keepers end)
+      Baobab.stored_info(clump_id)
+      |> Enum.filter(fn {a, l, _} -> a in keepers and l in @logs_of_interest end)
       |> build_index(clump_id, %{})
 
     Catenary.State.set_aliases(result)
