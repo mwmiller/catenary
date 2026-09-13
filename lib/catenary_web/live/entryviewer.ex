@@ -124,7 +124,6 @@ defmodule Catenary.Live.EntryViewer do
     {tabs, as_of} = profile_timeline(a, settings)
     others = profile_others(settings, a)
     mentions = profile_mentions(a)
-    challenge = challenge_button(a, settings)
     key = key_link(a)
 
     Preferences.mark_entry(:shown, entry)
@@ -136,7 +135,7 @@ defmodule Catenary.Live.EntryViewer do
         "title" => clump_id <> " Overview",
         "back-refs" => [],
         "tags" => [],
-        "body" => Phoenix.HTML.raw(challenge <> about <> mentions <> tabs <> others <> key),
+        "body" => Phoenix.HTML.raw(about <> mentions <> tabs <> others <> key),
         "published" => as_of
       },
       from_refs(entry)
@@ -177,16 +176,6 @@ defmodule Catenary.Live.EntryViewer do
     e ->
       Logger.warning(Exception.message(e))
       :error
-  end
-
-  # A directed challenge goes only to this player; it is an amber "log
-  # writing" action like the other post buttons, so it uses the ⚄ glyph.
-  defp challenge_button(a, settings) do
-    if a != Keyword.get(settings, :identity, "") do
-      ~s(<div class="flex justify-end"><button type="button" value="#{a}" phx-click="challenge-author" title="Challenge to backgammon" aria-label="Challenge to backgammon — writes a log" class="rounded-md bg-amber-500 hover:bg-amber-400 active:bg-amber-600 dark:bg-amber-400 dark:hover:bg-amber-300 dark:active:bg-amber-500 text-white dark:text-slate-900 text-sm font-semibold px-2 py-1 shadow-sm transition-colors">⚄</button></div>)
-    else
-      ""
-    end
   end
 
   defp payload_for({a, l, e}, lname, clump_id) do
