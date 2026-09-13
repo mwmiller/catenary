@@ -2,10 +2,7 @@ name: build
 
 on:
   push:
-    branches: [main]
     tags: ["v*"]
-  pull_request:
-    branches: [main]
   workflow_dispatch:
     inputs:
       draft:
@@ -173,7 +170,7 @@ jobs:
 
   shell:
     name: Native shell (Tauri)
-    needs: [backend, shell-linux, shell-windows]
+    needs: [backend]
     runs-on: macos-14
     env:
       APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
