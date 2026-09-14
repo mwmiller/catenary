@@ -3,18 +3,12 @@ import Config
 if config_env() != :test do
   config :catenary,
     application_dir: System.get_env("CATENARY_HOME", "~/.catenary"),
+    # Fallback clumps when no clumps.toml is present (see Catenary.Config).
     clumps: %{
       "Quagga" => [
         port: 0,
         announce: true,
         cryouts: [[mdns: []]]
-      ],
-      # Offline dev/test clump: not announced and no cryouts, so nothing
-      # syncs with it. Add an oasis connection manually to sync.
-      "Dev" => [
-        port: 0,
-        announce: false,
-        cryouts: []
       ]
     }
 end

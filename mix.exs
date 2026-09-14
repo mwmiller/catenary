@@ -63,6 +63,7 @@ defmodule Catenary.MixProject do
       {:mdex, "~> 0.13"},
       {:excon, "~> 4.0"},
       {:tz, "~> 0.28"},
+      {:toml, "~> 0.7.0"},
       {:burrito, "~> 1.6", runtime: false},
       {:tailwind, "~> 0.5", runtime: Mix.env() == :dev},
       {:phoenix, "~> 1.8"},

@@ -73,11 +73,11 @@ defmodule CatenaryWeb.Live do
          me: self(),
          opened: 0,
          clumps: clumps,
-          clump_id: clump_id,
-           identity: whoami,
-           facet_id: facet_id,
-           accepted_logs: accepted_log_names(),
-           index_version: 0
+         clump_id: clump_id,
+         identity: whoami,
+         facet_id: facet_id,
+         accepted_logs: accepted_log_names(),
+         index_version: 0
        }
      )}
   end
@@ -110,7 +110,9 @@ defmodule CatenaryWeb.Live do
         facet_id={@facet_id}
         aliases={@aliases}
         accepted_logs={@accepted_logs}
-        challenge_checked={Map.get(assigns, :challenge_checked, Preferences.accept_log_name?(:challenge))}
+        challenge_checked={
+          Map.get(assigns, :challenge_checked, Preferences.accept_log_name?(:challenge))
+        }
       />
     </.three_column_layout>
     """
@@ -121,7 +123,12 @@ defmodule CatenaryWeb.Live do
 
     ~H"""
     <.three_column_layout {assigns}>
-      <.live_component module={Catenary.Live.TagViewer} id={:tags} index_version={@index_version} entry={@tag} />
+      <.live_component
+        module={Catenary.Live.TagViewer}
+        id={:tags}
+        index_version={@index_version}
+        entry={@tag}
+      />
     </.three_column_layout>
     """
   end
@@ -129,7 +136,12 @@ defmodule CatenaryWeb.Live do
   def render(%{view: :tags} = assigns) do
     ~H"""
     <.three_column_layout {assigns}>
-      <.live_component module={Catenary.Live.TagExplorer} id={:tags} index_version={@index_version} entry={@entry} />
+      <.live_component
+        module={Catenary.Live.TagExplorer}
+        id={:tags}
+        index_version={@index_version}
+        entry={@entry}
+      />
     </.three_column_layout>
     """
   end
@@ -344,7 +356,12 @@ defmodule CatenaryWeb.Live do
 
         <!-- Right: index status -->
         <div class="shrink-0">
-          <.live_component module={Catenary.Live.IndexStatus} id={:indices} index_version={@index_version} indexing={@indexing} />
+          <.live_component
+            module={Catenary.Live.IndexStatus}
+            id={:indices}
+            index_version={@index_version}
+            indexing={@indexing}
+          />
         </div>
       </div>
     </div>
@@ -401,7 +418,8 @@ defmodule CatenaryWeb.Live do
   # processed the diff, so triggering another Indices.update() via the hash
   # gate would be redundant and creates a feedback loop during replication.
   def handle_info(:index_change, socket) do
-    {:noreply, state_set(socket, %{index_version: socket.assigns.index_version + 1}, skip_hash: true)}
+    {:noreply,
+     state_set(socket, %{index_version: socket.assigns.index_version + 1}, skip_hash: true)}
   end
 
   def handle_info(%{view: :dashboard}, socket) do

@@ -17,7 +17,18 @@ defmodule Catenary.Application do
     whoami = active_identity()
 
     clumps =
-      for {c, k} <- Application.get_env(:catenary, :clumps) do
+      case Catenary.Config.load_clumps() do
+        nil -> Application.get_env(:catenary, :clumps)
+        clumps -> clumps
+      end
+
+    # Publish the (possibly TOML-replaced) clumps back into the app env so
+    # every downstream reader — State, index workers, Preferences defaults,
+    # live views — sees the same effective set the children were given.
+    Application.put_env(:catenary, :clumps, clumps)
+
+    clumps =
+      for {c, k} <- clumps do
         [
           controlling_identity: whoami,
           id: c,
