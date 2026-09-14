@@ -14,8 +14,9 @@ defmodule Catenary.Live.OasisExplorer do
        aliases: assigns.aliases,
        nodes: nodes,
        opened: assigns.opened,
-       connect_open: Map.get(assigns, :connect_open, false),
+       connect_mode: Map.get(assigns, :connect_mode, "announced"),
        manual: Map.get(assigns, :manual, %{}),
+       mdns_peers: Map.get(assigns, :mdns_peers, []),
        bootstrap: Map.fetch!(assigns, :bootstrap)
      )}
   end
@@ -28,7 +29,7 @@ defmodule Catenary.Live.OasisExplorer do
         <div class="flex items-center justify-between gap-3">
           <div class="flex items-center gap-2 min-w-0">
             <h1 class="text-lg font-semibold text-slate-800 dark:text-slate-100 truncate">
-              {if @connect_open, do: "Manual Connect", else: "Oasis Explorer"}
+              {tab_title(@connect_mode)}
             </h1>
           </div>
           <div
@@ -38,7 +39,7 @@ defmodule Catenary.Live.OasisExplorer do
           >
             <button
               class={[
-                mode_tab_color(not @connect_open),
+                mode_tab(@connect_mode == "announced"),
                 "px-2 py-0.5 rounded-l-md transition-colors cursor-pointer"
               ]}
               phx-click="set-connect-mode"
@@ -51,7 +52,20 @@ defmodule Catenary.Live.OasisExplorer do
             <span class="w-px bg-slate-200 dark:bg-slate-700 self-stretch" aria-hidden="true"></span>
             <button
               class={[
-                mode_tab_color(@connect_open),
+                mode_tab(@connect_mode == "mdns"),
+                "px-2 py-0.5 transition-colors cursor-pointer"
+              ]}
+              phx-click="set-connect-mode"
+              value="mdns"
+              type="button"
+              title="Discover peers on local network"
+            >
+              ☰
+            </button>
+            <span class="w-px bg-slate-200 dark:bg-slate-700 self-stretch" aria-hidden="true"></span>
+            <button
+              class={[
+                mode_tab(@connect_mode == "manual"),
                 "px-2 py-0.5 rounded-r-md transition-colors cursor-pointer"
               ]}
               phx-click="set-connect-mode"
@@ -64,131 +78,213 @@ defmodule Catenary.Live.OasisExplorer do
           </div>
         </div>
 
-        <%= if @connect_open do %>
-          <form
-            phx-submit="connect-manual"
-            class="font-mono text-xs rounded-lg border border-slate-200 dark:border-slate-700 p-3 flex flex-col gap-3"
-            autocomplete="off"
-          >
-            <div class="flex items-center gap-2 py-2">
-              <div class="flex-none text-slate-400 dark:text-slate-500" title="Manual peer">
-                ⌖
+        <%= case @connect_mode do %>
+          <% "manual" -> %>
+            <form
+              phx-submit="connect-manual"
+              class="font-mono text-xs rounded-lg border border-slate-200 dark:border-slate-700 p-3 flex flex-col gap-3"
+              autocomplete="off"
+            >
+              <div class="flex items-center gap-2 py-2">
+                <div class="flex-none text-slate-400 dark:text-slate-500" title="Manual peer">
+                  ⌖
+                </div>
+                <div class="flex-auto min-w-0 flex items-center gap-2">
+                  <input
+                    type="text"
+                    name="host"
+                    placeholder="host"
+                    aria-label="Host"
+                    value={elem(@bootstrap, 0)}
+                    class="flex-1 min-w-0 rounded-md border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 px-2 py-1 text-sm text-slate-500 dark:text-slate-400 placeholder:text-slate-400 dark:placeholder:text-slate-500"
+                  />
+                  <span class="text-slate-400 dark:text-slate-500">:</span>
+                  <input
+                    type="text"
+                    name="port"
+                    placeholder="port"
+                    aria-label="Port"
+                    value={elem(@bootstrap, 1) |> Integer.to_string()}
+                    class="w-20 rounded-md border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 px-2 py-1 text-sm text-slate-500 dark:text-slate-400 placeholder:text-slate-400 dark:placeholder:text-slate-500"
+                  />
+                </div>
+                <div class="flex-none">
+                  <button
+                    type="submit"
+                    class="px-1.5 py-0.5 rounded text-amber-800 dark:text-amber-300 hover:bg-amber-50 dark:hover:bg-amber-900/40 transition-colors"
+                    phx-disable-with="↯"
+                    title="Connect to peer"
+                  >
+                    ⇆
+                  </button>
+                </div>
               </div>
-              <div class="flex-auto min-w-0 flex items-center gap-2">
-                <input
-                  type="text"
-                  name="host"
-                  placeholder="host"
-                  aria-label="Host"
-                  value={elem(@bootstrap, 0)}
-                  class="flex-1 min-w-0 rounded-md border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 px-2 py-1 text-sm text-slate-500 dark:text-slate-400 placeholder:text-slate-400 dark:placeholder:text-slate-500"
-                />
-                <span class="text-slate-400 dark:text-slate-500">:</span>
-                <input
-                  type="text"
-                  name="port"
-                  placeholder="port"
-                  aria-label="Port"
-                  value={elem(@bootstrap, 1) |> Integer.to_string()}
-                  class="w-20 rounded-md border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 px-2 py-1 text-sm text-slate-500 dark:text-slate-400 placeholder:text-slate-400 dark:placeholder:text-slate-500"
-                />
+            </form>
+            <%= if map_size(@manual) > 0 do %>
+              <div class="font-mono text-xs flex flex-col divide-y divide-slate-200 dark:divide-slate-700">
+                <%= for {{host, port}, entry} <- @manual do %>
+                  <div class="flex items-center gap-2 py-2">
+                    <div class="flex-none text-slate-400 dark:text-slate-500" title="Manual peer">
+                      ⌖
+                    </div>
+                    <div class="flex-auto min-w-0">
+                      <span class="text-slate-800 dark:text-slate-100">{host}:{port}</span>
+                    </div>
+                    <%= case entry.state do %>
+                      <% :connected -> %>
+                        <span class="text-emerald-600 dark:text-emerald-400" title="Connected">⥀</span>
+                      <% :connecting -> %>
+                        <span
+                          class="text-amber-800 dark:text-amber-300 animate-pulse"
+                          title="Connecting"
+                        >
+                          ↯
+                        </span>
+                      <% :failed -> %>
+                        <span class="text-rose-600 dark:text-rose-400" title="Connection failed">⛒</span>
+                      <% _ -> %>
+                        <span class="text-slate-400 dark:text-slate-500" title="Attempting sync">⥀</span>
+                    <% end %>
+                  </div>
+                <% end %>
               </div>
-              <div class="flex-none">
-                <button
-                  type="submit"
-                  class="px-1.5 py-0.5 rounded text-amber-800 dark:text-amber-300 hover:bg-amber-50 dark:hover:bg-amber-900/40 transition-colors"
-                  phx-disable-with="↯"
-                  title="Connect to peer"
-                >
-                  ⇆
-                </button>
-              </div>
+            <% end %>
+
+          <% "mdns" -> %>
+            <div class="flex items-center gap-2">
+              <button
+                phx-click="browse-mdns"
+                class="font-mono text-xs px-2 py-0.5 rounded border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+                type="button"
+                title="Scan for local peers"
+              >
+                ↻
+              </button>
             </div>
-          </form>
-          <%= if map_size(@manual) > 0 do %>
-            <div class="font-mono text-xs flex flex-col divide-y divide-slate-200 dark:divide-slate-700">
-              <%= for {{host, port}, entry} <- @manual do %>
-                <div class="flex items-center gap-2 py-2">
-                  <div class="flex-none text-slate-400 dark:text-slate-500" title="Manual peer">
-                    ⌖
-                  </div>
-                  <div class="flex-auto min-w-0">
-                    <span class="text-slate-800 dark:text-slate-100">{host}:{port}</span>
-                  </div>
-                  <%= case entry.state do %>
-                    <% :connected -> %>
+            <%= if @mdns_peers == [] do %>
+              <div class="font-mono text-xs rounded-lg border border-slate-200 dark:border-slate-700 p-3 text-slate-600 dark:text-slate-300">
+                <span class="text-slate-400 dark:text-slate-500">∅</span>
+              </div>
+            <% else %>
+              <div class="font-mono text-xs flex flex-col divide-y divide-slate-200 dark:divide-slate-700">
+                <%= for peer <- @mdns_peers do %>
+                  <div class="flex items-center gap-2 py-2">
+                    <div class="flex-none text-slate-400 dark:text-slate-500" title="mDNS peer">
+                      ☰
+                    </div>
+                    <%= if owner = peer_owner(peer) do %>
+                      <div class="flex-auto min-w-0">
+                        <div class="text-slate-800 dark:text-slate-100">
+                          {Phoenix.HTML.raw(Display.linked_author(owner, @aliases))}
+                        </div>
+                        <div class="text-slate-400 dark:text-slate-500 text-[10px]">
+                          {peer[:instance] || :inet.ntoa(peer.ip)} · {:inet.ntoa(peer.ip)}:{"#{peer.port}"}
+                        </div>
+                      </div>
+                    <% else %>
+                      <div class="flex-auto min-w-0">
+                        <div class="text-slate-800 dark:text-slate-100">
+                          {peer[:instance] || :inet.ntoa(peer.ip)}
+                        </div>
+                        <div class="text-slate-400 dark:text-slate-500 text-[10px]">
+                          {:inet.ntoa(peer.ip)}:{"#{peer.port}"}
+                        </div>
+                      </div>
+                    <% end %>
+                    <%= if peer_connected?(peer) do %>
                       <span class="text-emerald-600 dark:text-emerald-400" title="Connected">⥀</span>
-                    <% :connecting -> %>
-                      <span
-                        class="text-amber-800 dark:text-amber-300 animate-pulse"
-                        title="Connecting"
+                    <% else %>
+                      <button
+                        class="px-1.5 py-0.5 rounded text-amber-800 dark:text-amber-300 hover:bg-amber-50 dark:hover:bg-amber-900/40 transition-colors"
+                        phx-click="connect-mdns"
+                        phx-disable-with="↯"
+                        phx-value-ip={:inet.ntoa(peer.ip)}
+                        phx-value-port={peer.port}
+                        title="Connect to peer"
                       >
-                        ↯
+                        ⇆
+                      </button>
+                    <% end %>
+                    <%= if owner = peer_owner(peer) do %>
+                      <div class="flex-none">
+                        {Phoenix.HTML.raw(Display.scaled_avatar(owner, 2, ["m-1", "align-middle"]))}
+                      </div>
+                    <% end %>
+                  </div>
+                <% end %>
+              </div>
+            <% end %>
+
+          <% _ -> %>
+            <%= if @nodes == [] do %>
+              <div class="font-mono text-xs rounded-lg border border-slate-200 dark:border-slate-700 p-3 text-slate-600 dark:text-slate-300">
+                <span class="text-slate-400 dark:text-slate-500" title="No recent oases">∅</span>
+                <%= if @opened > 0 do %>
+                  <span class="ml-1 text-slate-400 dark:text-slate-500" title="Attempting sync">
+                    ⥀
+                  </span>
+                <% end %>
+              </div>
+            <% else %>
+              <div class="font-mono text-xs flex flex-col divide-y divide-slate-200 dark:divide-slate-700">
+                <%= for recent <- @nodes do %>
+                  <div class="flex items-center gap-2 py-2">
+                    <div class="flex-none">
+                      {if op = recent["operator"] do
+                        Phoenix.HTML.raw(Display.scaled_avatar(op, 1, ["m-1", "align-middle"]))
+                      end}
+                    </div>
+                    <div class="flex-auto min-w-0">
+                      <span class="text-slate-800 dark:text-slate-100">{recent["name"]}</span>
+                      <span class="text-slate-400 dark:text-slate-500">
+                        ({Phoenix.HTML.raw(Display.linked_author(elem(recent.id, 0), @aliases))})
                       </span>
-                    <% :failed -> %>
-                      <span class="text-rose-600 dark:text-rose-400" title="Connection failed">⛒</span>
-                    <% _ -> %>
-                      <span class="text-slate-400 dark:text-slate-500" title="Attempting sync">⥀</span>
-                  <% end %>
-                </div>
-              <% end %>
-            </div>
-          <% end %>
-        <% else %>
-          <%= if @nodes == [] do %>
-            <div class="font-mono text-xs rounded-lg border border-slate-200 dark:border-slate-700 p-3 text-slate-600 dark:text-slate-300">
-              <span class="text-slate-400 dark:text-slate-500" title="No recent oases">∅</span>
-              <%= if @opened > 0 do %>
-                <span class="ml-1 text-slate-400 dark:text-slate-500" title="Attempting sync">
-                  ⥀
-                </span>
-              <% end %>
-            </div>
-          <% else %>
-            <div class="font-mono text-xs flex flex-col divide-y divide-slate-200 dark:divide-slate-700">
-              <%= for recent <- @nodes do %>
-                <div class="flex items-center gap-2 py-2">
-                  <div class="flex-none">
-                    {if op = recent["operator"] do
-                      Phoenix.HTML.raw(Display.scaled_avatar(op, 1, ["m-1", "align-middle"]))
-                    end}
+                    </div>
+                    <%= if recent.connected do %>
+                      <span class="text-emerald-600 dark:text-emerald-400" title="Connected">⥀</span>
+                    <% else %>
+                      <button
+                        class="px-1.5 py-0.5 rounded text-amber-800 dark:text-amber-300 hover:bg-amber-50 dark:hover:bg-amber-900/40 transition-colors"
+                        phx-click="connect"
+                        phx-disable-with="↯"
+                        value={Catenary.index_to_string(recent.id)}
+                        title="Connect to oasis"
+                      >
+                        ⇆
+                      </button>
+                    <% end %>
+                    <div class="flex-none">
+                      {Phoenix.HTML.raw(
+                        Display.scaled_avatar(elem(recent.id, 0), 2, ["m-1", "align-middle"])
+                      )}
+                    </div>
                   </div>
-                  <div class="flex-auto min-w-0">
-                    <span class="text-slate-800 dark:text-slate-100">{recent["name"]}</span>
-                    <span class="text-slate-400 dark:text-slate-500">
-                      ({Phoenix.HTML.raw(Display.linked_author(elem(recent.id, 0), @aliases))})
-                    </span>
-                  </div>
-                  <%= if recent.connected do %>
-                    <span class="text-emerald-600 dark:text-emerald-400" title="Connected">⥀</span>
-                  <% else %>
-                    <button
-                      class="px-1.5 py-0.5 rounded text-amber-800 dark:text-amber-300 hover:bg-amber-50 dark:hover:bg-amber-900/40 transition-colors"
-                      phx-click="connect"
-                      phx-disable-with="↯"
-                      value={Catenary.index_to_string(recent.id)}
-                      title="Connect to oasis"
-                    >
-                      ⇆
-                    </button>
-                  <% end %>
-                  <div class="flex-none">
-                    {Phoenix.HTML.raw(
-                      Display.scaled_avatar(elem(recent.id, 0), 2, ["m-1", "align-middle"])
-                    )}
-                  </div>
-                </div>
-              <% end %>
-            </div>
-          <% end %>
+                <% end %>
+              </div>
+            <% end %>
         <% end %>
       </div>
     </div>
     """
   end
 
-  defp mode_tab_color(true), do: "bg-amber-500/20 text-amber-800 dark:text-amber-300"
+  defp tab_title("manual"), do: "Manual Connect"
+  defp tab_title("mdns"), do: "Local Discovery"
+  defp tab_title(_), do: "Oasis Explorer"
 
-  defp mode_tab_color(false),
+  defp mode_tab(true), do: "bg-amber-500/20 text-amber-800 dark:text-amber-300"
+
+  defp mode_tab(false),
     do: "text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800"
+
+  defp peer_connected?(peer) do
+    Baby.Connection.Registry.active?({peer.ip, peer.port})
+  end
+
+  defp peer_owner(peer) do
+    case peer.txt["owner"] do
+      owner when owner in [nil, ""] -> nil
+      owner -> owner
+    end
+  end
 end

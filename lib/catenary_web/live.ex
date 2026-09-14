@@ -62,8 +62,9 @@ defmodule CatenaryWeb.Live do
          profile_items: Catenary.profile_items_state(),
          view: view,
          extra_nav: :none,
-         connect_open: false,
+         connect_mode: "announced",
          manual: %{},
+         mdns_peers: [],
          indexing: Catenary.Indices.status(),
          entry: entry,
          entry_fore: [],
@@ -189,8 +190,9 @@ defmodule CatenaryWeb.Live do
         oases={@oases}
         opened={@opened}
         aliases={@aliases}
-        connect_open={@connect_open}
+        connect_mode={@connect_mode}
         manual={@manual}
+        mdns_peers={@mdns_peers}
         bootstrap={Catenary.bootstrap_node(@clump_id)}
       />
     </.three_column_layout>
@@ -473,6 +475,10 @@ defmodule CatenaryWeb.Live do
         Process.send_after(self(), :sync, 1_020_979, [])
         handle_event("connect", %{"value" => Catenary.index_to_string(id)}, socket)
     end
+  end
+
+  def handle_info({:mdns_peers, peers}, socket) do
+    {:noreply, assign(socket, mdns_peers: peers)}
   end
 
   def handle_event("profile-update", values, socket) do
@@ -953,9 +959,18 @@ defmodule CatenaryWeb.Live do
     end
   end
 
-  def handle_event("set-connect-mode", %{"value" => mode}, socket) do
-    connect_open = mode == "manual"
-    {:noreply, assign(socket, connect_open: connect_open)}
+  def handle_event("set-connect-mode", %{"value" => mode}, socket)
+      when mode in ["announced", "manual", "mdns"] do
+    socket = assign(socket, connect_mode: mode)
+
+    socket =
+      if mode == "mdns" and socket.assigns.mdns_peers == [] do
+        trigger_mdns_browse(socket)
+      else
+        socket
+      end
+
+    {:noreply, socket}
   end
 
   def handle_event("connect-manual", %{"host" => host, "port" => port}, socket) do
@@ -972,6 +987,23 @@ defmodule CatenaryWeb.Live do
   end
 
   def handle_event("connect-manual", _, socket), do: {:noreply, socket}
+
+  def handle_event("browse-mdns", _params, socket) do
+    socket = trigger_mdns_browse(socket)
+    {:noreply, socket}
+  end
+
+  def handle_event("connect-mdns", %{"ip" => ip_str, "port" => port_str}, socket) do
+    with {:ok, ip} <- :inet.parse_address(String.to_charlist(ip_str)),
+         {port, ""} <- Integer.parse(port_str) do
+      connector_wrap(ip, port, socket)
+      target = {:inet.ntoa(ip), port}
+      entry = %{state: :connecting, attempt: System.monotonic_time(:millisecond)}
+      {:noreply, state_set(socket, %{manual: Map.put(socket.assigns.manual, target, entry)})}
+    else
+      _ -> {:noreply, socket}
+    end
+  end
 
   def handle_event("nav", %{"value" => motion}, socket) do
     {:noreply, state_set(socket, Navigation.move_to(motion, :current, socket.assigns))}
@@ -1286,6 +1318,19 @@ defmodule CatenaryWeb.Live do
   end
 
   defp manual_connected_in?(_, _, _), do: false
+
+  defp trigger_mdns_browse(socket) do
+    clump_id = socket.assigns.clump_id
+
+    parent = self()
+
+    Task.start(fn ->
+      peers = Baby.Mdns.browse() |> Enum.filter(fn p -> p.txt["clump_id"] == clump_id end)
+      send(parent, {:mdns_peers, peers})
+    end)
+
+    socket
+  end
 
   # Derive a provably-fair chain seed from the logged-in identity's secret and
   # the game context, so the chain is recoverable from the logs alone.
