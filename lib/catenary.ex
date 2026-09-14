@@ -23,6 +23,12 @@ defmodule Catenary do
 
   def image_logs, do: @image_logs
 
+  def home_dir do
+    :catenary
+    |> Application.get_env(:application_dir)
+    |> Path.expand()
+  end
+
   def mime_for_entry({_, l, _}) do
     case l |> QuaggaDef.base_log() |> QuaggaDef.log_def() do
       %{name: mime} -> mime
@@ -33,8 +39,7 @@ defmodule Catenary do
   def ext_for_entry(entry), do: entry |> mime_for_entry |> Atom.to_string()
 
   def images_dir do
-    Application.get_env(:catenary, :application_dir, "~/.catenary")
-    |> Path.expand()
+    home_dir()
     |> Path.join("images")
   end
 
@@ -116,10 +121,9 @@ defmodule Catenary do
   def dets_open(table) do
     filename =
       Path.join([
-        Application.get_env(:catenary, :application_dir, "~/.catenary"),
+        home_dir(),
         Map.fetch!(@dets_tables, table)
       ])
-      |> Path.expand()
       |> to_charlist
 
     :dets.open_file(table, file: filename)

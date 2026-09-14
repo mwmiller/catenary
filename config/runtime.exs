@@ -2,7 +2,7 @@ import Config
 
 if config_env() != :test do
   config :catenary,
-    application_dir: "~/.catenary",
+    application_dir: System.get_env("CATENARY_HOME", "~/.catenary"),
     clumps: %{
       "Quagga" => [
         port: 0,

@@ -65,10 +65,7 @@ defmodule Catenary.Application do
 
   def spool_dir do
     # Ensure the application directory exists
-    app_dir =
-      :catenary
-      |> Application.get_env(:application_dir, "~/.catenary")
-      |> Path.expand()
+    app_dir = Catenary.home_dir()
 
     # Including the spool directory
     spool_dir = Path.join(app_dir, "spool")

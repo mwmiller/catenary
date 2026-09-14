@@ -12,8 +12,7 @@ defmodule Catenary.IndexWorker.Images do
   """
 
   defp img_root do
-    Application.get_env(:catenary, :application_dir, "~/.catenary")
-    |> Path.expand()
+    Catenary.home_dir()
     |> Path.join("images")
   end
 

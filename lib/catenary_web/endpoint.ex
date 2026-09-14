@@ -59,8 +59,7 @@ defmodule CatenaryWeb.Endpoint do
 
   defp serve_cat_images(conn, _opts) do
     from =
-      Application.get_env(:catenary, :application_dir, "~/.catenary")
-      |> Path.expand()
+      Catenary.home_dir()
       |> Path.join("images")
 
     Plug.Static.call(conn, Plug.Static.init(at: "/cat_images", from: from, gzip: false))
