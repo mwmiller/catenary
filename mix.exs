@@ -55,7 +55,7 @@ defmodule Catenary.MixProject do
   defp deps do
     [
       {:tidewave, "~> 0.9", only: [:dev]},
-      {:baby, path: "/Users/matt/git/baby", override: true},
+      {:baby, "~> 0.42.1"},
       {:baobab, "~> 0.41"},
       {:quagga_def, ">= 0.0.0"},
       {:scrypt_ex, "~> 0.1.0"},
