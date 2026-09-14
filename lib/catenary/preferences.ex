@@ -3,6 +3,8 @@ defmodule Catenary.Preferences do
   End user preference persistence
   """
 
+  require Logger
+
   # When adding a key here be sure to create function
   # heads for valid? to maintain the sanity of the store
   # Provide resonable defaults. We'd prefer not to use these
@@ -87,6 +89,9 @@ defmodule Catenary.Preferences do
         [] ->
           default(key)
 
+        [{^key, val}] when key == :identity ->
+          resolve_identity(val)
+
         [{^key, val}] ->
           case valid?(val, key) do
             true -> val
@@ -96,6 +101,27 @@ defmodule Catenary.Preferences do
 
     Catenary.dets_close(:prefs)
     val
+  end
+
+  @doc false
+  # A stored identity whose keys are missing must never be silently replaced:
+  # minting and persisting a fresh identity here would destroy the recorded
+  # reference (and with it the ability to recover the real keypair). Keep the
+  # recorded key and flag it so the operator knows the identity store is out of
+  # sync instead of tupping them into a brand-new identity.
+  def resolve_identity(stored) do
+    if valid?(stored, :identity) do
+      stored
+    else
+      Logger.error(
+        "Stored identity #{inspect(stored)} has no keys in the identity store. " <>
+          "Refusing to mint a replacement so the identity record is not lost. " <>
+          "Restore the identity store (e.g. spool/identity.dets) or set the " <>
+          ":identity preference to a key present in Baobab.Identity.list/0."
+      )
+
+      stored
+    end
   end
 
   def get(_, _), do: {:error, "No such key"}

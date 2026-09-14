@@ -5,6 +5,8 @@ defmodule Catenary.Application do
 
   alias Catenary.Preferences
 
+  require Logger
+
   use Application
 
   @impl true
@@ -12,7 +14,7 @@ defmodule Catenary.Application do
     # Still bad form
     Application.put_env(:baobab, :spool_dir, spool_dir())
 
-    whoami = Preferences.get(:identity) |> Catenary.id_for_key()
+    whoami = active_identity()
 
     clumps =
       for {c, k} <- Application.get_env(:catenary, :clumps) do
@@ -61,6 +63,20 @@ defmodule Catenary.Application do
     end)
 
     {:ok, sup}
+  end
+
+  # Resolve the recorded identity to its stored name. When the identity
+  # store has lost the keys we prefer an honest nil (plus a loud log) over
+  # fabricating or auto-creating a replacement identity.
+  defp active_identity do
+    case Preferences.get(:identity) |> Catenary.id_for_key() do
+      {:error, msg} ->
+        Logger.error("Unresolvable controlling identity: #{msg}")
+        nil
+
+      name ->
+        name
+    end
   end
 
   def spool_dir do
