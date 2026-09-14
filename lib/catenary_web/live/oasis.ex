@@ -47,31 +47,18 @@ defmodule Catenary.Live.OasisExplorer do
               type="button"
               title="Show announced oases"
             >
-              ◉
+              ✦
             </button>
             <span class="w-px bg-slate-200 dark:bg-slate-700 self-stretch" aria-hidden="true"></span>
             <button
               class={[
-                mode_tab(@connect_mode == "mdns"),
-                "px-2 py-0.5 transition-colors cursor-pointer"
-              ]}
-              phx-click="set-connect-mode"
-              value="mdns"
-              type="button"
-              title="Discover peers on local network"
-            >
-              ☰
-            </button>
-            <span class="w-px bg-slate-200 dark:bg-slate-700 self-stretch" aria-hidden="true"></span>
-            <button
-              class={[
-                mode_tab(@connect_mode == "manual"),
+                mode_tab(@connect_mode == "peers"),
                 "px-2 py-0.5 rounded-r-md transition-colors cursor-pointer"
               ]}
               phx-click="set-connect-mode"
-              value="manual"
+              value="peers"
               type="button"
-              title="Connect to a peer by host:port"
+              title="Discover and connect to peers"
             >
               ⌖
             </button>
@@ -79,7 +66,7 @@ defmodule Catenary.Live.OasisExplorer do
         </div>
 
         <%= case @connect_mode do %>
-          <% "manual" -> %>
+          <% "peers" -> %>
             <form
               phx-submit="connect-manual"
               class="font-mono text-xs rounded-lg border border-slate-200 dark:border-slate-700 p-3 flex flex-col gap-3"
@@ -120,37 +107,6 @@ defmodule Catenary.Live.OasisExplorer do
                 </div>
               </div>
             </form>
-            <%= if map_size(@manual) > 0 do %>
-              <div class="font-mono text-xs flex flex-col divide-y divide-slate-200 dark:divide-slate-700">
-                <%= for {{host, port}, entry} <- @manual do %>
-                  <div class="flex items-center gap-2 py-2">
-                    <div class="flex-none text-slate-400 dark:text-slate-500" title="Manual peer">
-                      ⌖
-                    </div>
-                    <div class="flex-auto min-w-0">
-                      <span class="text-slate-800 dark:text-slate-100">{host}:{port}</span>
-                    </div>
-                    <%= case entry.state do %>
-                      <% :connected -> %>
-                        <span class="text-emerald-600 dark:text-emerald-400" title="Connected">⥀</span>
-                      <% :connecting -> %>
-                        <span
-                          class="text-amber-800 dark:text-amber-300 animate-pulse"
-                          title="Connecting"
-                        >
-                          ↯
-                        </span>
-                      <% :failed -> %>
-                        <span class="text-rose-600 dark:text-rose-400" title="Connection failed">⛒</span>
-                      <% _ -> %>
-                        <span class="text-slate-400 dark:text-slate-500" title="Attempting sync">⥀</span>
-                    <% end %>
-                  </div>
-                <% end %>
-              </div>
-            <% end %>
-
-          <% "mdns" -> %>
             <div class="flex items-center gap-2">
               <button
                 phx-click="browse-mdns"
@@ -160,52 +116,69 @@ defmodule Catenary.Live.OasisExplorer do
               >
                 ↻
               </button>
+              <span class="font-mono text-[10px] text-slate-400 dark:text-slate-500">
+                Local network
+              </span>
             </div>
-            <%= if @mdns_peers == [] do %>
+            <%= if peer_rows(@mdns_peers, @manual) == [] do %>
               <div class="font-mono text-xs rounded-lg border border-slate-200 dark:border-slate-700 p-3 text-slate-600 dark:text-slate-300">
                 <span class="text-slate-400 dark:text-slate-500">∅</span>
               </div>
             <% else %>
               <div class="font-mono text-xs flex flex-col divide-y divide-slate-200 dark:divide-slate-700">
-                <%= for peer <- @mdns_peers do %>
+                <%= for {row, _index} <- Enum.with_index(peer_rows(@mdns_peers, @manual)) do %>
                   <div class="flex items-center gap-2 py-2">
-                    <div class="flex-none text-slate-400 dark:text-slate-500" title="mDNS peer">
-                      ☰
+                    <div class="flex-none text-slate-400 dark:text-slate-500" title={row.title}>
+                      {row.icon}
                     </div>
-                    <%= if owner = peer_owner(peer) do %>
+                    <%= if owner = row[:owner] do %>
                       <div class="flex-auto min-w-0">
                         <div class="text-slate-800 dark:text-slate-100">
                           {Phoenix.HTML.raw(Display.linked_author(owner, @aliases))}
                         </div>
                         <div class="text-slate-400 dark:text-slate-500 text-[10px]">
-                          {peer[:instance] || :inet.ntoa(peer.ip)} · {:inet.ntoa(peer.ip)}:{"#{peer.port}"}
+                          {row.subtitle}
                         </div>
                       </div>
                     <% else %>
                       <div class="flex-auto min-w-0">
                         <div class="text-slate-800 dark:text-slate-100">
-                          {peer[:instance] || :inet.ntoa(peer.ip)}
+                          {row.title}
                         </div>
                         <div class="text-slate-400 dark:text-slate-500 text-[10px]">
-                          {:inet.ntoa(peer.ip)}:{"#{peer.port}"}
+                          {row.subtitle}
                         </div>
                       </div>
                     <% end %>
-                    <%= if peer_connected?(peer) do %>
-                      <span class="text-emerald-600 dark:text-emerald-400" title="Connected">⥀</span>
+                    <%= if entry = row[:entry] do %>
+                      <%= case entry.state do %>
+                        <% :connected -> %>
+                          <span class="text-emerald-600 dark:text-emerald-400" title="Connected">⥀</span>
+                        <% :connecting -> %>
+                          <span
+                            class="text-amber-800 dark:text-amber-300 animate-pulse"
+                            title="Connecting"
+                          >
+                            ↯
+                          </span>
+                        <% :failed -> %>
+                          <span class="text-rose-600 dark:text-rose-400" title="Connection failed">⛒</span>
+                        <% _ -> %>
+                          <span class="text-slate-400 dark:text-slate-500" title="Attempting sync">⥀</span>
+                      <% end %>
                     <% else %>
                       <button
                         class="px-1.5 py-0.5 rounded text-amber-800 dark:text-amber-300 hover:bg-amber-50 dark:hover:bg-amber-900/40 transition-colors"
                         phx-click="connect-mdns"
                         phx-disable-with="↯"
-                        phx-value-ip={:inet.ntoa(peer.ip)}
-                        phx-value-port={peer.port}
+                        phx-value-ip={to_string(:inet.ntoa(row.ip))}
+                        phx-value-port={row.port}
                         title="Connect to peer"
                       >
                         ⇆
                       </button>
                     <% end %>
-                    <%= if owner = peer_owner(peer) do %>
+                    <%= if owner = row[:owner] do %>
                       <div class="flex-none">
                         {Phoenix.HTML.raw(Display.scaled_avatar(owner, 2, ["m-1", "align-middle"]))}
                       </div>
@@ -268,8 +241,7 @@ defmodule Catenary.Live.OasisExplorer do
     """
   end
 
-  defp tab_title("manual"), do: "Manual Connect"
-  defp tab_title("mdns"), do: "Local Discovery"
+  defp tab_title("peers"), do: "Peers"
   defp tab_title(_), do: "Oasis Explorer"
 
   defp mode_tab(true), do: "bg-amber-500/20 text-amber-800 dark:text-amber-300"
@@ -277,8 +249,66 @@ defmodule Catenary.Live.OasisExplorer do
   defp mode_tab(false),
     do: "text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800"
 
-  defp peer_connected?(peer) do
-    Baby.Connection.Registry.active?({peer.ip, peer.port})
+  # The peers tab merges mDNS peers and manual {host, port} targets into one
+  # list. Each mDNS peer carries its owner (base62 key, if announced) alongside
+  # the instance name and IP address; a manual target is matched by its
+  # {host, port} key so a target already discovered over mDNS is shown once,
+  # with its live lifecycle state (the DNS name vs IP may differ, so an mDNS
+  # peer row can still carry a connect button even while a manual entry lives
+  # under a different host spelling).
+  defp peer_rows(mdns_peers, manual) do
+    mdns_hosts = MapSet.new(mdns_peers, fn peer -> peer_host_key(peer) end)
+
+    mdns_rows =
+      Enum.map(mdns_peers, fn peer ->
+        %{
+          kind: :mdns,
+          ip: peer.ip,
+          port: peer.port,
+          host_key: peer_host_key(peer),
+          host: to_string(:inet.ntoa(peer.ip)),
+          title: peer_title(peer),
+          subtitle: peer_subtitle(peer),
+          owner: peer_owner(peer),
+          icon: "☰",
+          entry: manual[peer_host_key(peer)]
+        }
+      end)
+
+    manual_rows =
+      manual
+      |> Enum.reject(fn {key, _entry} -> MapSet.member?(mdns_hosts, key) end)
+      |> Enum.map(fn {{host, port}, entry} ->
+        %{
+          kind: :manual,
+          ip: nil,
+          port: port,
+          host_key: {host, port},
+          host: host,
+          title: "#{host}:#{port}",
+          subtitle: nil,
+          owner: nil,
+          icon: "⌖",
+          entry: entry
+        }
+      end)
+
+    mdns_rows ++ manual_rows
+  end
+
+  defp peer_host_key(peer), do: {to_string(:inet.ntoa(peer.ip)), peer.port}
+
+  defp peer_host(peer), do: to_string(:inet.ntoa(peer.ip))
+
+  defp peer_title(peer) do
+    peer[:instance] || "#{peer_host(peer)}:#{peer.port}"
+  end
+
+  defp peer_subtitle(peer) do
+    case peer[:instance] do
+      nil -> nil
+      _ -> "#{peer_host(peer)}:#{peer.port}"
+    end
   end
 
   defp peer_owner(peer) do

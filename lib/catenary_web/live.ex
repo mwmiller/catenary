@@ -447,7 +447,11 @@ defmodule CatenaryWeb.Live do
           )
 
         {:noreply,
-         put_manual_entry(socket, target, %{entry | state: :failed, cleanup_timer: cleanup})}
+         put_manual_entry(
+           socket,
+           target,
+           Map.merge(entry, %{state: :failed, cleanup_timer: cleanup})
+         )}
 
       _ ->
         {:noreply, socket}
@@ -960,11 +964,11 @@ defmodule CatenaryWeb.Live do
   end
 
   def handle_event("set-connect-mode", %{"value" => mode}, socket)
-      when mode in ["announced", "manual", "mdns"] do
+      when mode in ["announced", "peers", "manual", "mdns"] do
     socket = assign(socket, connect_mode: mode)
 
     socket =
-      if mode == "mdns" and socket.assigns.mdns_peers == [] do
+      if mode in ["peers", "mdns"] and socket.assigns.mdns_peers == [] do
         trigger_mdns_browse(socket)
       else
         socket
@@ -996,10 +1000,9 @@ defmodule CatenaryWeb.Live do
   def handle_event("connect-mdns", %{"ip" => ip_str, "port" => port_str}, socket) do
     with {:ok, ip} <- :inet.parse_address(String.to_charlist(ip_str)),
          {port, ""} <- Integer.parse(port_str) do
-      connector_wrap(ip, port, socket)
-      target = {:inet.ntoa(ip), port}
-      entry = %{state: :connecting, attempt: System.monotonic_time(:millisecond)}
-      {:noreply, state_set(socket, %{manual: Map.put(socket.assigns.manual, target, entry)})}
+      host = :inet.ntoa(ip) |> to_string()
+      connector_wrap(host, port, socket)
+      start_manual_connect(socket, host, port)
     else
       _ -> {:noreply, socket}
     end
