@@ -46,7 +46,7 @@ defmodule Catenary.Live.PrefsManager do
               </a>
               <div class="min-w-0 flex-1">
                 <div class="text-sm text-slate-500 dark:text-slate-400">Active clump</div>
-                <form method="post" id="clump-form" phx-change="clump-change" class="mt-1">
+                <form method="post" id="clump-form" phx-change="clump-change" class="mt-1 flex items-center gap-2">
                   <label class="mr-1" for="clump_id">🎋</label>
                   <select
                     name="clump_id"
@@ -54,6 +54,12 @@ defmodule Catenary.Live.PrefsManager do
                   >
                     {for {c, _} <- @clumps, do: Phoenix.HTML.raw(option_value(c, @clump_id))}
                   </select>
+                  <a
+                    href="/export/clumps"
+                    download="clumps.toml"
+                    class="rounded px-1.5 py-0.5 text-slate-400 dark:text-slate-500 transition-colors hover:bg-amber-100 hover:text-amber-700 dark:hover:bg-amber-900/40 dark:hover:text-amber-400"
+                    title="Export clump config"
+                  >⇤</a>
                 </form>
                 <p class="mt-2 text-xs text-slate-500 dark:text-slate-400">
                   {@ec} log entries available across {@lc} logs from {@ac} authors in {@clump_id}.

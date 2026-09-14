@@ -23,6 +23,7 @@ defmodule CatenaryWeb.Router do
     get "/authors/:identity", ProfileController, :view
     post "/export", ExportController, :create
     get "/export", ExportController, :create
+    get "/export/clumps", ExportController, :clumps
     post "/import", ImportController, :create
   end
 

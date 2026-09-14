@@ -65,10 +65,10 @@ fn build_menu(app: &tauri::App) -> tauri::Result<()> {
     let about = PredefinedMenuItem::about(
         handle,
         Some("About Catenary"),
-        Some(vec![tauri::menu::AboutMetadata {
+        Some(tauri::menu::AboutMetadata {
             license: Some("MIT".into()),
             ..Default::default()
-        }]),
+        }),
     )?;
     let quit = PredefinedMenuItem::quit(handle, Some("Quit Catenary"))?;
 

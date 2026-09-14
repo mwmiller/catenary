@@ -21,4 +21,14 @@ defmodule CatenaryWeb.ExportController do
   end
 
   def quoted_filename(whom), do: whom <> ".json"
+
+  def clumps(conn, _params) do
+    toml = Catenary.Config.export_config()
+
+    conn
+    |> put_resp_content_type("text/plain")
+    |> put_resp_header("content-disposition", "attachment; filename=\"clumps.toml\"")
+    |> put_root_layout(false)
+    |> send_resp(200, toml)
+  end
 end

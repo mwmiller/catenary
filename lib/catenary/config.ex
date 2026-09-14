@@ -227,6 +227,64 @@ defmodule Catenary.Config do
     end
   end
 
+  @doc """
+  Formats the current effective clumps map back into TOML text.
+  """
+  def export_config(clumps \\ nil) do
+    clumps = clumps || Catenary.Config.load_clumps() || Application.get_env(:catenary, :clumps) || %{}
+
+    clumps
+    |> Enum.sort_by(fn {id, _} -> id end)
+    |> Enum.map(fn {id, kw} -> format_clump_toml(id, kw) end)
+    |> Enum.join("\n\n")
+    |> Kernel.<>("\n")
+  end
+
+  defp format_clump_toml(id, kw) do
+    port = Keyword.get(kw, :port, 0)
+    announce = Keyword.get(kw, :announce, false)
+    cryouts = Keyword.get(kw, :cryouts, [])
+
+    lines = ["[#{id}]"]
+    lines = lines ++ ["port = #{port}"]
+    lines = lines ++ ["announce = #{announce}"]
+    lines = lines ++ ["cryouts = [#{format_cryouts_toml(cryouts)}]"]
+    Enum.join(lines, "\n")
+  end
+
+  defp format_cryouts_toml(cryouts) do
+    cryouts
+    |> Enum.map(&format_cryout_toml/1)
+    |> Enum.join(", ")
+  end
+
+  defp format_cryout_toml([mdns: v]) when v == true or v == [], do: ~s("mdns")
+  defp format_cryout_toml([mdns: [period: {n, :second}]]), do: ~s("mdns ) <> format_period(n) <> ~s(")
+
+  defp format_cryout_toml(kw) do
+    host = Keyword.get(kw, :host, "")
+    port = Keyword.get(kw, :port, nil)
+    period = Keyword.get(kw, :period, nil)
+
+    host_port =
+      cond do
+        port && String.contains?(host, ":") -> "[#{host}]:#{port}"
+        port -> "#{host}:#{port}"
+        String.contains?(host, ":") -> "[#{host}]"
+        true -> host
+      end
+
+    case period do
+      {n, :second} -> ~s(") <> host_port <> " " <> format_period(n) <> ~s(")
+      _ -> ~s(") <> host_port <> ~s(")
+    end
+  end
+
+  defp format_period(n) when n >= 3600, do: "#{div(n, 3600)}h" <> format_period(rem(n, 3600))
+  defp format_period(n) when n >= 60, do: "#{div(n, 60)}m" <> format_period(rem(n, 60))
+  defp format_period(n) when n > 0, do: "#{n}s"
+  defp format_period(0), do: ""
+
   defp unit_seconds(?s), do: 1
   defp unit_seconds(?m), do: 60
   defp unit_seconds(?h), do: 3600
