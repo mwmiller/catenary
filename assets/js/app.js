@@ -46,7 +46,32 @@ let MenuBridge = {
         this.pushEvent("window-resize", event.payload)
       })
     }
+
+    this.handleEvent("export-save", ({content, filename}) => {
+      if (window.__TAURI__) {
+        window.catenarySave(content, filename)
+      } else {
+        const blob = new Blob([content], {type: "application/octet-stream"})
+        const url = URL.createObjectURL(blob)
+        const a = document.createElement("a")
+        a.href = url
+        a.download = filename
+        document.body.appendChild(a)
+        a.click()
+        document.body.removeChild(a)
+        URL.revokeObjectURL(url)
+      }
+    })
   }
+}
+
+window.catenarySave = async function(content, defaultName) {
+  if (!window.__TAURI__) return null
+  const { save } = window.__TAURI__.dialog
+  const path = await save({ defaultPath: defaultName })
+  if (!path) return null
+  await window.__TAURI__.core.invoke("write_file", { path, content })
+  return path
 }
 
 let liveSocket = new LiveSocket("/live", Socket, {

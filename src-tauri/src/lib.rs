@@ -40,6 +40,11 @@ fn set_window_size(window: Window, width: f64, height: f64) {
     let _ = window.set_size(tauri::LogicalSize::new(width, height));
 }
 
+#[tauri::command]
+fn write_file(path: String, content: String) -> Result<(), String> {
+    std::fs::write(&path, content).map_err(|e| e.to_string())
+}
+
 fn build_menu(app: &tauri::App) -> tauri::Result<()> {
     let handle = app.handle();
 
@@ -185,7 +190,8 @@ pub fn run() {
     let exit_pid = backend_pid.clone();
     tauri::Builder::default()
         .plugin(tauri_plugin_shell::init())
-        .invoke_handler(tauri::generate_handler![set_window_size])
+        .plugin(tauri_plugin_dialog::init())
+        .invoke_handler(tauri::generate_handler![set_window_size, write_file])
         .setup(move |app| {
             build_menu(app)?;
             // Spawn synchronously so the PID is recorded before any event

@@ -46,7 +46,12 @@ defmodule Catenary.Live.PrefsManager do
               </a>
               <div class="min-w-0 flex-1">
                 <div class="text-sm text-slate-500 dark:text-slate-400">Active clump</div>
-                <form method="post" id="clump-form" phx-change="clump-change" class="mt-1 flex items-center gap-2">
+                <form
+                  method="post"
+                  id="clump-form"
+                  phx-change="clump-change"
+                  class="mt-1 flex items-center gap-2"
+                >
                   <label class="mr-1" for="clump_id">🎋</label>
                   <select
                     name="clump_id"
@@ -54,12 +59,12 @@ defmodule Catenary.Live.PrefsManager do
                   >
                     {for {c, _} <- @clumps, do: Phoenix.HTML.raw(option_value(c, @clump_id))}
                   </select>
-                  <a
-                    href="/export/clumps"
-                    download="clumps.toml"
+                  <button
+                    type="button"
+                    phx-click="export-clumps"
                     class="rounded px-1.5 py-0.5 text-slate-400 dark:text-slate-500 transition-colors hover:bg-amber-100 hover:text-amber-700 dark:hover:bg-amber-900/40 dark:hover:text-amber-400"
                     title="Export clump config"
-                  >⇤</a>
+                  >⇤</button>
                 </form>
                 <p class="mt-2 text-xs text-slate-500 dark:text-slate-400">
                   {@ec} log entries available across {@lc} logs from {@ac} authors in {@clump_id}.
@@ -101,12 +106,13 @@ defmodule Catenary.Live.PrefsManager do
                       log_info_string(@store, k)
                     )}</span>
                     <span class="flex w-8 shrink-0 items-center justify-center">
-                      <a
-                        href={"/export?whom=" <> URI.encode_www_form(n)}
-                        download={n <> ".json"}
+                      <button
+                        type="button"
+                        phx-click="export-identity"
+                        phx-value-name={n}
                         class="rounded px-1.5 py-0.5 text-slate-400 dark:text-slate-500 transition-colors hover:bg-amber-100 hover:text-amber-700 dark:hover:bg-amber-900/40 dark:hover:text-amber-400"
                         title="Export identity keys"
-                      >⇤</a>
+                      >⇤</button>
                     </span>
                     <span class="flex w-8 shrink-0 items-center justify-center">
                       <button

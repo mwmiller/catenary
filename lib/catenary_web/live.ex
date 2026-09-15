@@ -663,6 +663,26 @@ defmodule CatenaryWeb.Live do
 
   def handle_event("drop-id", _, socket), do: {:noreply, socket}
 
+  def handle_event("export-clumps", _params, socket) do
+    content = Catenary.Config.export_config()
+    {:noreply, push_event(socket, "export-save", %{content: content, filename: "clumps.toml"})}
+  end
+
+  def handle_event("export-identity", %{"name" => whom}, socket) do
+    content =
+      %{
+        application: "catenary",
+        identity: whom,
+        key_encoding: "base62",
+        key_type: "ed25519",
+        public_key: Baobab.Identity.key(whom, :public) |> BaseX.Base62.encode(),
+        secret_key: Baobab.Identity.key(whom, :secret) |> BaseX.Base62.encode()
+      }
+      |> Jason.encode!()
+
+    {:noreply, push_event(socket, "export-save", %{content: content, filename: whom <> ".json"})}
+  end
+
   # Empty is technically legal and works.  Just bad UX
   def handle_event("new-id", %{"value" => whom}, socket)
       when is_binary(whom) and byte_size(whom) > 0 do
