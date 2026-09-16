@@ -31,13 +31,13 @@ defmodule Catenary.Live.ReactionsExplorer do
               phx-value-sort="recent"
               phx-target={@myself}
               class={"px-3 py-1 transition-colors #{if @sort == :recent, do: "bg-amber-500 text-white", else: "text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700"}"}
-            ><span title="Most recent reactions">↻</span></button>
+            ><span title="Most recent reactions">◷</span></button>
             <button
               phx-click="react-sort"
               phx-value-sort="popular"
               phx-target={@myself}
               class={"px-3 py-1 transition-colors #{if @sort == :popular, do: "bg-amber-500 text-white", else: "text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700"}"}
-            ><span title="Most reacted to">♥</span></button>
+            ><span title="Most reacted to">★</span></button>
           </div>
         </div>
         <div :if={@card != []}>
