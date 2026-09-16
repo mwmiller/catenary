@@ -59,6 +59,7 @@ defmodule CatenaryWeb.Live do
          identities: Baobab.Identity.list(),
           shown_hash: Preferences.shown_hash(),
           has_unshown: has_unshown_entries?(clump_id),
+          has_identity_unshown_mentions: has_identity_unshown_mentions?(whoami),
           aliases: Catenary.alias_state(),
           profile_items: Catenary.profile_items_state(),
          view: view,
@@ -296,7 +297,10 @@ defmodule CatenaryWeb.Live do
             value="origin"
             phx-click="nav"
             title="Home"
-            class="flex items-center gap-1 hover:text-amber-700 dark:hover:text-amber-400 transition-colors"
+            class={[
+              if(@has_identity_unshown_mentions, do: "text-amber-600 dark:text-amber-400", else: ""),
+              "flex items-center gap-1 hover:text-amber-700 dark:hover:text-amber-400 transition-colors"
+            ]}
           >
             {Display.scaled_avatar(@identity, 2) |> Phoenix.HTML.raw()}
             <span class="truncate">{Display.linked_author(@identity, @aliases)}</span>
@@ -402,6 +406,16 @@ defmodule CatenaryWeb.Live do
   defp has_unshown_entries?(clump_id) do
     shown = Catenary.Preferences.get(:shown) |> Map.get(clump_id, MapSet.new())
     Baobab.all_entries(clump_id) |> Enum.any?(fn entry -> not MapSet.member?(shown, entry) end)
+  end
+
+  defp has_identity_unshown_mentions?(identity) do
+    case :ets.lookup(:mentions, {"", identity}) do
+      [] ->
+        false
+
+      [{{"", ^identity}, items}] ->
+        items |> Enum.any?(fn {_date, entry} -> not Preferences.shown?(entry) end)
+    end
   end
 
   defp activitybar(assigns) do
@@ -1250,6 +1264,7 @@ defmodule CatenaryWeb.Live do
       indexing: Catenary.Indices.status(),
       shown_hash: Preferences.shown_hash(),
       has_unshown: has_unshown_entries?(clump_id),
+      has_identity_unshown_mentions: has_identity_unshown_mentions?(assigns.identity),
       store_hash: shash,
       store: si,
       oases: Catenary.oasis_state(),
