@@ -40,7 +40,7 @@ defmodule Catenary.Live.ReactionsExplorer do
             ><span title="Most reacted to">♥</span></button>
           </div>
         </div>
-        <div :if={@card != []} class="flex flex-col gap-1.5">
+        <div :if={@card != []} class="flex flex-row flex-wrap gap-1.5">
           {render_reactions(@card, @sort, @clump_id)}
         </div>
       </div>
@@ -77,10 +77,10 @@ defmodule Catenary.Live.ReactionsExplorer do
     entry_str = Catenary.index_to_string(entry)
 
     ~s(<button value="#{entry_str}" phx-click="view-entry">) <>
-      ~s(<div class="rounded-lg border border-slate-200 dark:border-slate-700 p-2 hover:border-amber-500 dark:hover:border-amber-400 transition-colors flex items-center gap-3 w-full text-left">) <>
-      ~s(<span class="text-lg shrink-0">#{emojis}</span>) <>
-      ~s(<span class="text-sm text-slate-700 dark:text-slate-300 truncate flex-1">#{title}</span>) <>
-      ~s(<span class="text-xs text-slate-400 dark:text-slate-500 shrink-0">#{count}x</span>) <>
+      ~s(<div class="rounded-full border border-slate-200 dark:border-slate-700 px-2.5 py-0.5 transition-colors hover:border-amber-500 dark:hover:border-amber-400 inline-flex items-center gap-1.5">) <>
+      ~s(<span class="text-sm">#{emojis}</span>) <>
+      ~s(<span class="text-sm text-slate-700 dark:text-slate-300">#{title}</span>) <>
+      ~s(<span class="text-xs text-slate-400 dark:text-slate-500">#{count}</span>) <>
       ~s(</div></button>)
   end
 
