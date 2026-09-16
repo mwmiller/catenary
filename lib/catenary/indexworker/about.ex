@@ -6,8 +6,6 @@ defmodule Catenary.IndexWorker.About do
     indica: {"⸘", "‽"},
     logs: QuaggaDef.logs_for_name(:about)
 
-  require Logger
-
   @moduledoc """
   About Indices
   """
@@ -42,9 +40,7 @@ defmodule Catenary.IndexWorker.About do
     {:ok, data, ""} = CBOR.decode(payload)
     process_entries(rest, [{data["published"], data} | acc])
   rescue
-    e ->
-      Logger.warning("about decode error: #{inspect(e, limit: 50, printable_limit: 200)}")
-      process_entries(rest, acc)
+    _ -> process_entries(rest, acc)
   end
 
   defp build_index([], _cid), do: :ok

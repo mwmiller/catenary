@@ -3,7 +3,6 @@ defmodule Catenary.Live.UnshownExplorer do
   LiveComponent rendering an explorer of unshown entries.
   """
   use Phoenix.LiveComponent
-  require Logger
   alias Catenary.Display
 
   @display_limit 11
@@ -121,9 +120,7 @@ defmodule Catenary.Live.UnshownExplorer do
         {:ok, data, ""} = CBOR.decode(payload)
         Display.avatar_view_entry_button(entry, Catenary.Display.entry_title(l, data))
       rescue
-        e ->
-          Logger.debug("unshown display fallback: #{inspect(e, limit: 50, printable_limit: 200)}")
-          Display.entry_icon_link(entry, 4)
+        _ -> Display.entry_icon_link(entry, 4)
       end
 
     "<div>" <> val <> "</div>"

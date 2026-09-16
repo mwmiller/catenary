@@ -4,8 +4,6 @@ defmodule Catenary.IndexWorker.Aliases do
     indica: {"§", "~"},
     logs: QuaggaDef.logs_for_name(:alias)
 
-  require Logger
-
   @moduledoc """
   Alias Indices
   """
@@ -60,9 +58,7 @@ defmodule Catenary.IndexWorker.Aliases do
         acc = if prev_owner, do: List.keydelete(acc, prev_owner, 0), else: acc
         List.keystore(acc, whom, 0, {whom, name})
       rescue
-        e ->
-          Logger.warning("alias decode error: #{inspect(e, limit: 50, printable_limit: 200)}")
-          acc
+        _ -> acc
       end
 
     entries_index(rest, clump_id, na)

@@ -5,8 +5,6 @@ defmodule Catenary.IndexWorker.Tags do
     indica: {"|", "#"},
     logs: QuaggaDef.logs_for_name(:tag)
 
-  require Logger
-
   @moduledoc """
   Tag Indices
   """
@@ -54,8 +52,8 @@ defmodule Catenary.IndexWorker.Tags do
     try do
       %Baobab.Entry{payload: payload} = entry
       {:ok, data, ""} = CBOR.decode(payload)
-      tags = data["tags"] |> Enum.map(fn s -> {"", String.trim(s)} end)
-      [ent] = data["references"]
+      tags = (data["tags"] || []) |> Enum.map(fn s -> {"", String.trim(s)} end)
+      [ent] = data["references"] || []
       e = {oa, ol, oe} = List.to_tuple(ent)
       # Now try to get a title from the original
       %Baobab.Entry{payload: pl} = Baobab.log_entry(oa, oe, log_id: ol, clump_id: clump_id)
@@ -88,7 +86,7 @@ defmodule Catenary.IndexWorker.Tags do
         :ets.insert(@name_atom, {tag, insert})
       end
     rescue
-      e -> Logger.warning("tag decode error: #{inspect(e, limit: 50, printable_limit: 200)}")
+      _ -> :ok
     end
 
     entries_index(rest, clump_id)

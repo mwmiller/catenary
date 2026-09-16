@@ -5,8 +5,6 @@ defmodule Catenary.IndexWorker.Mentions do
     indica: {"※", "※"},
     logs: QuaggaDef.logs_for_name(:mention)
 
-  require Logger
-
   @moduledoc """
   Mention Indices
   """
@@ -33,8 +31,8 @@ defmodule Catenary.IndexWorker.Mentions do
     try do
       %Baobab.Entry{payload: payload} = entry
       {:ok, data, ""} = CBOR.decode(payload)
-      mentions = data["mentions"] |> Enum.map(fn s -> {"", String.trim(s)} end)
-      [ent] = data["references"]
+      mentions = (data["mentions"] || []) |> Enum.map(fn s -> {"", String.trim(s)} end)
+      [ent] = data["references"] || []
       e = List.to_tuple(ent)
       # Mentions for entry
       old =
@@ -62,7 +60,7 @@ defmodule Catenary.IndexWorker.Mentions do
         :ets.insert(@name_atom, {mention, insert})
       end
     rescue
-      e -> Logger.warning("mention decode error: #{inspect(e, limit: 50, printable_limit: 200)}")
+      _ -> :ok
     end
 
     entries_index(rest, clump_id)

@@ -5,8 +5,6 @@ defmodule Catenary.IndexWorker.Reactions do
     indica: {"♡", "♥"},
     logs: QuaggaDef.logs_for_name(:react)
 
-  require Logger
-
   @moduledoc """
   Reactions Indices
   """
@@ -33,8 +31,8 @@ defmodule Catenary.IndexWorker.Reactions do
     try do
       %Baobab.Entry{payload: payload} = entry
       {:ok, data, ""} = CBOR.decode(payload)
-      reacts = data["reactions"] |> Enum.map(fn s -> {"", s} end)
-      [ent] = data["references"]
+      reacts = (data["reactions"] || []) |> Enum.map(fn s -> {"", s} end)
+      [ent] = data["references"] || []
       e = List.to_tuple(ent)
 
       old =
@@ -47,7 +45,7 @@ defmodule Catenary.IndexWorker.Reactions do
       into = (old ++ reacts) |> Enum.sort() |> Enum.uniq()
       :ets.insert(@name_atom, {e, into})
     rescue
-      e -> Logger.warning("reaction decode error: #{inspect(e, limit: 50, printable_limit: 200)}")
+      _ -> :ok
     end
 
     entries_index(rest, clump_id)

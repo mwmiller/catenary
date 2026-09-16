@@ -4,8 +4,6 @@ defmodule Catenary.IndexWorker.Oases do
     indica: {"⇆", "⇄"},
     logs: QuaggaDef.logs_for_name(:oasis)
 
-  require Logger
-
   @moduledoc """
   Oasis Indices
   """
@@ -59,8 +57,6 @@ defmodule Catenary.IndexWorker.Oases do
         extract_recents(rest, clump_id, acc)
     end
   rescue
-    e ->
-      Logger.warning("oasis decode error: #{inspect(e, limit: 50, printable_limit: 200)}")
-      extract_recents(rest, clump_id, acc)
+    _ -> extract_recents(rest, clump_id, acc)
   end
 end

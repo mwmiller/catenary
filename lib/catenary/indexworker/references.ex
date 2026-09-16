@@ -5,8 +5,6 @@ defmodule Catenary.IndexWorker.References do
     indica: {"↪︎", "↩︎"},
     logs: QuaggaDef.logs_for_encoding(:cbor)
 
-  require Logger
-
   @moduledoc """
   Reference Indices
   """
@@ -35,7 +33,7 @@ defmodule Catenary.IndexWorker.References do
       index = {Baobab.Identity.as_base62(a), l, s}
       {:ok, data, ""} = CBOR.decode(payload)
 
-      for lref <- Map.get(data, "references") do
+      for lref <- Map.get(data, "references") || [] do
         tref = lref |> List.to_tuple()
 
         old_val =
@@ -50,8 +48,7 @@ defmodule Catenary.IndexWorker.References do
         :ets.insert(@name_atom, {tref, new_val})
       end
     rescue
-      e ->
-        Logger.warning("reference decode error: #{inspect(e, limit: 50, printable_limit: 200)}")
+      _ -> :ok
     end
 
     entries_index(rest, clump_id)
