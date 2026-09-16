@@ -5,6 +5,8 @@ defmodule Catenary.IndexWorker.Tags do
     indica: {"|", "#"},
     logs: QuaggaDef.logs_for_name(:tag)
 
+  require Logger
+
   @moduledoc """
   Tag Indices
   """
@@ -34,7 +36,7 @@ defmodule Catenary.IndexWorker.Tags do
     build_index(rest, clump_id)
   end
 
-  def group_sizes(items) do
+  defp group_sizes(items) do
     items
     |> Enum.group_by(fn {_, c} -> trunc(:math.log(c)) end)
     |> Map.to_list()
@@ -86,7 +88,7 @@ defmodule Catenary.IndexWorker.Tags do
         :ets.insert(@name_atom, {tag, insert})
       end
     rescue
-      _ -> :ok
+      e -> Logger.warning("tag decode error: #{Exception.message(e)}")
     end
 
     entries_index(rest, clump_id)

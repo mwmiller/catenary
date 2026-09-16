@@ -5,6 +5,8 @@ defmodule Catenary.IndexWorker.References do
     indica: {"↪︎", "↩︎"},
     logs: QuaggaDef.logs_for_encoding(:cbor)
 
+  require Logger
+
   @moduledoc """
   Reference Indices
   """
@@ -48,8 +50,8 @@ defmodule Catenary.IndexWorker.References do
         :ets.insert(@name_atom, {tref, new_val})
       end
     rescue
-      _ ->
-        :ok
+      e ->
+        Logger.warning("reference decode error: #{Exception.message(e)}")
     end
 
     entries_index(rest, clump_id)

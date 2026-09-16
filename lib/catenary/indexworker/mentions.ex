@@ -5,6 +5,8 @@ defmodule Catenary.IndexWorker.Mentions do
     indica: {"※", "※"},
     logs: QuaggaDef.logs_for_name(:mention)
 
+  require Logger
+
   @moduledoc """
   Mention Indices
   """
@@ -60,7 +62,7 @@ defmodule Catenary.IndexWorker.Mentions do
         :ets.insert(@name_atom, {mention, insert})
       end
     rescue
-      _ -> :ok
+      e -> Logger.warning("mention decode error: #{Exception.message(e)}")
     end
 
     entries_index(rest, clump_id)

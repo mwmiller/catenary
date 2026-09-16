@@ -49,21 +49,12 @@ defmodule Catenary.State do
       # latest name, and never duplicates.
       full =
         (prev ++ recents)
-        |> Enum.sort_by(&oasis_seq/1, :desc)
-        |> Enum.uniq_by(&oasis_key/1)
+        |> Enum.sort_by(&Catenary.oasis_seq/1, :desc)
+        |> Enum.uniq_by(&Catenary.oasis_key/1)
         |> Enum.sort_by(fn m -> Map.get(m, "running") end, :desc)
         |> Enum.take(@max_oases)
 
       Map.merge(s, %{oases: full})
     end)
-  end
-
-  defp oasis_key(m), do: {m["host"], m["port"]}
-
-  defp oasis_seq(m) do
-    case m[:id] do
-      {_, _, s} -> s
-      _ -> 0
-    end
   end
 end

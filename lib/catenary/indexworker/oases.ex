@@ -4,6 +4,8 @@ defmodule Catenary.IndexWorker.Oases do
     indica: {"⇆", "⇄"},
     logs: QuaggaDef.logs_for_name(:oasis)
 
+  require Logger
+
   @moduledoc """
   Oasis Indices
   """
@@ -17,14 +19,6 @@ defmodule Catenary.IndexWorker.Oases do
   # same host:port but a higher seqnum and a new "name". Dedup on the node
   # identity and keep the newest entry so we never show a renamed oasis twice
   # (once for the old name, once for the new) and never show a stale name.
-  defp oasis_key(m), do: {m["host"], m["port"]}
-
-  defp oasis_seq(m) do
-    case m[:id] do
-      {_, _, s} -> s
-      _ -> 0
-    end
-  end
 
   def do_index(_todo, clump_id, prev_seen) do
     # Rebuild from the full store rather than just the incremental diff.
@@ -43,8 +37,8 @@ defmodule Catenary.IndexWorker.Oases do
 
   defp build_index(all, count) do
     all
-    |> Enum.sort_by(&oasis_seq/1, :desc)
-    |> Enum.uniq_by(&oasis_key/1)
+    |> Enum.sort_by(&Catenary.oasis_seq/1, :desc)
+    |> Enum.uniq_by(&Catenary.oasis_key/1)
     |> Enum.sort_by(fn m -> Map.get(m, "running") end, :desc)
     |> Enum.take(count)
   end
@@ -65,6 +59,8 @@ defmodule Catenary.IndexWorker.Oases do
         extract_recents(rest, clump_id, acc)
     end
   rescue
-    _ -> extract_recents(rest, clump_id, acc)
+    e ->
+      Logger.warning("oasis decode error: #{Exception.message(e)}")
+      extract_recents(rest, clump_id, acc)
   end
 end

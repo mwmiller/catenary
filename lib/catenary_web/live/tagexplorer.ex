@@ -59,7 +59,7 @@ defmodule Catenary.Live.TagExplorer do
   defp render_tags(all_groups, sort, filter) do
     tags =
       all_groups
-      |> Enum.flat_map(fn group -> group end)
+      |> List.flatten()
       |> then(fn tags ->
         case sort do
           :alpha -> Enum.sort_by(tags, fn {t, _} -> t end)

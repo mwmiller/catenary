@@ -196,4 +196,13 @@ defmodule Catenary do
         QuaggaDef.bootstrap_node()
     end
   end
+
+  def oasis_key(m), do: {m["host"], m["port"]}
+
+  def oasis_seq(m) do
+    case m[:id] do
+      {_, _, s} -> s
+      _ -> 0
+    end
+  end
 end

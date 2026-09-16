@@ -6,6 +6,8 @@ defmodule Catenary.IndexWorker.Timelines do
     logs:
       Enum.reduce(Catenary.timeline_logs(), [], fn n, a -> a ++ QuaggaDef.logs_for_name(n) end)
 
+  require Logger
+
   @moduledoc """
   Timeline Indices
   """
@@ -43,7 +45,7 @@ defmodule Catenary.IndexWorker.Timelines do
 
       :ets.insert(@name_atom, {ident, insert})
     rescue
-      _ -> :ok
+      e -> Logger.warning("timeline decode error: #{Exception.message(e)}")
     end
 
     entries_index(rest, clump_id)

@@ -5,8 +5,10 @@ defmodule Catenary.IndexWorker.Reactions do
     indica: {"♡", "♥"},
     logs: QuaggaDef.logs_for_name(:react)
 
+  require Logger
+
   @moduledoc """
-  Tag Indices
+  Reactions Indices
   """
 
   def do_index(todo, clump_id, prev_seen) do
@@ -45,7 +47,7 @@ defmodule Catenary.IndexWorker.Reactions do
       into = (old ++ reacts) |> Enum.sort() |> Enum.uniq()
       :ets.insert(@name_atom, {e, into})
     rescue
-      _ -> :ok
+      e -> Logger.warning("reaction decode error: #{Exception.message(e)}")
     end
 
     entries_index(rest, clump_id)

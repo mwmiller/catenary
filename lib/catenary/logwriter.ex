@@ -61,7 +61,9 @@ defmodule Catenary.LogWriter do
             {:ok, %{"title" => ot}, ""} = CBOR.decode(payload)
             ot
           rescue
-            _ -> ""
+            e ->
+              Logger.debug("title decode fallback: #{Exception.message(e)}")
+              ""
           end
 
         _ ->
