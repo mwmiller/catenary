@@ -204,7 +204,7 @@ defmodule Catenary.Live.OasisExplorer do
                   <div class="flex items-center gap-2 py-2">
                     <div class="flex-none">
                       {if op = recent["operator"] do
-                        Phoenix.HTML.raw(Display.scaled_avatar(op, 1, ["m-1", "align-middle"]))
+                        Phoenix.HTML.raw(Display.scaled_avatar(op, 2, ["shrink-0"]))
                       end}
                     </div>
                     <div class="flex-auto min-w-0">

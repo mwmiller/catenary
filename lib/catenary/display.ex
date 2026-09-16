@@ -112,7 +112,7 @@ defmodule Catenary.Display do
   Emit a link to a particular entry with an author avatar attached
   """
   def avatar_view_entry_button({a, _, _} = entry, contents) do
-    {:safe, ava} = scaled_avatar(a, 1, ["m-1", "float-left", "align-middle"])
+    {:safe, ava} = scaled_avatar(a, 3, ["shrink-0"])
     ava <> view_entry_button(entry, contents)
   end
 

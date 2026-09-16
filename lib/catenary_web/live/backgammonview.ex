@@ -212,7 +212,7 @@ defmodule Catenary.Live.BackgammonView do
               <%= if show_winner? do %>
                 <span class={"px-1.5 py-0.5 rounded text-[10px] font-bold uppercase inline-flex items-center gap-1 " <> badge_cls}>
                   {label}
-                  {Display.scaled_avatar(Map.get(@game, :winner).player, 1) |> Phoenix.HTML.raw()}
+                  {Display.scaled_avatar(Map.get(@game, :winner).player, 2) |> Phoenix.HTML.raw()}
                   {Display.linked_author(Map.get(@game, :winner).player, @aliases)}
                 </span>
               <% else %>
@@ -241,12 +241,12 @@ defmodule Catenary.Live.BackgammonView do
                 _ -> @mover == @game.challenger
               end %>
             <span class={"inline-flex items-center gap-1 " <> if c_active, do: "font-semibold text-amber-600 dark:text-amber-400", else: ""}>
-              {Display.scaled_avatar(@game.challenger, 1) |> Phoenix.HTML.raw()}
+              {Display.scaled_avatar(@game.challenger, 2) |> Phoenix.HTML.raw()}
               {Display.linked_author(@game.challenger, @aliases)}
             </span>
             <span class="mx-1 text-slate-400 dark:text-slate-600">vs</span>
             <span class={"inline-flex items-center gap-1 " <> if not c_active, do: "font-semibold text-amber-600 dark:text-amber-400", else: ""}>
-              {Display.scaled_avatar(@game.accepter, 1) |> Phoenix.HTML.raw()}
+              {Display.scaled_avatar(@game.accepter, 2) |> Phoenix.HTML.raw()}
               {Display.linked_author(@game.accepter, @aliases)}
             </span>
           </div>

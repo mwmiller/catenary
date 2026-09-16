@@ -229,9 +229,9 @@ defmodule Catenary.Live.ChallengesExplorer do
     id = short_id(Map.get(game, :game_id))
     challenger = to_raw(linked_author(Map.get(game, :challenger), aliases))
     accepter = to_raw(player(Map.get(game, :accepter), Map.get(game, :to), aliases))
-    c_avatar = to_raw(Display.scaled_avatar(Map.get(game, :challenger), 1))
+    c_avatar = to_raw(Display.scaled_avatar(Map.get(game, :challenger), 2))
     a_id = Map.get(game, :accepter) || Map.get(game, :to)
-    a_avatar = to_raw(if a_id, do: Display.scaled_avatar(a_id, 1), else: {:safe, ""})
+    a_avatar = to_raw(if a_id, do: Display.scaled_avatar(a_id, 2), else: {:safe, ""})
 
     actions =
       if Keyword.get(opts, :actions, true) do
@@ -398,7 +398,7 @@ defmodule Catenary.Live.ChallengesExplorer do
   # Pending, aimed at a specific player (invited). `accepter` may be absent on
   # freshly-indexed games, so match on Map.get rather than the key itself.
   defp status_badge(%{winner: %{stake: stake, player: player}} = _game, aliases) do
-    winner_avatar = to_raw(Display.scaled_avatar(player, 1))
+    winner_avatar = to_raw(Display.scaled_avatar(player, 2))
     winner_name = to_raw(linked_author(player, aliases))
 
     {:safe,

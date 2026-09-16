@@ -19,7 +19,7 @@ defmodule Catenary.Live.ReactionsExplorer do
   def render(assigns) do
     ~H"""
     <div id="reactions-explore-wrap" class="content-wrap">
-      <div class="flex flex-col gap-3">
+      <div class="flex flex-col gap-5">
         <h1 class="text-lg font-semibold text-slate-800 dark:text-slate-100">Reactions Explorer</h1>
         <p :if={@card == []} class="text-sm text-slate-400 dark:text-slate-500">
           No reaction messages.
@@ -40,24 +40,38 @@ defmodule Catenary.Live.ReactionsExplorer do
             ><span title="Most reacted to">♥</span></button>
           </div>
         </div>
-        <div :if={@card != []} class="flex flex-row flex-wrap gap-1.5">
-          {render_reactions(@card, @sort, @clump_id)}
+        <div :if={@card != []}>
+          {render_grouped(@card, @sort, @clump_id)}
         </div>
       </div>
     </div>
     """
   end
 
-  defp render_reactions(entries, sort, clump_id) do
+  defp render_grouped(entries, sort, clump_id) do
     entries
-    |> sort_entries(sort)
-    |> Enum.map(fn {entry, reactions} ->
-      for_display(entry, reactions, clump_id)
+    |> Enum.flat_map(fn {entry, reactions} ->
+      reactions
+      |> Enum.uniq_by(fn {_, r} -> r end)
+      |> Enum.map(fn {_, r} -> {r, entry, reactions} end)
     end)
-    |> then(fn
-      [] -> ~s(<span class="text-sm text-slate-400 dark:text-slate-500">No reactions yet.</span>)
-      items -> Enum.join(items)
+    |> Enum.group_by(fn {emoji, _, _} -> emoji end)
+    |> Enum.sort_by(fn {emoji, items} -> {-length(items), emoji} end)
+    |> Enum.map(fn {emoji, items} ->
+      sorted =
+        items
+        |> Enum.map(fn {_, entry, reactions} -> {entry, reactions} end)
+        |> then(fn items -> sort_entries(items, sort) end)
+
+      pills = Enum.map_join(sorted, fn {entry, reactions} -> for_display(entry, reactions, clump_id) end)
+
+      ~s(<div class="flex flex-col gap-2">) <>
+        ~s(<h3 class="text-xs font-semibold uppercase tracking-wide text-slate-400 dark:text-slate-500 flex items-center gap-1.5">) <>
+        ~s(<span class="text-base">#{emoji}</span></h3>) <>
+        ~s(<div class="flex flex-row flex-wrap gap-1.5">#{pills}</div>) <>
+        ~s(</div>)
     end)
+    |> Enum.join("")
     |> Phoenix.HTML.raw()
   end
 
