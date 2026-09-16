@@ -309,7 +309,7 @@ defmodule Catenary.Live.EntryViewer do
   defp tab_item(e, settings) do
     vals = extract(e, settings)
     {ident, _l, _s} = e
-    {:safe, ava} = Display.scaled_avatar(ident, 2, ["h-4 w-4 object-cover"])
+    {:safe, ava} = Display.scaled_avatar(ident, 2, ["flex-none"])
 
     when_new =
       if Preferences.shown?(e) do

@@ -70,7 +70,7 @@ defmodule Catenary.Display do
         alt <>
         "\" class=\"" <>
         all_classes <>
-        "\"  width=" <> ss <> " height=" <> ss <> " src=\"" <> uri <> "\">"
+        "\" style=\"width:" <> ss <> "px;height:" <> ss <> "px;object-fit:cover\" src=\"" <> uri <> "\">"
     )
   end
 
