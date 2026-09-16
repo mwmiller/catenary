@@ -212,6 +212,20 @@ defmodule CatenaryWeb.Live do
     """
   end
 
+  def render(%{view: :reactions} = assigns) do
+    ~H"""
+    <.three_column_layout {assigns}>
+      <.live_component
+        module={Catenary.Live.ReactionsExplorer}
+        id={:reactions}
+        index_version={@index_version}
+        entry={:all}
+        clump_id={@clump_id}
+      />
+    </.three_column_layout>
+    """
+  end
+
   def render(%{view: :challenges} = assigns) do
     ~H"""
     <.three_column_layout {assigns}>
@@ -315,21 +329,28 @@ defmodule CatenaryWeb.Live do
             class="px-2 py-1 rounded hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors text-lg leading-none"
           >⇆</button>
           <button
-            value="unshown"
-            phx-click="toview"
-            title="Unshown"
-            class={[
-              if(@has_unshown, do: "text-amber-600 dark:text-amber-400", else: ""),
-              "px-2 py-1 rounded hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors text-lg leading-none"
-            ]}
-          >◎</button>
-          <button
             :if={Preferences.accept_log_name?(:alias)}
             value="aliases"
             phx-click="toview"
             title="Aliases"
             class="px-2 py-1 rounded hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors text-lg leading-none"
           >~</button>
+          <button
+            value="unshown"
+            phx-click="toview"
+            title="Unshown"
+            class={[
+              if(@has_unshown, do: "text-amber-600 dark:text-amber-400", else: ""),
+              "px-2 py-1 rounded hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors text-xl leading-none font-medium"
+            ]}
+          >◎</button>
+          <button
+            :if={Preferences.accept_log_name?(:react)}
+            value="reactions"
+            phx-click="toview"
+            title="Reactions"
+            class="px-2 py-1 rounded hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors text-lg leading-none"
+          >♥</button>
           <button
             :if={
               Preferences.accept_log_name?(:gif) or Preferences.accept_log_name?(:png) or

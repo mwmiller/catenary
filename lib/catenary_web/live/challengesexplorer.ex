@@ -85,7 +85,7 @@ defmodule Catenary.Live.ChallengesExplorer do
     <div id="challenges-explore-wrap" class="content-wrap">
       <div class="flex flex-col gap-4">
         <div class="flex items-center justify-between">
-          <h1 class="text-lg font-semibold text-slate-800 dark:text-slate-100">Challenges</h1>
+          <h1 class="text-lg font-semibold text-slate-800 dark:text-slate-100">Challenge Explorer</h1>
         </div>
 
         <div class="inline-flex rounded-lg border border-slate-200 dark:border-slate-700 p-0.5 bg-slate-50 dark:bg-slate-800/40 w-fit">
