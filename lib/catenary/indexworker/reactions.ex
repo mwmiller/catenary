@@ -47,7 +47,7 @@ defmodule Catenary.IndexWorker.Reactions do
       into = (old ++ reacts) |> Enum.sort() |> Enum.uniq()
       :ets.insert(@name_atom, {e, into})
     rescue
-      e -> Logger.warning("reaction decode error: #{Exception.message(e)}")
+      e -> Logger.warning("reaction decode error: #{inspect(e, limit: 50, printable_limit: 200)}")
     end
 
     entries_index(rest, clump_id)

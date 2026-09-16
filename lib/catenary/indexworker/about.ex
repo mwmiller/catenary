@@ -43,7 +43,7 @@ defmodule Catenary.IndexWorker.About do
     process_entries(rest, [{data["published"], data} | acc])
   rescue
     e ->
-      Logger.warning("about decode error: #{Exception.message(e)}")
+      Logger.warning("about decode error: #{inspect(e, limit: 50, printable_limit: 200)}")
       process_entries(rest, acc)
   end
 

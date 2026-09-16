@@ -51,7 +51,7 @@ defmodule Catenary.IndexWorker.References do
       end
     rescue
       e ->
-        Logger.warning("reference decode error: #{Exception.message(e)}")
+        Logger.warning("reference decode error: #{inspect(e, limit: 50, printable_limit: 200)}")
     end
 
     entries_index(rest, clump_id)

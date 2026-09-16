@@ -62,7 +62,7 @@ defmodule Catenary.IndexWorker.Mentions do
         :ets.insert(@name_atom, {mention, insert})
       end
     rescue
-      e -> Logger.warning("mention decode error: #{Exception.message(e)}")
+      e -> Logger.warning("mention decode error: #{inspect(e, limit: 50, printable_limit: 200)}")
     end
 
     entries_index(rest, clump_id)

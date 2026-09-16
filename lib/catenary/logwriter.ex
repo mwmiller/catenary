@@ -62,7 +62,7 @@ defmodule Catenary.LogWriter do
             ot
           rescue
             e ->
-              Logger.debug("title decode fallback: #{Exception.message(e)}")
+              Logger.debug("title decode fallback: #{inspect(e, limit: 50, printable_limit: 200)}")
               ""
           end
 

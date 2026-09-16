@@ -60,7 +60,7 @@ defmodule Catenary.IndexWorker.Oases do
     end
   rescue
     e ->
-      Logger.warning("oasis decode error: #{Exception.message(e)}")
+      Logger.warning("oasis decode error: #{inspect(e, limit: 50, printable_limit: 200)}")
       extract_recents(rest, clump_id, acc)
   end
 end

@@ -72,7 +72,7 @@ defmodule Catenary.IndexWorker.Graph do
     process_entries(rest, [{data["published"], data} | acc])
   rescue
     e ->
-      Logger.warning("graph entry decode error: #{Exception.message(e)}")
+      Logger.warning("graph entry decode error: #{inspect(e, limit: 50, printable_limit: 200)}")
       process_entries(rest, acc)
   end
 

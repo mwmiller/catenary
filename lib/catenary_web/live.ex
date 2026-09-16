@@ -170,7 +170,7 @@ defmodule CatenaryWeb.Live do
         module={Catenary.Live.UnshownExplorer}
         id={:unshown}
         index_version={@index_version}
-        which={@entry}
+        entry={@entry}
         clump_id={@clump_id}
         oases={@oases}
         shown_hash={@shown_hash}
@@ -186,7 +186,7 @@ defmodule CatenaryWeb.Live do
         module={Catenary.Live.AliasExplorer}
         id={:aliases}
         index_version={@index_version}
-        alias={:all}
+        entry={:all}
         aliases={@aliases}
       />
     </.three_column_layout>

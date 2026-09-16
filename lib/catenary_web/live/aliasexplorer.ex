@@ -6,7 +6,7 @@ defmodule Catenary.Live.AliasExplorer do
   alias Catenary.Display
 
   @impl true
-  def update(%{alias: which, aliases: aliases} = assigns, socket) do
+  def update(%{entry: which, aliases: aliases} = assigns, socket) do
     {:ok, assign(socket, Map.merge(assigns, %{card: extract(which, aliases)}))}
   end
 

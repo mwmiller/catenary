@@ -61,7 +61,7 @@ defmodule Catenary.IndexWorker.Aliases do
         List.keystore(acc, whom, 0, {whom, name})
       rescue
         e ->
-          Logger.warning("alias decode error: #{Exception.message(e)}")
+          Logger.warning("alias decode error: #{inspect(e, limit: 50, printable_limit: 200)}")
           acc
       end
 
