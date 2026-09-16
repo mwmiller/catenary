@@ -57,9 +57,10 @@ defmodule CatenaryWeb.Live do
          store_hash: Baobab.Persistence.content_hash(clump_id),
          store: Baobab.stored_info(clump_id),
          identities: Baobab.Identity.list(),
-         shown_hash: Preferences.shown_hash(),
-         aliases: Catenary.alias_state(),
-         profile_items: Catenary.profile_items_state(),
+          shown_hash: Preferences.shown_hash(),
+          has_unshown: has_unshown_entries?(clump_id),
+          aliases: Catenary.alias_state(),
+          profile_items: Catenary.profile_items_state(),
          view: view,
          extra_nav: :none,
          connect_mode: "announced",
@@ -317,7 +318,10 @@ defmodule CatenaryWeb.Live do
             value="unshown"
             phx-click="toview"
             title="Unshown"
-            class="px-2 py-1 rounded hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors text-lg leading-none"
+            class={[
+              if(@has_unshown, do: "text-amber-600 dark:text-amber-400", else: ""),
+              "px-2 py-1 rounded hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors text-lg leading-none"
+            ]}
           >◎</button>
           <button
             :if={Preferences.accept_log_name?(:alias)}
@@ -373,6 +377,11 @@ defmodule CatenaryWeb.Live do
   end
 
   def stack_color(_), do: ""
+
+  defp has_unshown_entries?(clump_id) do
+    shown = Catenary.Preferences.get(:shown) |> Map.get(clump_id, MapSet.new())
+    Baobab.all_entries(clump_id) |> Enum.any?(fn entry -> not MapSet.member?(shown, entry) end)
+  end
 
   defp activitybar(assigns) do
     ~H"""
@@ -1219,6 +1228,7 @@ defmodule CatenaryWeb.Live do
       profile_items: Catenary.profile_items_state(),
       indexing: Catenary.Indices.status(),
       shown_hash: Preferences.shown_hash(),
+      has_unshown: has_unshown_entries?(clump_id),
       store_hash: shash,
       store: si,
       oases: Catenary.oasis_state(),
