@@ -34,22 +34,22 @@ defmodule Catenary.Live.UnshownExplorer do
         <h1 class="text-lg font-semibold text-slate-800 dark:text-slate-100">Unshown Explorer</h1>
         <%= for {type, entries, estring, size} <- @card do %>
           <div class="flex flex-col gap-2">
-            <h3 class="text-xs tracking-wide text-slate-400 dark:text-slate-500 flex items-center gap-2">
+            <div class="flex items-center gap-2">
+              <h3 class="text-xs font-semibold uppercase tracking-wide text-slate-400 dark:text-slate-500">{type}</h3>
               <button
                 phx-click="shown-set"
                 value={estring}
-                title="Mark shown"
-                class="px-1 rounded text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-100 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                title="Mark all shown"
+                class="px-1.5 py-0.5 rounded text-xs text-slate-500 dark:text-slate-400 hover:text-amber-600 dark:hover:text-amber-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
               >
                 ∅
               </button>
-              {type}
-            </h3>
+              <%= if size == :more do %>
+                <span class="text-xs text-slate-400 dark:text-slate-500">(◎+)</span>
+              <% end %>
+            </div>
             <div class="grid grid-cols-3 gap-2">
               {entries}
-              <%= if size == :more do %>
-                <p class="text-xs text-slate-400 dark:text-slate-500">(◎+)</p>
-              <% end %>
             </div>
           </div>
         <% end %>
@@ -115,14 +115,14 @@ defmodule Catenary.Live.UnshownExplorer do
     val =
       try do
         %Baobab.Entry{payload: payload} = Baobab.log_entry(a, e, log_id: l, clump_id: clump_id)
-        # Some entries are not CBOR, we can just fail for now
-        # Likely more logic is coming.
         {:ok, data, ""} = CBOR.decode(payload)
-        Display.avatar_view_entry_button(entry, Catenary.Display.entry_title(l, data))
+        title = Catenary.Display.entry_title(l, data)
+        {:safe, ava} = Display.scaled_avatar(a, 3, ["shrink-0"])
+        ava <> Display.view_entry_button(entry, title)
       rescue
         _ -> Display.entry_icon_link(entry, 4)
       end
 
-    "<div>" <> val <> "</div>"
+    "<div class=\"rounded-lg border border-slate-200 dark:border-slate-700 p-2 hover:border-amber-500 dark:hover:border-amber-400 transition-colors flex items-center gap-2\">" <> val <> "</div>"
   end
 end

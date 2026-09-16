@@ -19,15 +19,23 @@ defmodule Catenary.Live.TagViewer do
     ~H"""
     <div id="tagview-wrap" class="content-wrap">
       <div class="min-w-full row-span-full">
-        <h1 class="text-center">Entries tagged with &quot;{@tag}&quot;</h1>
-        <hr />
+        <div class="flex items-center gap-2 mb-4">
+          <span class="text-2xl text-amber-600 dark:text-amber-400">#</span>
+          <h1 class="text-xl font-semibold text-slate-800 dark:text-slate-100">{@tag}</h1>
+        </div>
+        <div class="border-t border-slate-200 dark:border-slate-700 mb-4"></div>
         <%= for {type, entries} <- @card do %>
-          <h3 class="pt-5 text-slate-600 dark:text-slate-300">{type}</h3>
-          <div class="grid grid-cols-3 my-2">
+          <h3 class="text-xs font-semibold uppercase tracking-wide text-slate-400 dark:text-slate-500 mb-2">{type}</h3>
+          <div class="grid grid-cols-3 gap-2 mb-4">
             {entries}
           </div>
         <% end %>
-        <div class="mt-10 text-center"><button phx-click="tag-explorer">⧟ ### ⧟</button></div>
+        <div class="mt-6 text-center">
+          <button
+            phx-click="tag-explorer"
+            class="px-4 py-2 rounded-full border border-slate-200 dark:border-slate-700 text-sm text-slate-600 dark:text-slate-400 hover:border-amber-500 dark:hover:border-amber-400 hover:text-amber-600 dark:hover:text-amber-400 transition-colors"
+          ><span class="mr-1">⧟</span> Tag Explorer</button>
+        </div>
       </div>
     </div>
     """
@@ -50,7 +58,7 @@ defmodule Catenary.Live.TagViewer do
   defp title_entries(entries) do
     entries
     |> Enum.reduce("", fn {_d, t, e}, acc ->
-      acc <> "<div>" <> Display.avatar_view_entry_button(e, t) <> "</div>"
+      acc <> "<div class=\"rounded-lg border border-slate-200 dark:border-slate-700 p-2 hover:border-amber-500 dark:hover:border-amber-400 transition-colors\">" <> Display.avatar_view_entry_button(e, t) <> "</div>"
     end)
     |> Phoenix.HTML.raw()
   end
