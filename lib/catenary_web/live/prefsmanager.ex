@@ -88,7 +88,7 @@ defmodule Catenary.Live.PrefsManager do
                       {Phoenix.HTML.raw(radio_value(k, @identity, "selection"))}
                       {Phoenix.HTML.raw(
                         Display.scaled_avatar(k, 4, [
-                          "block h-8 w-8 overflow-hidden rounded-full object-cover"
+                          "block h-8 w-8 overflow-hidden object-cover"
                         ])
                       )}
                     </label>

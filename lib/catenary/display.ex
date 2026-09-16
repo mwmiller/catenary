@@ -29,6 +29,7 @@ defmodule Catenary.Display do
 
   def scaled_avatar(id, mag, classes) do
     ss = Integer.to_string(mag * 8)
+    all_classes = Enum.join(["rounded-full" | classes], " ")
 
     uri =
       case :ets.lookup(:avatars, id) do
@@ -68,7 +69,7 @@ defmodule Catenary.Display do
       "<img alt=\"" <>
         alt <>
         "\" class=\"" <>
-        Enum.join(classes, " ") <>
+        all_classes <>
         "\"  width=" <> ss <> " height=" <> ss <> " src=\"" <> uri <> "\">"
     )
   end

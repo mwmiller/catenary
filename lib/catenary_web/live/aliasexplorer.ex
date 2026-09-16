@@ -51,7 +51,7 @@ defmodule Catenary.Live.AliasExplorer do
   defp to_links(aliases, as) do
     aliases
     |> Enum.map(fn {a, _} ->
-      {:safe, ava} = Display.scaled_avatar(a, 2, ["shrink-0", "rounded-full"])
+      {:safe, ava} = Display.scaled_avatar(a, 2, ["shrink-0"])
       {:safe, html} = Display.linked_author(a, as)
 
       "<div class=\"rounded-lg border border-transparent p-2 flex items-center gap-2 hover:border-amber-500 dark:hover:border-amber-400 transition-colors\">" <>
