@@ -28,7 +28,7 @@ defmodule Catenary.Live.TagExplorer do
             type="text"
             placeholder="Filter tags..."
             value={@filter}
-            phx-change="tag-filter"
+            phx-keyup="tag-filter"
             phx-target={@myself}
             name="filter"
             class="w-48 rounded-full border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 px-3 py-1 text-sm text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500"
@@ -129,7 +129,7 @@ defmodule Catenary.Live.TagExplorer do
     {:noreply, assign(socket, :sort, String.to_existing_atom(sort))}
   end
 
-  def handle_event("tag-filter", %{"filter" => filter}, socket) do
+  def handle_event("tag-filter", %{"value" => filter}, socket) do
     {:noreply, assign(socket, :filter, filter)}
   end
 
