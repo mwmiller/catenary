@@ -322,13 +322,6 @@ defmodule CatenaryWeb.Live do
             class="px-2 py-1 rounded hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors text-lg leading-none"
           >#</button>
           <button
-            :if={Preferences.accept_log_name?(:oasis)}
-            value="oases"
-            phx-click="toview"
-            title="Peers"
-            class="px-2 py-1 rounded hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors text-lg leading-none"
-          >⇆</button>
-          <button
             :if={Preferences.accept_log_name?(:alias)}
             value="aliases"
             phx-click="toview"
@@ -368,6 +361,13 @@ defmodule CatenaryWeb.Live do
             title="Challenges"
             class="px-2 py-1 rounded hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors text-lg leading-none"
           >⚄</button>
+          <button
+            :if={Preferences.accept_log_name?(:oasis)}
+            value="oases"
+            phx-click="toview"
+            title="Peers"
+            class="px-2 py-1 rounded hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors text-lg leading-none"
+          >⇆</button>
           <button
             class={[
               stack_color(@entry_fore),
