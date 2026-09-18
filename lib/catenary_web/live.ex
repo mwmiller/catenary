@@ -1264,7 +1264,7 @@ defmodule CatenaryWeb.Live do
       indexing: Catenary.Indices.status(),
       shown_hash: Preferences.shown_hash(),
       has_unshown: has_unshown_entries?(clump_id),
-      has_identity_unshown_mentions: has_identity_unshown_mentions?(assigns.identity),
+      has_identity_unshown_mentions: has_identity_unshown_mentions?(state.identity),
       store_hash: shash,
       store: si,
       oases: Catenary.oasis_state(),
