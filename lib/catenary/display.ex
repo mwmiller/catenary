@@ -91,7 +91,7 @@ defmodule Catenary.Display do
   defp write_svg_identicon(id, mag) do
     idd = Path.join(["/cat_images", "identicons"])
     srv = Path.join([idd, id])
-    file = Path.join([Catenary.images_dir(), "identicons", id <> ".svg"])
+    file = Path.join([Catenary.images_dir(), "identicons", id])
     Excon.ident(id, type: :framed, magnification: mag, filename: file)
     srv <> ".svg"
   end
