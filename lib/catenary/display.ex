@@ -35,8 +35,21 @@ defmodule Catenary.Display do
       case :ets.lookup(:avatars, id) do
         [{^id, {a, l, e, cid}}] ->
           p = Catenary.image_src_for_entry({a, l, e}, cid)
-          :ets.insert(:avatars, {id, p})
-          p
+
+          path =
+            p
+            |> String.trim_leading("/cat_images")
+            |> then(&Path.join(Catenary.images_dir(), &1))
+
+          case File.exists?(path) do
+            true ->
+              :ets.insert(:avatars, {id, p})
+              p
+
+            false ->
+              :ets.delete(:avatars, id)
+              write_svg_identicon(id, mag)
+          end
 
         [{^id, v}] when is_binary(v) ->
           path =
