@@ -268,7 +268,7 @@ dependencies = [
 
 [[package]]
 name = "catenary"
-version = "0.127.0"
+version = "0.181.0"
 dependencies = [
  "libc",
  "serde",

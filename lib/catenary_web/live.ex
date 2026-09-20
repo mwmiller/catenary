@@ -319,6 +319,13 @@ defmodule CatenaryWeb.Live do
             disabled={@entry_back == []}
           >⤶</button>
           <button
+            :if={Preferences.accept_log_name?(:challenge)}
+            value="challenges"
+            phx-click="toview"
+            title="Challenges"
+            class="px-2 py-1 rounded hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors text-lg leading-none"
+          >⚄</button>
+          <button
             :if={Preferences.accept_log_name?(:tag)}
             value="tags"
             phx-click="toview"
@@ -326,12 +333,12 @@ defmodule CatenaryWeb.Live do
             class="px-2 py-1 rounded hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors text-lg leading-none"
           >#</button>
           <button
-            :if={Preferences.accept_log_name?(:alias)}
-            value="aliases"
+            :if={Preferences.accept_log_name?(:react)}
+            value="reactions"
             phx-click="toview"
-            title="Aliases"
+            title="Reactions"
             class="px-2 py-1 rounded hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors text-lg leading-none"
-          >~</button>
+          >♥</button>
           <button
             value="unshown"
             phx-click="toview"
@@ -341,13 +348,6 @@ defmodule CatenaryWeb.Live do
               "px-2 py-1 rounded hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors text-xl leading-none font-medium"
             ]}
           >◎</button>
-          <button
-            :if={Preferences.accept_log_name?(:react)}
-            value="reactions"
-            phx-click="toview"
-            title="Reactions"
-            class="px-2 py-1 rounded hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors text-lg leading-none"
-          >♥</button>
           <button
             :if={
               Preferences.accept_log_name?(:gif) or Preferences.accept_log_name?(:png) or
@@ -359,12 +359,12 @@ defmodule CatenaryWeb.Live do
             class="px-2 py-1 rounded hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors text-lg leading-none"
           >▣</button>
           <button
-            :if={Preferences.accept_log_name?(:challenge)}
-            value="challenges"
+            :if={Preferences.accept_log_name?(:alias)}
+            value="aliases"
             phx-click="toview"
-            title="Challenges"
+            title="Aliases"
             class="px-2 py-1 rounded hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors text-lg leading-none"
-          >⚄</button>
+          >~</button>
           <button
             :if={Preferences.accept_log_name?(:oasis)}
             value="oases"

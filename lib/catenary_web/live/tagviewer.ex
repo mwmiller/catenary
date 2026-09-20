@@ -56,16 +56,31 @@ defmodule Catenary.Live.TagViewer do
     do: prettify(rest, [{Display.pretty_log_name(k), title_entries(v)} | acc])
 
   defp title_entries(entries) do
+    clump_id = Catenary.Preferences.get(:clump_id)
+
     entries
     |> Enum.reduce("", fn {_d, t, e}, acc ->
-      {a, _, _} = e
+      {a, l, _} = e
       entry_str = Catenary.index_to_string(e)
       {:safe, ava} = Display.scaled_avatar(a, 2, ["flex-none"])
 
+      is_image =
+        case l |> QuaggaDef.base_log() |> QuaggaDef.log_def() do
+          %{type: <<"image/", _::binary>>} -> true
+          _ -> false
+        end
+
+      content =
+        if is_image do
+          src = Catenary.image_src_for_entry(e, clump_id)
+          ~s(<img class="w-16 h-16 object-cover rounded" src=") <> src <> ~s(">)
+        else
+          ~s(<span class="text-sm text-slate-700 dark:text-slate-300">) <> t <> ~s(</span>)
+        end
+
       acc <>
         ~s(<button value="#{entry_str}" phx-click="view-entry" class="block w-full text-left rounded-lg border border-slate-200 dark:border-slate-700 p-2 hover:border-amber-500 dark:hover:border-amber-400 transition-colors flex items-center gap-2">) <>
-        ava <>
-        ~s(<span class="text-sm text-slate-700 dark:text-slate-300">#{t}</span>) <>
+        ava <> content <>
         ~s(</button>)
     end)
     |> Phoenix.HTML.raw()
