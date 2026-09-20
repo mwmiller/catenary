@@ -101,19 +101,8 @@ defmodule Catenary.Live.ImageExplorer do
       "<img class=\"w-32 h-32 object-cover rounded-lg border border-slate-200 dark:border-slate-700 shadow-sm hover:scale-105 hover:shadow-md hover:border-amber-500 dark:hover:border-amber-400 transition-all\" src=" <>
         src <> ">"
 
-    badge =
-      case :ets.lookup(:tags, entry) do
-        [{^entry, tags}] when tags != [] ->
-          ~s(<span class="absolute top-1 right-1 px-1 py-0.5 rounded text-[10px] leading-none bg-amber-500/80 text-white dark:bg-amber-400/80 dark:text-slate-900">) <>
-            Integer.to_string(length(tags)) <> ~s(</span>)
-
-        _ ->
-          ""
-      end
-
     val =
-      ("<div class=\"relative flex-auto\">" <>
-         badge <>
+      ("<div class=\"flex-auto\">" <>
          Display.avatar_view_entry_button(entry, img_tag) <> "</div>")
       |> Phoenix.HTML.raw()
 
