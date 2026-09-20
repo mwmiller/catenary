@@ -55,10 +55,15 @@ defmodule Catenary.IndexWorker.Tags do
       tags = (data["tags"] || []) |> Enum.map(fn s -> {"", String.trim(s)} end)
       [ent] = data["references"] || []
       e = {oa, ol, oe} = List.to_tuple(ent)
-      # Now try to get a title from the original
-      %Baobab.Entry{payload: pl} = Baobab.log_entry(oa, oe, log_id: ol, clump_id: clump_id)
-      {:ok, od, ""} = CBOR.decode(pl)
-      title = Catenary.Display.entry_title(ol, od)
+
+      title =
+        try do
+          %Baobab.Entry{payload: pl} = Baobab.log_entry(oa, oe, log_id: ol, clump_id: clump_id)
+          {:ok, od, ""} = CBOR.decode(pl)
+          Catenary.Display.entry_title(ol, od)
+        rescue
+          _ -> Catenary.index_to_string(e)
+        end
 
       # Tags for entry
       old =
