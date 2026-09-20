@@ -133,6 +133,11 @@ defmodule Catenary.Live.TagExplorer do
     {:noreply, assign(socket, :filter, filter)}
   end
 
+  def handle_event("view-tag" = event, payload, socket) do
+    send(socket.parent_pid, {__MODULE__, event, payload})
+    {:noreply, socket}
+  end
+
   defp extract(:all) do
     :ets.lookup(:tags, :display)
     |> then(fn

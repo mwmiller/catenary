@@ -125,4 +125,15 @@ defmodule Catenary.Live.UnshownExplorer do
 
     "<div class=\"rounded-lg border border-slate-200 dark:border-slate-700 p-2 hover:border-amber-500 dark:hover:border-amber-400 transition-colors flex items-center gap-2\">" <> val <> "</div>"
   end
+
+  @impl true
+  def handle_event("view-entry" = event, payload, socket) do
+    send(socket.parent_pid, {__MODULE__, event, payload})
+    {:noreply, socket}
+  end
+
+  def handle_event("shown-set" = event, payload, socket) do
+    send(socket.parent_pid, {__MODULE__, event, payload})
+    {:noreply, socket}
+  end
 end

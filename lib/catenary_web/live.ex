@@ -453,6 +453,12 @@ defmodule CatenaryWeb.Live do
 
   def handle_info(<<"toggle-", _::binary>> = event, socket), do: handle_event(event, nil, socket)
 
+  # Events forwarded from explorer LiveComponents
+  def handle_info({module, event, payload}, socket)
+      when is_atom(module) and is_binary(event) do
+    handle_event(event, payload, socket)
+  end
+
   # Index workers broadcast :index_change on the "ui" topic after every pass.
   # Bumping the monotonic version counter changes the parent's assigns, which
   # forces every LiveComponent in the current view to re-render and re-read

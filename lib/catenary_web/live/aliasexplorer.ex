@@ -59,4 +59,10 @@ defmodule Catenary.Live.AliasExplorer do
     end)
     |> Phoenix.HTML.raw()
   end
+
+  @impl true
+  def handle_event("view-entry" = event, payload, socket) do
+    send(socket.parent_pid, {__MODULE__, event, payload})
+    {:noreply, socket}
+  end
 end

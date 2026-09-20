@@ -79,6 +79,21 @@ defmodule Catenary.Live.ChallengesExplorer do
 
   def handle_event("challenges-tab", _, socket), do: {:noreply, socket}
 
+  def handle_event("accept-challenge" = event, payload, socket) do
+    send(socket.parent_pid, {__MODULE__, event, payload})
+    {:noreply, socket}
+  end
+
+  def handle_event("withdraw-challenge" = event, payload, socket) do
+    send(socket.parent_pid, {__MODULE__, event, payload})
+    {:noreply, socket}
+  end
+
+  def handle_event("play-game" = event, payload, socket) do
+    send(socket.parent_pid, {__MODULE__, event, payload})
+    {:noreply, socket}
+  end
+
   @impl true
   def render(assigns) do
     ~H"""

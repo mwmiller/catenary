@@ -115,6 +115,11 @@ defmodule Catenary.Live.ReactionsExplorer do
     {:noreply, assign(socket, :sort, String.to_existing_atom(sort))}
   end
 
+  def handle_event("view-entry" = event, payload, socket) do
+    send(socket.parent_pid, {__MODULE__, event, payload})
+    {:noreply, socket}
+  end
+
   defp extract(:all, _clump_id) do
     :ets.tab2list(:reactions)
     |> Enum.filter(fn {_, reactions} -> reactions != [] end)
