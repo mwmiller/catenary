@@ -82,9 +82,9 @@ defmodule Catenary.Live.EntryViewer do
   def render(assigns) do
     ~H"""
     <div id="entryview-wrap" class="content-wrap">
-      <div class="flex flex-col gap-4">
-        <div class="rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-4 flex flex-col gap-3">
-          <div class="flex items-start gap-3">
+      <div class="flex flex-col gap-3">
+        <div class="rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-3 flex flex-col gap-2">
+          <div class="flex items-start gap-2">
             {Phoenix.HTML.raw(Display.scaled_avatar(@card["author"], 8, ["flex-none"]))}
             <div class="flex-auto min-w-0">
               <h1 class="text-lg font-semibold text-slate-800 dark:text-slate-100">
