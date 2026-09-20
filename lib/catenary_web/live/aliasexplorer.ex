@@ -52,10 +52,13 @@ defmodule Catenary.Live.AliasExplorer do
     aliases
     |> Enum.map(fn {a, _} ->
       {:safe, ava} = Display.scaled_avatar(a, 2, ["shrink-0"])
-      {:safe, html} = Display.linked_author(a, as)
+      entry_str = Catenary.index_to_string({:profile, a})
 
-      "<div class=\"rounded-lg border border-transparent p-2 flex items-center gap-2 hover:border-amber-500 dark:hover:border-amber-400 transition-colors\">" <>
-        ava <> html <> "</div>"
+      ~s(<button value="#{entry_str}" phx-click="view-entry" class="block w-full text-left rounded-lg border border-transparent p-2 flex items-center gap-2 hover:border-amber-500 dark:hover:border-amber-400 transition-colors">) <>
+        ava <>
+        ~s(<span class="text-sm text-slate-700 dark:text-slate-300">) <>
+        Catenary.Display.short_id(a, as) <>
+        ~s(</span></button>)
     end)
     |> Phoenix.HTML.raw()
   end

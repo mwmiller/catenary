@@ -112,18 +112,23 @@ defmodule Catenary.Live.UnshownExplorer do
     do: display_entries(rest, clump_id, [for_display(entry, clump_id) | acc])
 
   defp for_display({a, l, e} = entry, clump_id) do
-    val =
+    entry_str = Catenary.index_to_string(entry)
+
+    {title, size} =
       try do
         %Baobab.Entry{payload: payload} = Baobab.log_entry(a, e, log_id: l, clump_id: clump_id)
         {:ok, data, ""} = CBOR.decode(payload)
-        title = Catenary.Display.entry_title(l, data)
-        {:safe, ava} = Display.scaled_avatar(a, 3, ["shrink-0"])
-        ava <> Display.view_entry_button(entry, title)
+        {Catenary.Display.entry_title(l, data), 3}
       rescue
-        _ -> Display.entry_icon_link(entry, 4)
+        _ -> {Catenary.index_to_string(entry), 4}
       end
 
-    "<div class=\"rounded-lg border border-slate-200 dark:border-slate-700 p-2 hover:border-amber-500 dark:hover:border-amber-400 transition-colors flex items-center gap-2\">" <> val <> "</div>"
+    {:safe, ava} = Display.scaled_avatar(a, size, ["shrink-0"])
+
+    ~s(<button value="#{entry_str}" phx-click="view-entry" class="block w-full text-left rounded-lg border border-slate-200 dark:border-slate-700 p-2 hover:border-amber-500 dark:hover:border-amber-400 transition-colors flex items-center gap-2">) <>
+      ava <>
+      ~s(<span class="text-sm text-slate-700 dark:text-slate-300">#{title}</span>) <>
+      ~s(</button>)
   end
 
   @impl true
