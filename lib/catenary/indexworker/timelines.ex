@@ -31,7 +31,15 @@ defmodule Catenary.IndexWorker.Timelines do
     try do
       %Baobab.Entry{author: a, log_id: l, seqnum: s, payload: payload} = entry
       ident = Baobab.Identity.as_base62(a)
-      {:ok, data, ""} = CBOR.decode(payload)
+
+      data =
+        if l |> QuaggaDef.base_log() |> QuaggaDef.log_def() |> Map.get(:type, "") |> is_binary() and
+             l |> QuaggaDef.base_log() |> QuaggaDef.log_def() |> Map.get(:type, "") |> String.starts_with?("image/") do
+          %{}
+        else
+          {:ok, d, ""} = CBOR.decode(payload)
+          d
+        end
 
       old =
         case :ets.lookup(@name_atom, ident) do

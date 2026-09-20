@@ -114,13 +114,23 @@ defmodule Catenary.Live.UnshownExplorer do
   defp for_display({a, l, e} = entry, clump_id) do
     entry_str = Catenary.index_to_string(entry)
 
+    is_image =
+      case l |> QuaggaDef.base_log() |> QuaggaDef.log_def() do
+        %{type: <<"image/", _::binary>>} -> true
+        _ -> false
+      end
+
     {title, size} =
-      try do
-        %Baobab.Entry{payload: payload} = Baobab.log_entry(a, e, log_id: l, clump_id: clump_id)
-        {:ok, data, ""} = CBOR.decode(payload)
-        {Catenary.Display.entry_title(l, data), 3}
-      rescue
-        _ -> {Catenary.index_to_string(entry), 4}
+      if is_image do
+        {Catenary.Display.entry_title(:image, %{}), 3}
+      else
+        try do
+          %Baobab.Entry{payload: payload} = Baobab.log_entry(a, e, log_id: l, clump_id: clump_id)
+          {:ok, data, ""} = CBOR.decode(payload)
+          {Catenary.Display.entry_title(l, data), 3}
+        rescue
+          _ -> {Catenary.index_to_string(entry), 4}
+        end
       end
 
     {:safe, ava} = Display.scaled_avatar(a, size, ["shrink-0"])

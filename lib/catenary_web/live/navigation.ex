@@ -446,10 +446,14 @@ defmodule Catenary.Live.Navigation do
 
   # show
   defp source_title({a, l, e}, clump_id) do
-    %Baobab.Entry{payload: payload} = Baobab.log_entry(a, e, log_id: l, clump_id: clump_id)
-
-    {:ok, data, ""} = CBOR.decode(payload)
-    data["title"]
+    if l |> QuaggaDef.base_log() |> QuaggaDef.log_def() |> Map.get(:type, "") |> is_binary() and
+         l |> QuaggaDef.base_log() |> QuaggaDef.log_def() |> Map.get(:type, "") |> String.starts_with?("image/") do
+      Catenary.Display.entry_title(:image, %{})
+    else
+      %Baobab.Entry{payload: payload} = Baobab.log_entry(a, e, log_id: l, clump_id: clump_id)
+      {:ok, data, ""} = CBOR.decode(payload)
+      data["title"]
+    end
   rescue
     _ -> ""
   end

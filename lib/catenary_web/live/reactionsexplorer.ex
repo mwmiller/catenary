@@ -79,14 +79,7 @@ defmodule Catenary.Live.ReactionsExplorer do
     emojis = reactions |> Enum.map(fn {_, r} -> r end) |> Enum.uniq() |> Enum.join(" ")
     count = length(reactions)
 
-    title =
-      try do
-        %Baobab.Entry{payload: payload} = Baobab.log_entry(a, e, log_id: l, clump_id: clump_id)
-        {:ok, data, ""} = CBOR.decode(payload)
-        Display.entry_title(l, data)
-      rescue
-        _ -> Catenary.index_to_string(entry)
-      end
+    title = entry_title_for(l, e, a, clump_id, entry)
 
     entry_str = Catenary.index_to_string(entry)
 
@@ -126,4 +119,25 @@ defmodule Catenary.Live.ReactionsExplorer do
   end
 
   defp extract(_, _), do: :none
+
+  defp entry_title_for(l, e, a, clump_id, fallback) do
+    if image_log?(l) do
+      Display.entry_title(:image, %{})
+    else
+      try do
+        %Baobab.Entry{payload: payload} = Baobab.log_entry(a, e, log_id: l, clump_id: clump_id)
+        {:ok, data, ""} = CBOR.decode(payload)
+        Display.entry_title(l, data)
+      rescue
+        _ -> Catenary.index_to_string(fallback)
+      end
+    end
+  end
+
+  defp image_log?(l) do
+    case l |> QuaggaDef.base_log() |> QuaggaDef.log_def() do
+      %{type: <<"image/", _::binary>>} -> true
+      _ -> false
+    end
+  end
 end

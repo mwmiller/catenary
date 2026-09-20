@@ -54,14 +54,19 @@ defmodule Catenary.LogWriter do
     t =
       case title do
         "" ->
-          try do
-            %Baobab.Entry{payload: payload} =
-              Baobab.log_entry(oa, oe, log_id: ol, clump_id: clump_id)
+          if ol |> QuaggaDef.base_log() |> QuaggaDef.log_def() |> Map.get(:type, "") |> is_binary() and
+               ol |> QuaggaDef.base_log() |> QuaggaDef.log_def() |> Map.get(:type, "") |> String.starts_with?("image/") do
+            Catenary.Display.entry_title(:image, %{})
+          else
+            try do
+              %Baobab.Entry{payload: payload} =
+                Baobab.log_entry(oa, oe, log_id: ol, clump_id: clump_id)
 
-            {:ok, %{"title" => ot}, ""} = CBOR.decode(payload)
-            ot
-          rescue
-            _ -> ""
+              {:ok, %{"title" => ot}, ""} = CBOR.decode(payload)
+              ot
+            rescue
+              _ -> ""
+            end
           end
 
         _ ->
