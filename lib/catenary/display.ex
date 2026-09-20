@@ -118,7 +118,7 @@ defmodule Catenary.Display do
   def view_entry_button(entry, contents) do
     "<button value=\"" <>
       Catenary.index_to_string(entry) <>
-      "\" phx-click=\"view-entry\" class=\"block w-full text-left\">" <> contents <> "</button>"
+      "\" phx-click=\"view-entry\">" <> contents <> "</button>"
   end
 
   @doc """

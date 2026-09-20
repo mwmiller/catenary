@@ -58,7 +58,15 @@ defmodule Catenary.Live.TagViewer do
   defp title_entries(entries) do
     entries
     |> Enum.reduce("", fn {_d, t, e}, acc ->
-      acc <> "<div class=\"rounded-lg border border-slate-200 dark:border-slate-700 p-2 hover:border-amber-500 dark:hover:border-amber-400 transition-colors\">" <> Display.avatar_view_entry_button(e, t) <> "</div>"
+      {a, _, _} = e
+      entry_str = Catenary.index_to_string(e)
+      {:safe, ava} = Display.scaled_avatar(a, 2, ["flex-none"])
+
+      acc <>
+        ~s(<button value="#{entry_str}" phx-click="view-entry" class="block w-full text-left rounded-lg border border-slate-200 dark:border-slate-700 p-2 hover:border-amber-500 dark:hover:border-amber-400 transition-colors flex items-center gap-2">) <>
+        ava <>
+        ~s(<span class="text-sm text-slate-700 dark:text-slate-300">#{t}</span>) <>
+        ~s(</button>)
     end)
     |> Phoenix.HTML.raw()
   end
