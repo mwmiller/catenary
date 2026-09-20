@@ -34,7 +34,7 @@ defmodule Catenary.Live.TagViewer do
           <button
             phx-click="tag-explorer"
             class="px-4 py-2 rounded-full border border-slate-200 dark:border-slate-700 text-sm text-slate-600 dark:text-slate-400 hover:border-amber-500 dark:hover:border-amber-400 hover:text-amber-600 dark:hover:text-amber-400 transition-colors"
-          ><span class="mr-1">⧟</span> Tag Explorer</button>
+          ><span>⧟</span></button>
         </div>
       </div>
     </div>

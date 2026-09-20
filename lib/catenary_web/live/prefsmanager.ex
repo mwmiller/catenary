@@ -275,7 +275,7 @@ defmodule Catenary.Live.PrefsManager do
                 phx-disable-with="⌘⌘⌘"
                 phx-click="shown"
               >
-                catch up
+                ✓
               </button>
               <button
                 class="rounded-md border border-slate-300 dark:border-slate-600 px-3 py-1.5 text-sm text-slate-700 dark:text-slate-300 transition-colors hover:bg-slate-100 dark:hover:bg-slate-800"
@@ -283,7 +283,7 @@ defmodule Catenary.Live.PrefsManager do
                 phx-disable-with="⎚⎚⎚"
                 phx-click="shown"
               >
-                start fresh
+                ↺
               </button>
               <button
                 class="rounded-md border border-slate-300 dark:border-slate-600 px-3 py-1.5 text-sm text-slate-700 dark:text-slate-300 transition-colors hover:bg-slate-100 dark:hover:bg-slate-800"
@@ -291,7 +291,7 @@ defmodule Catenary.Live.PrefsManager do
                 phx-disable-with="〆〆〆"
                 phx-click="compact"
               >
-                compact logs
+                〆
               </button>
             </div>
           </div>
