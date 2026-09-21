@@ -24,39 +24,39 @@ defmodule Catenary.Live.ImageExplorer do
 
   def render(assigns) do
     ~H"""
-  <div id="image-explore-wrap" class="content-wrap">
-    <div class="flex flex-col gap-4">
-        <div class="flex items-center justify-between gap-3">
-          <h1 class="text-lg font-semibold text-slate-800 dark:text-slate-100">Image Explorer</h1>
-          <div :if={@card != %{}} class="tab-group">
-            <%= for a <- @card |> Map.keys |> Enum.sort do %>
-              <button
-                value={a}
-                phx-click="arrange"
-                phx-target={@myself}
-                class={"px-6 py-2 text-sm font-semibold transition-colors #{if @entry == a, do: "bg-amber-500 text-white", else: "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200"}"}
-              >
-                {a}
-              </button>
-            <% end %>
-          </div>
-        </div>
-        <%= if @card == %{} or (@card[@entry] || []) == [] do %>
-          <p class="text-sm text-slate-400 dark:text-slate-500">No image messages.</p>
-        <% else %>
-          <%= for {t, g} <- (@card[@entry] || []) |> Enum.sort do %>
-            <div class="flex flex-col gap-2">
-              <h4 class="text-xs tracking-wide text-slate-400 dark:text-slate-500">{t}</h4>
-              <div class="flex flex-row flex-wrap gap-2">
-                <%= for i <- g do %>
-                  {i}
-                <% end %>
-              </div>
+    <div id="image-explore-wrap" class="content-wrap">
+      <div class="flex flex-col gap-4">
+          <div class="flex items-center justify-between gap-3">
+            <h1 class="text-lg font-semibold text-slate-800 dark:text-slate-100">Image Explorer</h1>
+            <div :if={@card != %{}} class="tab-group">
+              <%= for a <- @card |> Map.keys |> Enum.sort do %>
+                <button
+                  value={a}
+                  phx-click="arrange"
+                  phx-target={@myself}
+                  class={"px-6 py-2 text-sm font-semibold transition-colors #{if @entry == a, do: "bg-amber-500 text-white", else: "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200"}"}
+                >
+                  {a}
+                </button>
+              <% end %>
             </div>
+          </div>
+          <%= if @card == %{} or (@card[@entry] || []) == [] do %>
+            <p class="text-sm text-slate-400 dark:text-slate-500">No image messages.</p>
+          <% else %>
+            <%= for {t, g} <- (@card[@entry] || []) |> Enum.sort do %>
+              <div class="flex flex-col gap-2">
+                <h4 class="text-xs tracking-wide text-slate-400 dark:text-slate-500">{t}</h4>
+                <div class="flex flex-row flex-wrap gap-2">
+                  <%= for i <- g do %>
+                    {i}
+                  <% end %>
+                </div>
+              </div>
+            <% end %>
           <% end %>
-        <% end %>
+        </div>
       </div>
-    </div>
     """
   end
 

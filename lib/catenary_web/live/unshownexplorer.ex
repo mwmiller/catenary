@@ -18,43 +18,43 @@ defmodule Catenary.Live.UnshownExplorer do
 
   def render(%{card: []} = assigns) do
     ~H"""
-  <div id="unshown-explore-wrap" class="content-wrap">
-    <div class="flex flex-col gap-4">
-        <h1 class="text-lg font-semibold text-slate-800 dark:text-slate-100">Unshown Explorer</h1>
-        <p class="text-sm text-slate-400 dark:text-slate-500">All caught up</p>
+    <div id="unshown-explore-wrap" class="content-wrap">
+      <div class="flex flex-col gap-4">
+          <h1 class="text-lg font-semibold text-slate-800 dark:text-slate-100">Unshown Explorer</h1>
+          <p class="text-sm text-slate-400 dark:text-slate-500">All caught up</p>
+        </div>
       </div>
-    </div>
     """
   end
 
   def render(assigns) do
     ~H"""
-  <div id="unshown-explore-wrap" class="content-wrap">
-    <div class="flex flex-col gap-4">
-        <h1 class="text-lg font-semibold text-slate-800 dark:text-slate-100">Unshown Explorer</h1>
-        <%= for {type, entries, estring, size} <- @card do %>
-          <div class="flex flex-col gap-2">
-            <div class="flex items-center gap-2">
-              <h3 class="text-xs font-semibold uppercase tracking-wide text-slate-400 dark:text-slate-500">{type}</h3>
-              <button
-                phx-click="shown-set"
-                value={estring}
-                title="Mark all shown"
-                class="btn-ghost text-xs"
-              >
-                ∅
-              </button>
-              <%= if size == :more do %>
-                <span class="text-xs text-slate-400 dark:text-slate-500">(◎+)</span>
-              <% end %>
+    <div id="unshown-explore-wrap" class="content-wrap">
+      <div class="flex flex-col gap-4">
+          <h1 class="text-lg font-semibold text-slate-800 dark:text-slate-100">Unshown Explorer</h1>
+          <%= for {type, entries, estring, size} <- @card do %>
+            <div class="flex flex-col gap-2">
+              <div class="flex items-center gap-2">
+                <h3 class="text-xs font-semibold uppercase tracking-wide text-slate-400 dark:text-slate-500">{type}</h3>
+                <button
+                  phx-click="shown-set"
+                  value={estring}
+                  title="Mark all shown"
+                  class="btn-ghost text-xs"
+                >
+                  ∅
+                </button>
+                <%= if size == :more do %>
+                  <span class="text-xs text-slate-400 dark:text-slate-500">(◎+)</span>
+                <% end %>
+              </div>
+              <div class="grid grid-cols-3 gap-2">
+                {entries}
+              </div>
             </div>
-            <div class="grid grid-cols-3 gap-2">
-              {entries}
-            </div>
-          </div>
-        <% end %>
+          <% end %>
+        </div>
       </div>
-    </div>
     """
   end
 

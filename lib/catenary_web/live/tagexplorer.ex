@@ -17,42 +17,42 @@ defmodule Catenary.Live.TagExplorer do
 
   def render(assigns) do
     ~H"""
-  <div id="tag-explore-wrap" class="content-wrap">
-    <div class="flex flex-col gap-4">
-        <h1 class="text-lg font-semibold text-slate-800 dark:text-slate-100">Tag Explorer</h1>
-        <p :if={@card["tags"] == []} class="text-sm text-slate-400 dark:text-slate-500">
-          No tag messages.
-        </p>
-        <div :if={@card["tags"] != []} class="flex items-center gap-3">
-          <input
-            type="text"
-            placeholder="Filter tags..."
-            value={@filter}
-            phx-keyup="tag-filter"
-            phx-target={@myself}
-            name="filter"
-            class="w-48 rounded-full border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 px-3 py-1 text-sm text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500"
-          />
-          <div class="tab-group">
-            <button
-              phx-click="tag-sort"
-              phx-value-sort="alpha"
+    <div id="tag-explore-wrap" class="content-wrap">
+      <div class="flex flex-col gap-4">
+          <h1 class="text-lg font-semibold text-slate-800 dark:text-slate-100">Tag Explorer</h1>
+          <p :if={@card["tags"] == []} class="text-sm text-slate-400 dark:text-slate-500">
+            No tag messages.
+          </p>
+          <div :if={@card["tags"] != []} class="flex items-center gap-3">
+            <input
+              type="text"
+              placeholder="Filter tags..."
+              value={@filter}
+              phx-keyup="tag-filter"
               phx-target={@myself}
-              class={"px-6 py-2 text-sm font-semibold transition-colors #{if @sort == :alpha, do: "bg-amber-500 text-white", else: "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200"}"}
-            >↕</button>
-            <button
-              phx-click="tag-sort"
-              phx-value-sort="popular"
-              phx-target={@myself}
-              class={"px-6 py-2 text-sm font-semibold transition-colors #{if @sort == :popular, do: "bg-amber-500 text-white", else: "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200"}"}
-            >◆</button>
+              name="filter"
+              class="w-48 rounded-full border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 px-3 py-1 text-sm text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500"
+            />
+            <div class="tab-group">
+              <button
+                phx-click="tag-sort"
+                phx-value-sort="alpha"
+                phx-target={@myself}
+                class={"px-6 py-2 text-sm font-semibold transition-colors #{if @sort == :alpha, do: "bg-amber-500 text-white", else: "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200"}"}
+              >↕</button>
+              <button
+                phx-click="tag-sort"
+                phx-value-sort="popular"
+                phx-target={@myself}
+                class={"px-6 py-2 text-sm font-semibold transition-colors #{if @sort == :popular, do: "bg-amber-500 text-white", else: "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200"}"}
+              >◆</button>
+            </div>
+          </div>
+          <div :if={@card["tags"] != []} class="flex flex-row flex-wrap gap-1.5">
+            {render_tags(@card["tags"], @sort, @filter)}
           </div>
         </div>
-        <div :if={@card["tags"] != []} class="flex flex-row flex-wrap gap-1.5">
-          {render_tags(@card["tags"], @sort, @filter)}
-        </div>
       </div>
-    </div>
     """
   end
 

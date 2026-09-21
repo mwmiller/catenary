@@ -18,33 +18,33 @@ defmodule Catenary.Live.ReactionsExplorer do
 
   def render(assigns) do
     ~H"""
-  <div id="reactions-explore-wrap" class="content-wrap">
-    <div class="flex flex-col gap-4">
-        <h1 class="text-lg font-semibold text-slate-800 dark:text-slate-100">Reactions Explorer</h1>
-        <p :if={@card == []} class="text-sm text-slate-400 dark:text-slate-500">
-          No reaction messages.
-        </p>
-        <div :if={@card != []} class="flex items-center gap-3">
-          <div class="tab-group">
-            <button
-              phx-click="react-sort"
-              phx-value-sort="recent"
-              phx-target={@myself}
-              class={"px-6 py-2 text-sm font-semibold transition-colors #{if @sort == :recent, do: "bg-amber-500 text-white", else: "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200"}"}
-            ><span title="Most recent reactions">◷</span></button>
-            <button
-              phx-click="react-sort"
-              phx-value-sort="popular"
-              phx-target={@myself}
-              class={"px-6 py-2 text-sm font-semibold transition-colors #{if @sort == :popular, do: "bg-amber-500 text-white", else: "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200"}"}
-            ><span title="Most reacted to">★</span></button>
+    <div id="reactions-explore-wrap" class="content-wrap">
+      <div class="flex flex-col gap-4">
+          <h1 class="text-lg font-semibold text-slate-800 dark:text-slate-100">Reactions Explorer</h1>
+          <p :if={@card == []} class="text-sm text-slate-400 dark:text-slate-500">
+            No reaction messages.
+          </p>
+          <div :if={@card != []} class="flex items-center gap-3">
+            <div class="tab-group">
+              <button
+                phx-click="react-sort"
+                phx-value-sort="recent"
+                phx-target={@myself}
+                class={"px-6 py-2 text-sm font-semibold transition-colors #{if @sort == :recent, do: "bg-amber-500 text-white", else: "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200"}"}
+              ><span title="Most recent reactions">◷</span></button>
+              <button
+                phx-click="react-sort"
+                phx-value-sort="popular"
+                phx-target={@myself}
+                class={"px-6 py-2 text-sm font-semibold transition-colors #{if @sort == :popular, do: "bg-amber-500 text-white", else: "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200"}"}
+              ><span title="Most reacted to">★</span></button>
+            </div>
+          </div>
+          <div :if={@card != []}>
+            {render_grouped(@card, @sort, @clump_id)}
           </div>
         </div>
-        <div :if={@card != []}>
-          {render_grouped(@card, @sort, @clump_id)}
-        </div>
       </div>
-    </div>
     """
   end
 
