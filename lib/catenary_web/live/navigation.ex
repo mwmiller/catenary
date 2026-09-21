@@ -523,11 +523,7 @@ defmodule Catenary.Live.Navigation do
   end
 
   defp post_button_cls,
-    do:
-      "rounded-md bg-amber-500 hover:bg-amber-400 active:bg-amber-600 " <>
-        "dark:bg-amber-400 dark:hover:bg-amber-300 dark:active:bg-amber-500 " <>
-        "text-white dark:text-slate-900 text-sm font-semibold px-2 py-1 " <>
-        "shadow-sm transition-colors"
+    do: "btn-primary"
 
   defp posting_title(:graph), do: "Block/Unblock"
   defp posting_title(:alias), do: "Set Alias"

@@ -34,7 +34,7 @@ defmodule Catenary.Live.IndexStatus do
         phx-click="reindex"
         phx-disable-with="⟳"
         title="Reindex"
-        class="shrink-0 text-xs px-1.5 py-0.5 rounded hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors"
+        class="btn-ghost shrink-0 text-xs"
       >⏵</button>
     </div>
     """

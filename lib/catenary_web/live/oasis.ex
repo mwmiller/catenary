@@ -33,14 +33,14 @@ defmodule Catenary.Live.OasisExplorer do
             </h1>
           </div>
           <div
-            class="flex items-center rounded-md border border-slate-200 dark:border-slate-700 text-xs font-mono"
+            class="tab-group text-xs font-mono"
             role="group"
             aria-label="Connection source"
           >
             <button
               class={[
                 mode_tab(@connect_mode == "announced"),
-                "px-2 py-0.5 rounded-l-md transition-colors cursor-pointer"
+                "px-6 py-2 text-sm font-semibold transition-colors cursor-pointer"
               ]}
               phx-click="set-connect-mode"
               value="announced"
@@ -53,7 +53,7 @@ defmodule Catenary.Live.OasisExplorer do
             <button
               class={[
                 mode_tab(@connect_mode == "peers"),
-                "px-2 py-0.5 rounded-r-md transition-colors cursor-pointer"
+                "px-6 py-2 text-sm font-semibold transition-colors cursor-pointer"
               ]}
               phx-click="set-connect-mode"
               value="peers"
@@ -98,7 +98,7 @@ defmodule Catenary.Live.OasisExplorer do
                 <div class="flex-none">
                   <button
                     type="submit"
-                    class="px-1.5 py-0.5 rounded text-amber-800 dark:text-amber-300 hover:bg-amber-50 dark:hover:bg-amber-900/40 transition-colors"
+                    class="px-3 py-1.5 text-sm rounded-md text-amber-800 dark:text-amber-300 hover:bg-amber-50 dark:hover:bg-amber-900/40 transition-colors"
                     phx-disable-with="↯"
                     title="Connect to peer"
                   >
@@ -110,7 +110,7 @@ defmodule Catenary.Live.OasisExplorer do
             <div class="flex items-center gap-2">
               <button
                 phx-click="browse-mdns"
-                class="font-mono text-xs px-2 py-0.5 rounded border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+                class="font-mono text-xs px-3 py-1.5 rounded-md border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
                 type="button"
                 title="Scan for local peers"
               >
@@ -168,7 +168,7 @@ defmodule Catenary.Live.OasisExplorer do
                       <% end %>
                     <% else %>
                       <button
-                        class="px-1.5 py-0.5 rounded text-amber-800 dark:text-amber-300 hover:bg-amber-50 dark:hover:bg-amber-900/40 transition-colors"
+                        class="px-3 py-1.5 text-sm rounded-md text-amber-800 dark:text-amber-300 hover:bg-amber-50 dark:hover:bg-amber-900/40 transition-colors"
                         phx-click="connect-mdns"
                         phx-disable-with="↯"
                         phx-value-ip={to_string(:inet.ntoa(row.ip))}
@@ -217,7 +217,7 @@ defmodule Catenary.Live.OasisExplorer do
                       <span class="text-emerald-600 dark:text-emerald-400" title="Connected">⥀</span>
                     <% else %>
                       <button
-                        class="px-1.5 py-0.5 rounded text-amber-800 dark:text-amber-300 hover:bg-amber-50 dark:hover:bg-amber-900/40 transition-colors"
+                        class="px-3 py-1.5 text-sm rounded-md text-amber-800 dark:text-amber-300 hover:bg-amber-50 dark:hover:bg-amber-900/40 transition-colors"
                         phx-click="connect"
                         phx-disable-with="↯"
                         value={Catenary.index_to_string(recent.id)}
@@ -244,10 +244,10 @@ defmodule Catenary.Live.OasisExplorer do
   defp tab_title("peers"), do: "Peers"
   defp tab_title(_), do: "Oasis Explorer"
 
-  defp mode_tab(true), do: "bg-amber-500/20 text-amber-800 dark:text-amber-300"
+  defp mode_tab(true), do: "bg-amber-500 text-white"
 
   defp mode_tab(false),
-    do: "text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800"
+    do: "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200"
 
   # The peers tab merges mDNS peers and manual {host, port} targets into one
   # list. Each mDNS peer carries its owner (base62 key, if announced) alongside

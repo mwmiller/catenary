@@ -25,20 +25,17 @@ defmodule Catenary.Live.ChallengesExplorer do
     play: %{
       glyph: "▶",
       title: "Play your move",
-      cls:
-        "rounded-md bg-slate-800 hover:bg-slate-700 active:bg-slate-900 dark:bg-slate-200 dark:hover:bg-slate-100 dark:active:bg-slate-300 text-white dark:text-slate-900 text-sm font-semibold px-2 py-1 shadow-sm transition-colors"
+      cls: "btn-game-play"
     },
     await: %{
       glyph: "⏱",
       title: "Your game — waiting for the opponent",
-      cls:
-        "rounded-md border border-slate-400 dark:border-slate-600 text-slate-500 dark:text-slate-300 text-sm px-2 py-1 transition-colors"
+      cls: "btn-game-await"
     },
     spectate: %{
       glyph: @spectate_glyph,
       title: "Spectate game",
-      cls:
-        "rounded-md border border-slate-300 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:border-slate-500 dark:hover:border-slate-500 hover:text-slate-800 dark:hover:text-slate-200 text-sm px-2 py-1 transition-colors"
+      cls: "btn-game-spectate"
     }
   }
 
@@ -103,7 +100,7 @@ defmodule Catenary.Live.ChallengesExplorer do
           <h1 class="text-lg font-semibold text-slate-800 dark:text-slate-100">Challenge Explorer</h1>
         </div>
 
-        <div class="inline-flex rounded-lg border border-slate-200 dark:border-slate-700 p-0.5 bg-slate-50 dark:bg-slate-800/40 w-fit">
+        <div class="tab-group w-fit">
           <button
             type="button"
             phx-click="challenges-tab"
@@ -189,13 +186,9 @@ defmodule Catenary.Live.ChallengesExplorer do
     """
   end
 
-  defp tab_cls(true),
-    do:
-      "rounded-md bg-amber-500 hover:bg-amber-400 text-white text-sm font-semibold px-3 py-1 transition-colors"
+  defp tab_cls(true), do: "btn-tab btn-tab-active"
 
-  defp tab_cls(false),
-    do:
-      "rounded-md text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 text-sm font-semibold px-3 py-1 transition-colors"
+  defp tab_cls(false), do: "btn-tab btn-tab-inactive"
 
   defp extract(:all, identity, aliases) do
     clump_id = Catenary.Preferences.get(:clump_id)
@@ -314,7 +307,7 @@ defmodule Catenary.Live.ChallengesExplorer do
              game.challenger <>
              ~s(" phx-value-challenge-commit=") <>
              to_string(Map.get(game, :challenge_commit) || "") <>
-             ~s(" phx-disable-with="𝄇" title="Accept challenge" aria-label="Accept challenge" class="rounded-md bg-amber-500 hover:bg-amber-400 active:bg-amber-600 dark:bg-amber-400 dark:hover:bg-amber-300 dark:active:bg-amber-500 text-white dark:text-slate-900 text-sm font-semibold px-2 py-1 shadow-sm transition-colors">⚔</button>)}
+              ~s(" phx-disable-with="𝄇" title="Accept challenge" aria-label="Accept challenge" class="btn-primary">⚔</button>)}
         ]
     else
       list
@@ -332,7 +325,7 @@ defmodule Catenary.Live.ChallengesExplorer do
           {:safe,
            ~s(<button type="button" phx-click="withdraw-challenge" value=") <>
              game.game_id <>
-             ~s(" phx-disable-with="𝄇" title="Withdraw challenge" aria-label="Withdraw challenge" class="rounded-md border border-amber-500 text-amber-600 dark:text-amber-400 hover:bg-amber-500 hover:text-white dark:hover:bg-amber-400 dark:hover:text-slate-900 text-sm font-semibold px-2 py-1 transition-colors">⤼</button>)}
+              ~s(" phx-disable-with="𝄇" title="Withdraw challenge" aria-label="Withdraw challenge" class="btn-secondary">⤼</button>)}
         ]
     else
       list

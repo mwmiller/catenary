@@ -66,3 +66,98 @@
     scrollbar-gutter: stable;
   }
 }
+
+@layer components {
+  /* Icon-only navigation buttons (explorebar, timeline) */
+  .btn-icon {
+    @apply px-3 py-2 rounded-md text-lg leading-none transition-colors;
+    @apply hover:bg-slate-200 dark:hover:bg-slate-700;
+  }
+  .btn-icon:disabled {
+    @apply opacity-40 cursor-default hover:bg-transparent dark:hover:bg-transparent;
+  }
+
+  /* Primary action buttons (post, submit, accept) */
+  .btn-primary {
+    @apply bg-amber-500 hover:bg-amber-400 active:bg-amber-600;
+    @apply dark:bg-amber-400 dark:hover:bg-amber-300 dark:active:bg-amber-500;
+    @apply text-white dark:text-slate-900 text-sm font-semibold;
+    @apply px-4 py-2 rounded-md shadow-sm transition-colors;
+  }
+
+  /* Secondary/outline action buttons (withdraw, cancel) */
+  .btn-secondary {
+    @apply border border-amber-500 text-amber-600 dark:text-amber-400;
+    @apply hover:bg-amber-500 hover:text-white;
+    @apply dark:hover:bg-amber-400 dark:hover:text-slate-900;
+    @apply text-sm font-semibold px-4 py-2 rounded-md transition-colors;
+  }
+
+  /* Ghost/subtle buttons (utility, mark shown) */
+  .btn-ghost {
+    @apply text-slate-500 dark:text-slate-400;
+    @apply hover:text-amber-600 dark:hover:text-amber-400;
+    @apply hover:bg-slate-100 dark:hover:bg-slate-800;
+    @apply text-sm px-3 py-1.5 rounded-md transition-colors;
+  }
+
+  /* Tab buttons within a group */
+  .btn-tab {
+    @apply text-sm font-semibold px-4 py-2 transition-colors;
+  }
+  .btn-tab-active {
+    @apply bg-amber-500 hover:bg-amber-400 text-white;
+  }
+  .btn-tab-inactive {
+    @apply text-slate-500 dark:text-slate-400;
+    @apply hover:text-slate-700 dark:hover:text-slate-200;
+  }
+
+  /* Tab group container */
+  .tab-group {
+    @apply inline-flex rounded-lg border border-slate-200 dark:border-slate-700 p-0.5;
+    @apply bg-slate-50 dark:bg-slate-800/40;
+  }
+
+  /* Game action buttons (play, await, spectate) */
+  .btn-game-play {
+    @apply rounded-md bg-slate-800 hover:bg-slate-700 active:bg-slate-900;
+    @apply dark:bg-slate-200 dark:hover:bg-slate-100 dark:active:bg-slate-300;
+    @apply text-white dark:text-slate-900 text-sm font-semibold;
+    @apply px-3 py-1.5 shadow-sm transition-colors;
+  }
+  .btn-game-await {
+    @apply rounded-md border border-slate-400 dark:border-slate-600;
+    @apply text-slate-500 dark:text-slate-300 text-sm px-3 py-1.5 transition-colors;
+  }
+  .btn-game-spectate {
+    @apply rounded-md border border-slate-300 dark:border-slate-700;
+    @apply text-slate-600 dark:text-slate-400 text-sm px-3 py-1.5 transition-colors;
+    @apply hover:border-slate-500 dark:hover:border-slate-500;
+    @apply hover:text-slate-800 dark:hover:text-slate-200;
+  }
+
+  /* Danger buttons (drop, delete) */
+  .btn-danger {
+    @apply text-slate-400 dark:text-slate-500 transition-colors;
+    @apply hover:bg-red-100 hover:text-red-700;
+    @apply dark:hover:bg-red-900/40 dark:hover:text-red-400;
+    @apply px-3 py-1.5 rounded-md;
+  }
+
+  /* Utility buttons (export, import) */
+  .btn-util {
+    @apply text-slate-400 dark:text-slate-500 transition-colors;
+    @apply hover:bg-amber-100 hover:text-amber-700;
+    @apply dark:hover:bg-amber-900/40 dark:hover:text-amber-400;
+    @apply px-3 py-1.5 rounded-md;
+  }
+
+  /* Data maintenance buttons */
+  .btn-maintenance {
+    @apply border border-slate-300 dark:border-slate-600;
+    @apply text-sm text-slate-700 dark:text-slate-300 transition-colors;
+    @apply hover:bg-slate-100 dark:hover:bg-slate-800;
+    @apply px-4 py-2 rounded-md;
+  }
+}

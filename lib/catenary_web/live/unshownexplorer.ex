@@ -18,8 +18,8 @@ defmodule Catenary.Live.UnshownExplorer do
 
   def render(%{card: []} = assigns) do
     ~H"""
-    <div id="unshown-explore-wrap" class="content-wrap">
-      <div class="flex flex-col gap-5">
+  <div id="unshown-explore-wrap" class="content-wrap">
+    <div class="flex flex-col gap-4">
         <h1 class="text-lg font-semibold text-slate-800 dark:text-slate-100">Unshown Explorer</h1>
         <p class="text-sm text-slate-400 dark:text-slate-500">All caught up</p>
       </div>
@@ -29,8 +29,8 @@ defmodule Catenary.Live.UnshownExplorer do
 
   def render(assigns) do
     ~H"""
-    <div id="unshown-explore-wrap" class="content-wrap">
-      <div class="flex flex-col gap-5">
+  <div id="unshown-explore-wrap" class="content-wrap">
+    <div class="flex flex-col gap-4">
         <h1 class="text-lg font-semibold text-slate-800 dark:text-slate-100">Unshown Explorer</h1>
         <%= for {type, entries, estring, size} <- @card do %>
           <div class="flex flex-col gap-2">
@@ -40,7 +40,7 @@ defmodule Catenary.Live.UnshownExplorer do
                 phx-click="shown-set"
                 value={estring}
                 title="Mark all shown"
-                class="px-1.5 py-0.5 rounded text-xs text-slate-500 dark:text-slate-400 hover:text-amber-600 dark:hover:text-amber-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                class="btn-ghost text-xs"
               >
                 ∅
               </button>
@@ -135,7 +135,7 @@ defmodule Catenary.Live.UnshownExplorer do
 
     {:safe, ava} = Display.scaled_avatar(a, size, ["shrink-0"])
 
-    ~s(<button value="#{entry_str}" phx-click="view-entry" class="block w-full text-left rounded-lg border border-slate-200 dark:border-slate-700 p-2 hover:border-amber-500 dark:hover:border-amber-400 transition-colors flex items-center gap-2">) <>
+    ~s(<button value="#{entry_str}" phx-click="view-entry" class="block w-full text-left border border-slate-200 dark:border-slate-700 p-4 hover:border-amber-500 dark:hover:border-amber-400 transition-colors flex items-center gap-2">) <>
       ava <>
       ~s(<span class="text-sm text-slate-700 dark:text-slate-300">#{title}</span>) <>
       ~s(</button>)

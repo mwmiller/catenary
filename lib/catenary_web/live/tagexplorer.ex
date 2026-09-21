@@ -17,8 +17,8 @@ defmodule Catenary.Live.TagExplorer do
 
   def render(assigns) do
     ~H"""
-    <div id="tag-explore-wrap" class="content-wrap">
-      <div class="flex flex-col gap-2">
+  <div id="tag-explore-wrap" class="content-wrap">
+    <div class="flex flex-col gap-4">
         <h1 class="text-lg font-semibold text-slate-800 dark:text-slate-100">Tag Explorer</h1>
         <p :if={@card["tags"] == []} class="text-sm text-slate-400 dark:text-slate-500">
           No tag messages.
@@ -33,18 +33,18 @@ defmodule Catenary.Live.TagExplorer do
             name="filter"
             class="w-48 rounded-full border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 px-3 py-1 text-sm text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500"
           />
-          <div class="flex rounded-full border border-slate-300 dark:border-slate-600 overflow-hidden text-xs">
+          <div class="tab-group">
             <button
               phx-click="tag-sort"
               phx-value-sort="alpha"
               phx-target={@myself}
-              class={"px-3 py-1 transition-colors #{if @sort == :alpha, do: "bg-amber-500 text-white", else: "text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700"}"}
+              class={"px-6 py-2 text-sm font-semibold transition-colors #{if @sort == :alpha, do: "bg-amber-500 text-white", else: "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200"}"}
             >↕</button>
             <button
               phx-click="tag-sort"
               phx-value-sort="popular"
               phx-target={@myself}
-              class={"px-3 py-1 transition-colors #{if @sort == :popular, do: "bg-amber-500 text-white", else: "text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700"}"}
+              class={"px-6 py-2 text-sm font-semibold transition-colors #{if @sort == :popular, do: "bg-amber-500 text-white", else: "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200"}"}
             >◆</button>
           </div>
         </div>
@@ -81,7 +81,7 @@ defmodule Catenary.Live.TagExplorer do
     tags
     |> Enum.map(fn {t, c} ->
       {size_class, bg_class, text_class, count_class} = tier(c, thresholds)
-      ~s(<button value="#{t}" phx-click="view-tag"><div class="rounded-full border #{bg_class} px-2.5 py-0.5 transition-colors hover:border-amber-500 dark:hover:border-amber-400"><span class="#{text_class} #{size_class}">#{t}</span><span class="ml-1 #{count_class}">#{c}</span></div></button>)
+      ~s(<button value="#{t}" phx-click="view-tag"><div class="rounded-full border #{bg_class} px-5 py-1 transition-colors hover:border-amber-500 dark:hover:border-amber-400"><span class="#{text_class} #{size_class}">#{t}</span><span class="ml-1 #{count_class}">#{c}</span></div></button>)
     end)
     |> then(fn
       [] -> ~s(<span class="text-sm text-slate-400 dark:text-slate-500">No matching tags.</span>)

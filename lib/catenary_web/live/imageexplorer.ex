@@ -24,17 +24,17 @@ defmodule Catenary.Live.ImageExplorer do
 
   def render(assigns) do
     ~H"""
-    <div id="image-explore-wrap" class="content-wrap">
-      <div class="flex flex-col gap-5">
+  <div id="image-explore-wrap" class="content-wrap">
+    <div class="flex flex-col gap-4">
         <div class="flex items-center justify-between gap-3">
           <h1 class="text-lg font-semibold text-slate-800 dark:text-slate-100">Image Explorer</h1>
-          <div :if={@card != %{}} class="flex gap-1 rounded-lg bg-slate-100 dark:bg-slate-800 p-1">
+          <div :if={@card != %{}} class="tab-group">
             <%= for a <- @card |> Map.keys |> Enum.sort do %>
               <button
                 value={a}
                 phx-click="arrange"
                 phx-target={@myself}
-                class={"px-2 py-1 text-xs rounded-md transition-colors #{if @entry == a, do: "bg-white dark:bg-slate-700 text-amber-700 dark:text-amber-300 shadow-sm", else: "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200"}"}
+                class={"px-6 py-2 text-sm font-semibold transition-colors #{if @entry == a, do: "bg-amber-500 text-white", else: "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200"}"}
               >
                 {a}
               </button>

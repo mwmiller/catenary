@@ -62,7 +62,7 @@ defmodule Catenary.Live.PrefsManager do
                   <button
                     type="button"
                     phx-click="export-clumps"
-                    class="rounded px-1.5 py-0.5 text-slate-400 dark:text-slate-500 transition-colors hover:bg-amber-100 hover:text-amber-700 dark:hover:bg-amber-900/40 dark:hover:text-amber-400"
+                    class="btn-util"
                     title="Export clump config"
                   >⇤</button>
                 </form>
@@ -110,14 +110,14 @@ defmodule Catenary.Live.PrefsManager do
                         type="button"
                         phx-click="export-identity"
                         phx-value-name={n}
-                        class="rounded px-1.5 py-0.5 text-slate-400 dark:text-slate-500 transition-colors hover:bg-amber-100 hover:text-amber-700 dark:hover:bg-amber-900/40 dark:hover:text-amber-400"
+                        class="btn-util"
                         title="Export identity keys"
                       >⇤</button>
                     </span>
                     <span class="flex w-8 shrink-0 items-center justify-center">
                       <button
                         type="button"
-                        class="rounded px-1.5 py-0.5 text-slate-400 dark:text-slate-500 transition-colors hover:bg-red-100 hover:text-red-700 dark:hover:bg-red-900/40 dark:hover:text-red-400"
+                        class="btn-danger"
                         value={n}
                         data-confirm={"Drop identity #{n}? This cannot be undone."}
                         phx-click="drop-id"
@@ -135,7 +135,7 @@ defmodule Catenary.Live.PrefsManager do
               <span class="flex w-12 shrink-0 items-center justify-start">
                 <button
                   type="submit"
-                  class="rounded-md border border-slate-300 dark:border-slate-600 px-1.5 text-sm text-slate-500 dark:text-slate-400 transition-colors hover:border-amber-500 hover:text-amber-600 dark:hover:border-amber-400 dark:hover:text-amber-400"
+                  class="btn-ghost"
                   title="Create identity"
                 >+</button>
               </span>
@@ -161,7 +161,7 @@ defmodule Catenary.Live.PrefsManager do
               <span class="flex w-12 shrink-0 items-center justify-start">
                 <button
                   type="submit"
-                  class="rounded-md border border-slate-300 dark:border-slate-600 px-1.5 text-sm text-slate-500 dark:text-slate-400 transition-colors hover:border-amber-500 hover:text-amber-600 dark:hover:border-amber-400 dark:hover:text-amber-400"
+                  class="btn-ghost"
                   title="Import identity"
                 >⇥</button>
               </span>
@@ -270,7 +270,7 @@ defmodule Catenary.Live.PrefsManager do
             </h2>
             <div class="flex flex-wrap gap-2">
               <button
-                class="rounded-md border border-slate-300 dark:border-slate-600 px-3 py-1.5 text-sm text-slate-700 dark:text-slate-300 transition-colors hover:bg-slate-100 dark:hover:bg-slate-800"
+                class="btn-maintenance"
                 value="all"
                 phx-disable-with="⌘⌘⌘"
                 phx-click="shown"
@@ -278,7 +278,7 @@ defmodule Catenary.Live.PrefsManager do
                 ✓
               </button>
               <button
-                class="rounded-md border border-slate-300 dark:border-slate-600 px-3 py-1.5 text-sm text-slate-700 dark:text-slate-300 transition-colors hover:bg-slate-100 dark:hover:bg-slate-800"
+                class="btn-maintenance"
                 value="none"
                 phx-disable-with="⎚⎚⎚"
                 phx-click="shown"
@@ -286,7 +286,7 @@ defmodule Catenary.Live.PrefsManager do
                 ↺
               </button>
               <button
-                class="rounded-md border border-slate-300 dark:border-slate-600 px-3 py-1.5 text-sm text-slate-700 dark:text-slate-300 transition-colors hover:bg-slate-100 dark:hover:bg-slate-800"
+                class="btn-maintenance"
                 value="all"
                 phx-disable-with="〆〆〆"
                 phx-click="compact"

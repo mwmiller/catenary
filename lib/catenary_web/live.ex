@@ -310,10 +310,7 @@ defmodule CatenaryWeb.Live do
         <!-- Center: nav buttons -->
         <div class="flex items-center gap-0.5 overflow-x-auto flex-1 justify-center min-w-0 scrollbar-hide">
           <button
-            class={[
-              stack_color(@entry_back),
-              "px-2 py-1 rounded hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors text-lg leading-none"
-            ]}
+            class={stack_color(@entry_back)}
             phx-click="nav-backward"
             title="Back"
             disabled={@entry_back == []}
@@ -323,21 +320,21 @@ defmodule CatenaryWeb.Live do
             value="challenges"
             phx-click="toview"
             title="Challenges"
-            class="px-2 py-1 rounded hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors text-lg leading-none"
+            class="btn-icon"
           >⚄</button>
           <button
             :if={Preferences.accept_log_name?(:tag)}
             value="tags"
             phx-click="toview"
             title="Tags"
-            class="px-2 py-1 rounded hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors text-lg leading-none"
+            class="btn-icon"
           >#</button>
           <button
             :if={Preferences.accept_log_name?(:react)}
             value="reactions"
             phx-click="toview"
             title="Reactions"
-            class="px-2 py-1 rounded hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors text-lg leading-none"
+            class="btn-icon"
           >♥</button>
           <button
             value="unshown"
@@ -345,7 +342,7 @@ defmodule CatenaryWeb.Live do
             title="Unshown"
             class={[
               if(@has_unshown, do: "text-amber-600 dark:text-amber-400", else: ""),
-              "px-2 py-1 rounded hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors text-xl leading-none font-medium"
+              "btn-icon"
             ]}
           >◎</button>
           <button
@@ -356,27 +353,24 @@ defmodule CatenaryWeb.Live do
             value="images"
             phx-click="toview"
             title="Images"
-            class="px-2 py-1 rounded hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors text-lg leading-none"
+            class="btn-icon"
           >▣</button>
           <button
             :if={Preferences.accept_log_name?(:alias)}
             value="aliases"
             phx-click="toview"
             title="Aliases"
-            class="px-2 py-1 rounded hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors text-lg leading-none"
+            class="btn-icon"
           >~</button>
           <button
             :if={Preferences.accept_log_name?(:oasis)}
             value="oases"
             phx-click="toview"
             title="Peers"
-            class="px-2 py-1 rounded hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors text-lg leading-none"
+            class="btn-icon"
           >⇆</button>
           <button
-            class={[
-              stack_color(@entry_fore),
-              "px-2 py-1 rounded hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors text-lg leading-none"
-            ]}
+            class={stack_color(@entry_fore)}
             phx-click="nav-forward"
             title="Forward"
             disabled={@entry_fore == []}
@@ -398,10 +392,10 @@ defmodule CatenaryWeb.Live do
   end
 
   def stack_color([]) do
-    "disabled:opacity-40 disabled:cursor-default disabled:hover:bg-transparent"
+    "btn-icon disabled:opacity-40 disabled:cursor-default disabled:hover:bg-transparent"
   end
 
-  def stack_color(_), do: ""
+  def stack_color(_), do: "btn-icon"
 
   defp has_unshown_entries?(clump_id) do
     shown = Catenary.Preferences.get(:shown) |> Map.get(clump_id, MapSet.new())
@@ -442,11 +436,11 @@ defmodule CatenaryWeb.Live do
   defp timeline_nav(assigns) do
     ~H"""
     <div class="flex flex-col items-center gap-1 pt-4">
-      <button value="prev-author" phx-click="nav" title="Prev author">↥</button>
-      <button value="prev-entry" phx-click="nav" title="Prev entry">⇜</button>
-      <button phx-click="toggle-none" title="None">⍟</button>
-      <button value="next-entry" phx-click="nav" title="Next entry">⇝</button>
-      <button value="next-author" phx-click="nav" title="Next author">↧</button>
+      <button value="prev-author" phx-click="nav" title="Prev author" class="btn-icon">↥</button>
+      <button value="prev-entry" phx-click="nav" title="Prev entry" class="btn-icon">⇜</button>
+      <button phx-click="toggle-none" title="None" class="btn-icon">⍟</button>
+      <button value="next-entry" phx-click="nav" title="Next entry" class="btn-icon">⇝</button>
+      <button value="next-author" phx-click="nav" title="Next author" class="btn-icon">↧</button>
     </div>
     """
   end
