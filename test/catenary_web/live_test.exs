@@ -20,8 +20,8 @@ defmodule CatenaryWeb.LiveTest do
 
     # A single class attribute, with both the stack color and the static styles
     assert Regex.scan(~r/class="/, back) |> length() == 1
-    assert back =~ "px-2 py-1 rounded"
+    assert back =~ "btn-icon"
     assert Regex.scan(~r/class="/, fwd) |> length() == 1
-    assert fwd =~ "px-2 py-1 rounded"
+    assert fwd =~ "btn-icon"
   end
 end
