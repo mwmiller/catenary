@@ -24,4 +24,17 @@ defmodule CatenaryWeb.LiveTest do
     assert Regex.scan(~r/class="/, fwd) |> length() == 1
     assert fwd =~ "btn-icon"
   end
+
+  test "the unshown view button is not flagged when the clump has no entries" do
+    {:ok, view, _html} = live(build_conn(), "/")
+
+    unshown = view |> element("button[title=Unshown]") |> render()
+
+    # The test clump has no entries, so the "you have unread entries" highlight
+    # must not be applied. This also pins that state_set/3 still assigns
+    # has_unshown at all: the button below is its only consumer, and a missing
+    # assign would raise while rendering it.
+    refute unshown =~ "text-amber-600"
+    assert unshown =~ "btn-icon"
+  end
 end

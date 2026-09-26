@@ -1324,13 +1324,34 @@ defmodule CatenaryWeb.Live do
         end
       end
 
+    shown_hash = Preferences.shown_hash()
+
+    # has_unshown_entries?/1 walks every entry in the clump, and state_set/3
+    # runs on every event, so that walk ran on every keystroke and click. It
+    # depends on exactly two things, and both already have a change-detection
+    # digest in hand here, so re-walk only when one of them actually moved:
+    # reuse the last answer when neither did.
+    #
+    # shown_hash is a blake2b of `Preferences.get(:shown)[clump_id]`, the same
+    # set the walk reads (this_clump_shown_set/0, and clump_id here is the
+    # `Preferences.get(:clump_id)` captured at mount). store_hash is the content
+    # hash the block above already trusts to decide whether the store changed
+    # at all. On the skip_hash path shash is state.store_hash by construction,
+    # so an explicit skip correctly reuses the cached answer too.
+    has_unshown =
+      if state.shown_hash == shown_hash and state.store_hash == shash do
+        state.has_unshown
+      else
+        has_unshown_entries?(clump_id)
+      end
+
     refreshed =
       assign(full_socket,
         aliases: Catenary.alias_state(),
         profile_items: Catenary.profile_items_state(),
         indexing: Catenary.Indices.status(),
-        shown_hash: Preferences.shown_hash(),
-        has_unshown: has_unshown_entries?(clump_id),
+        shown_hash: shown_hash,
+        has_unshown: has_unshown,
         has_identity_unshown_mentions: has_identity_unshown_mentions?(state.identity),
         store_hash: shash,
         store: si,
