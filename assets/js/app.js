@@ -72,6 +72,16 @@ let MenuBridge = {
       })
     })
 
+    // Pushed by the server when a compose panel closes, so focus lands back on
+    // the trigger that opened it instead of being dropped on <body>. The id is
+    // resolved here because the trigger may not be rendered at all (a panel can
+    // be forced open by the entry being viewed), in which case there is
+    // nothing to return to and this is a no-op.
+    this.handleEvent("focus-compose-trigger", ({id}) => {
+      const trigger = document.getElementById(id)
+      if (trigger) trigger.focus()
+    })
+
     this.el.ownerDocument.addEventListener("keydown", (e) => {
       if (e.key === "Escape") {
         this.pushEvent("escape", {})

@@ -817,14 +817,10 @@ defmodule CatenaryWeb.Live do
 
   def handle_event(<<"toggle-", which::binary>>, _, socket) do
     tog = String.to_existing_atom(which)
+    closing? = socket.assigns.extra_nav == tog
+    socket = state_set(socket, %{extra_nav: if(closing?, do: :none, else: tog)})
 
-    show_now =
-      case socket.assigns.extra_nav do
-        ^tog -> :none
-        _ -> tog
-      end
-
-    {:noreply, state_set(socket, %{extra_nav: show_now})}
+    {:noreply, if(closing?, do: focus_compose_trigger(socket, tog), else: socket)}
   end
 
   def handle_event("view-entry", %{"value" => index_string}, socket) do
@@ -1168,7 +1164,10 @@ defmodule CatenaryWeb.Live do
   # activity bar. Renders as a no-op when no panel is open, since :none is
   # already the resting state.
   def handle_event("escape", _, socket) do
-    {:noreply, state_set(socket, %{extra_nav: :none})}
+    closing = socket.assigns.extra_nav
+    socket = state_set(socket, %{extra_nav: :none})
+
+    {:noreply, if(closing == :none, do: socket, else: focus_compose_trigger(socket, closing))}
   end
 
   # The native window reports its size back so we can remember it.
@@ -1183,6 +1182,19 @@ defmodule CatenaryWeb.Live do
   end
 
   def handle_event("window-resize", _, socket), do: {:noreply, socket}
+
+  # Closing a compose panel tears out the markup that had focus, which drops a
+  # keyboard user back on <body> with no idea where they were; Tab then restarts
+  # from the top of the page. Hand focus back to the trigger that opened it.
+  #
+  # Handed over as an id rather than a ref because the trigger lives in a
+  # sibling LiveComponent, and it may legitimately not be on screen at all: a
+  # panel can be forced open by the entry being viewed (see
+  # `Navigation.force_extra_nav/2`) with no trigger rendered, so the client side
+  # treats a missing element as a no-op.
+  defp focus_compose_trigger(socket, which) do
+    push_event(socket, "focus-compose-trigger", %{id: "compose-trigger-#{which}"})
+  end
 
   defp game_row(game_id) do
     case Challenges.game(game_id) do

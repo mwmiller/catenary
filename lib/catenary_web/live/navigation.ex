@@ -66,15 +66,18 @@ defmodule Catenary.Live.Navigation do
       <div class="flex flex-col items-center gap-2 text-xl px-2 py-2 w-full">
         <div class="flex items-center gap-1">
           <%= if displayed_matches([:log, :profile], @displayed_info) do %>
-            {post_button_for(:graph)}
-            {post_button_for(:alias)}
+            {post_button_for(:graph, @extra_nav)}
+            {post_button_for(:alias, @extra_nav)}
           <% end %>
         </div>
         <div class="flex items-center gap-1">
-          {for post_type <- [:journal, :image], do: post_button_for(post_type)}
+          {for post_type <- [:journal, :image], do: post_button_for(post_type, @extra_nav)}
           <button
             type="button"
+            id="compose-trigger-challenge"
             phx-click="toggle-challenge"
+            aria-expanded={to_string(@extra_nav == :challenge)}
+            aria-controls="compose-panel"
             title="New challenge"
             aria-label="New challenge — posts to a log"
             class={post_button_cls()}
@@ -82,7 +85,8 @@ defmodule Catenary.Live.Navigation do
         </div>
         <%= if displayed_matches([:log], @displayed_info) do %>
           <div class="flex items-center gap-1">
-            {for post_type <- [:reply, :react, :tag, :mention], do: post_button_for(post_type)}
+            {for post_type <- [:reply, :react, :tag, :mention],
+                 do: post_button_for(post_type, @extra_nav)}
           </div>
         <% end %>
       </div>
@@ -95,7 +99,11 @@ defmodule Catenary.Live.Navigation do
           class="btn-ghost"
         >⍟</button>
       </div>
-      <div class="w-full flex justify-center mt-2 px-2 overflow-x-auto">
+      <div
+        :if={@extra_nav != :none}
+        id="compose-panel"
+        class="w-full flex justify-center mt-2 px-2 overflow-x-auto"
+      >
         {@lower_nav}
       </div>
     </div>
@@ -516,12 +524,12 @@ defmodule Catenary.Live.Navigation do
     {:safe, safe_binary} |> Phoenix.HTML.raw()
   end
 
-  defp post_button_for(which) do
+  defp post_button_for(which, extra_nav) do
     case Preferences.accept_log_name?(which) do
       true ->
-        "<button type=\"button\" phx-click=\"toggle-" <>
+        ~s(<button type="button" id="compose-trigger-#{which}" phx-click="toggle-) <>
           Atom.to_string(which) <>
-          "\" title=\"" <>
+          ~s(" aria-expanded="#{extra_nav == which}" aria-controls="compose-panel" title=") <>
           posting_title(which) <>
           "\" aria-label=\"" <>
           posting_title(which) <>
