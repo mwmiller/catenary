@@ -54,6 +54,7 @@ defmodule Catenary.Live.PrefsManager do
                 >
                   <label class="mr-1" for="clump_id">🎋</label>
                   <select
+                    id="clump_id"
                     name="clump_id"
                     class="rounded-md border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 px-2 py-1 text-sm text-slate-900 dark:text-slate-100"
                   >
@@ -186,6 +187,7 @@ defmodule Catenary.Live.PrefsManager do
             <div class="mt-3 flex items-center gap-2 border-t border-slate-200 dark:border-slate-700 pt-3">
               <label class="text-sm text-slate-600 dark:text-slate-300" for="facet_id">❖ Facet</label>
               <input
+                id="facet_id"
                 class="w-16 rounded-md border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 px-2 py-1 text-sm text-slate-900 dark:text-slate-100"
                 phx-blur="facet-change"
                 type="numeric"

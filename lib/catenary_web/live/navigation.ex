@@ -204,7 +204,7 @@ defmodule Catenary.Live.Navigation do
           {Display.scaled_avatar(@whom, 4, ["flex-none"]) |> Phoenix.HTML.raw()}
           <div class="min-w-0">
             <label for="alias" class={label_cls()}>Alias</label>
-            <input class={input_cls()} name="alias" value={@ali} type="text" />
+            <input id="alias" class={input_cls()} name="alias" value={@ali} type="text" />
           </div>
         </div>
         {Display.log_submit_button()}
@@ -498,10 +498,10 @@ defmodule Catenary.Live.Navigation do
       ~s(<form method="post" id="posting-form" phx-submit="new-entry" class="flex flex-col gap-3">),
       ~s(<input type="hidden" name="log_id" value="#{QuaggaDef.base_log(which)}" />),
       ref_input,
-      ~s(<label for="title" class="#{label_cls()}">#{posting_icon(which)} Title</label>),
-      ~s(<input class="#{input_cls()}" type="text" value="#{st}" name="title" />),
-      ~s(<label for="body" class="#{label_cls()}">Body</label>),
-      ~s(<textarea class="#{input_cls()}" name="body" rows="8"></textarea>),
+      ~s(<label for="posting-title" class="#{label_cls()}">#{posting_icon(which)} Title</label>),
+      ~s(<input id="posting-title" class="#{input_cls()}" type="text" value="#{st}" name="title" />),
+      ~s(<label for="posting-body" class="#{label_cls()}">Body</label>),
+      ~s(<textarea id="posting-body" class="#{input_cls()}" name="body" rows="8"></textarea>),
       tag_html,
       submit_btn,
       "</form>"
@@ -582,22 +582,27 @@ defmodule Catenary.Live.Navigation do
 
   defp tagged_match?(_, _), do: false
 
-  defp tag_inputs(count), do: grouped_inputs(count, "tag", "# Tags")
+  defp tag_inputs(count), do: grouped_inputs(count, "tag", "# Tags", "Tag")
 
-  defp mention_inputs(count), do: grouped_inputs(count, "mention", "~ Mentions")
+  defp mention_inputs(count), do: grouped_inputs(count, "mention", "~ Mentions", "Mention")
 
-  defp grouped_inputs(count, name, label) do
+  # A group of related single-value fields. The heading becomes a <legend> so
+  # the group is programmatically named, and each input is individually
+  # labelled -- with two blank inputs under one heading, "Tag" alone would
+  # not say which field is which.
+  defp grouped_inputs(count, name, legend, field_label) do
     inputs =
       for n <- 0..(count - 1)//1 do
-        qname = "\"" <> name <> Integer.to_string(n) <> "\""
+        field_name = name <> Integer.to_string(n)
 
-        "<input class=\"" <>
-          input_cls() <>
-          "\" name=" <>
-          qname <> " type=\"text\" />"
+        ~s(<input id="posting-#{field_name}" class="#{input_cls()}" ) <>
+          ~s(name="#{field_name}" type="text" aria-label="#{field_label} #{n + 1}" />)
       end
       |> Enum.join("")
 
-    Phoenix.HTML.raw("<label class=\"" <> label_cls() <> "\">" <> label <> "</label>" <> inputs)
+    Phoenix.HTML.raw(
+      ~s(<fieldset class="flex flex-col gap-1"><legend class="#{label_cls()}">#{legend}</legend>) <>
+        inputs <> "</fieldset>"
+    )
   end
 end
