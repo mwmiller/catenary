@@ -27,15 +27,22 @@ defmodule Catenary.Live.IndexStatus do
     ~H"""
     <div class="status flex items-center gap-1 font-mono text-xs text-center mx-1 w-max">
       <%= for {which, {char, state}} <- visible_indices(@indexing) do %>
-        <div class={pill_class(state)} title={pill_title(which, state)}>{char}</div>
+        <div
+          class={pill_class(state)}
+          title={pill_title(which, state)}
+          aria-label={pill_title(which, state)}
+        >
+          <span aria-hidden="true">{char}</span>
+        </div>
       <% end %>
       <button
         type="button"
         phx-click="reindex"
         phx-disable-with="⟳"
         title="Reindex"
+        aria-label="Reindex"
         class="btn-ghost shrink-0 text-xs"
-      >⏵</button>
+      ><span aria-hidden="true">⏵</span></button>
     </div>
     """
   end

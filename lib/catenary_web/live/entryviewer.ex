@@ -270,12 +270,12 @@ defmodule Catenary.Live.EntryViewer do
         ""
 
       r == "" ->
-        ~s(<div class="flex-auto p-2"><h4 class="text-xs tracking-wide text-slate-400 dark:text-slate-500">Journal</h4><ul class="list-none m-0 p-0 flex flex-col gap-1 divide-y divide-slate-200 dark:divide-slate-700">) <>
-          j <> "</ul></div>"
+        ~s(<div class="flex-auto p-2"><h4 class="text-xs tracking-wide text-slate-400 dark:text-slate-500">Journal</h4>) <>
+          j <> "</div>"
 
       j == "" ->
-        ~s(<div class="flex-auto p-2"><h4 class="text-xs tracking-wide text-slate-400 dark:text-slate-500">Reply</h4><ul class="list-none m-0 p-0 flex flex-col gap-1 divide-y divide-slate-200 dark:divide-slate-700">) <>
-          r <> "</ul></div>"
+        ~s(<div class="flex-auto p-2"><h4 class="text-xs tracking-wide text-slate-400 dark:text-slate-500">Reply</h4>) <>
+          r <> "</div>"
 
       true ->
         ~s(<div class="flex-auto p-2">) <>
@@ -295,15 +295,33 @@ defmodule Catenary.Live.EntryViewer do
     end
   end
 
+  # How many posts a profile tab previews. The cap is deliberate (these are
+  # sidebars, and a profile can have hundreds of replies), but truncating
+  # silently made a profile with twelve replies look identical to one with
+  # seven, so the remainder is now counted out under the list. The full set
+  # stays reachable by opening the log itself.
+  @tab_preview_limit 7
+
   defp tab_list(entries, settings) do
-    case entries |> Enum.take(7) |> Enum.map(fn e -> tab_item(e, settings) end) do
-      [] ->
+    case Enum.split(entries, @tab_preview_limit) do
+      {[], []} ->
         ""
 
-      items ->
+      {shown, rest} ->
         ~s(<ul class="list-none m-0 p-0 flex flex-col gap-1 divide-y divide-slate-200 dark:divide-slate-700">) <>
-          Enum.join(items, "") <> "</ul>"
+          Enum.map_join(shown, "", &tab_item(&1, settings)) <>
+          tab_list_overflow(rest) <>
+          "</ul>"
     end
+  end
+
+  defp tab_list_overflow([]), do: ""
+
+  defp tab_list_overflow(rest) do
+    n = length(rest)
+
+    ~s(<li><span class="block px-2 py-1 text-xs text-slate-400 dark:text-slate-500">) <>
+      "#{n} more #{if n == 1, do: "post", else: "posts"} not shown" <> "</span></li>"
   end
 
   defp tab_item(e, settings) do
