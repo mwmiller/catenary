@@ -279,11 +279,11 @@ defmodule Catenary.Live.EntryViewer do
 
       true ->
         ~s(<div class="flex-auto p-2">) <>
-          ~s(<input type="radio" id="ptab-journal" name="profile-tabs" class="hidden peer/ptabj" checked>) <>
-          ~s(<input type="radio" id="ptab-reply" name="profile-tabs" class="hidden peer/ptabr">) <>
-          ~s(<div class="flex gap-1 border-b border-slate-200 dark:border-slate-700 pb-px">) <>
-          ~s(<label for="ptab-journal" class="cursor-pointer rounded-t-md px-3 py-1 text-sm font-medium text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 peer-checked/ptabj:bg-amber-500/10 peer-checked/ptabj:text-amber-700 dark:peer-checked/ptabj:text-amber-300">Journal</label>) <>
-          ~s(<label for="ptab-reply" class="cursor-pointer rounded-t-md px-3 py-1 text-sm font-medium text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 peer-checked/ptabr:bg-amber-500/10 peer-checked/ptabr:text-amber-700 dark:peer-checked/ptabr:text-amber-300">Reply</label>) <>
+          ~s(<input type="radio" id="ptab-journal" name="profile-tabs" class="sr-only peer/ptabj" checked>) <>
+          ~s(<input type="radio" id="ptab-reply" name="profile-tabs" class="sr-only peer/ptabr">) <>
+          ~s(<div class="flex gap-1 border-b border-slate-200 dark:border-slate-700 pb-px" role="group" aria-label="Post type">) <>
+          ~s(<label for="ptab-journal" class="cursor-pointer rounded-t-md px-3 py-1 text-sm font-medium text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 peer-checked/ptabj:bg-amber-500/10 peer-checked/ptabj:text-amber-700 dark:peer-checked/ptabj:text-amber-300 peer-focus/ptabj:ring-2 peer-focus/ptabj:ring-amber-500 dark:peer-focus/ptabj:ring-amber-400">Journal</label>) <>
+          ~s(<label for="ptab-reply" class="cursor-pointer rounded-t-md px-3 py-1 text-sm font-medium text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 peer-checked/ptabr:bg-amber-500/10 peer-checked/ptabr:text-amber-700 dark:peer-checked/ptabr:text-amber-300 peer-focus/ptabr:ring-2 peer-focus/ptabr:ring-amber-500 dark:peer-focus/ptabr:ring-amber-400">Reply</label>) <>
           ~s(</div>) <>
           ~s(<div class="hidden py-2 peer-checked/ptabj:block">) <>
           j <>
