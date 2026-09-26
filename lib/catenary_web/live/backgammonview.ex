@@ -44,6 +44,11 @@ defmodule Catenary.Live.BackgammonView do
 
   @chain_length Chain.spec()["length"]
 
+  # Focus indicator for the board's interactive cells. Inset rather than outset
+  # because the board frame sets `overflow-hidden`, which would clip an outset
+  # ring or outline against the rail edges.
+  @cell_focus " focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-sky-300"
+
   @impl true
   def update(%{game_id: game_id, identity: identity} = assigns, socket) do
     case game_row(game_id) do
@@ -1025,6 +1030,23 @@ defmodule Catenary.Live.BackgammonView do
 
   defp mirror_viewer?(_identity, _game, _actor), do: false
 
+  # How to name the two rails in a cell's accessible label. The board is always
+  # drawn viewer-side (see `viewer_side/3`), so a participant looking at their
+  # own game sees themselves on the near rail. A spectator owns neither rail, so
+  # the rails are named by role instead of pretending they have a side.
+  defp side_words(assigns, actor) do
+    game = assigns.game
+    accepter = Map.get(game, :accepter)
+    challenger = Map.get(game, :challenger)
+    identity = assigns[:identity]
+
+    if is_binary(identity) and identity in [challenger, accepter] do
+      if identity == actor, do: {"you", "opponent"}, else: {"opponent", "you"}
+    else
+      if actor == challenger, do: {"challenger", "accepter"}, else: {"accepter", "challenger"}
+    end
+  end
+
   # The participant the position's actor (near rail) represents: the viewer
   # when they are playing, else the current mover.
   defp actor_role(game, identity) do
@@ -1371,6 +1393,7 @@ defmodule Catenary.Live.BackgammonView do
   defp board({position, actor}, assigns, cid) do
     actor_is_challenger = actor_role(assigns.game, assigns.identity) == "challenger"
     hl = board_highlights(assigns, actor)
+    side = side_words(assigns, actor)
 
     {:safe,
      "<div class=\"w-fit mx-auto select-none\">" <>
@@ -1380,13 +1403,15 @@ defmodule Catenary.Live.BackgammonView do
          actor_is_challenger: actor_is_challenger,
          hl: hl,
          bar_ref: :opp_bar,
-         cid: cid
+         cid: cid,
+         side: elem(side, 1)
        }) <>
        board_row(position, 12..1//-1, :up, position.bar, :actor, position.off, %{
          actor_is_challenger: actor_is_challenger,
          hl: hl,
          bar_ref: :own_bar,
-         cid: cid
+         cid: cid,
+         side: elem(side, 0)
        }) <>
        "<div class=\"absolute inset-x-0 top-1/2 h-px bg-black/25 pointer-events-none\"></div>" <>
        "</div></div></div>"}
@@ -1394,7 +1419,14 @@ defmodule Catenary.Live.BackgammonView do
 
   defp board_row(position, points, dir, on_bar, owner, off_count, ctx) do
     [half1, half2] = Enum.chunk_every(Enum.to_list(points), 6)
-    %{actor_is_challenger: actor_is_challenger, hl: hl, bar_ref: bar_ref, cid: cid} = ctx
+
+    %{
+      actor_is_challenger: actor_is_challenger,
+      hl: hl,
+      bar_ref: bar_ref,
+      cid: cid,
+      side: side
+    } = ctx
 
     "<div class=\"flex\">" <>
       Enum.map_join(
@@ -1404,10 +1436,10 @@ defmodule Catenary.Live.BackgammonView do
           &1,
           dir,
           actor_is_challenger,
-          cell_opts(&1, hl, cid)
+          cell_opts(&1, hl, cid, side)
         )
       ) <>
-      bar_cell(on_bar, owner, actor_is_challenger, bar_opts(bar_ref, hl, cid)) <>
+      bar_cell(on_bar, owner, actor_is_challenger, bar_opts(bar_ref, hl, cid, side)) <>
       Enum.map_join(
         half2,
         &point_cell(
@@ -1415,7 +1447,7 @@ defmodule Catenary.Live.BackgammonView do
           &1,
           dir,
           actor_is_challenger,
-          cell_opts(&1, hl, cid)
+          cell_opts(&1, hl, cid, side)
         )
       ) <>
       off_cell(off_count, owner, actor_is_challenger, dir) <>
@@ -1553,7 +1585,7 @@ defmodule Catenary.Live.BackgammonView do
   defp mirror_ref(:off), do: nil
   defp mirror_ref(p) when is_integer(p), do: 25 - p
 
-  defp cell_opts(p, hl, cid) do
+  defp cell_opts(p, hl, cid, side) do
     edit = hl.edit
 
     clickable? =
@@ -1565,6 +1597,7 @@ defmodule Catenary.Live.BackgammonView do
       dest: is_map(edit) and p in edit.dests,
       gained: p in hl.diff.gained,
       lost: p in hl.diff.lost,
+      side: side,
       click:
         if(clickable?,
           do: " phx-target=\"#{cid}\" phx-click=\"build-tap\" phx-value-point=\"#{p}\"",
@@ -1585,7 +1618,7 @@ defmodule Catenary.Live.BackgammonView do
     end
   end
 
-  defp bar_opts(ref, hl, cid) do
+  defp bar_opts(ref, hl, cid, side) do
     edit = hl.edit
 
     tri =
@@ -1601,6 +1634,7 @@ defmodule Catenary.Live.BackgammonView do
       rect: tri,
       gained: ref in hl.diff.gained,
       lost: ref in hl.diff.lost,
+      side: side,
       click:
         if(clickable?,
           do: " phx-target=\"#{cid}\" phx-click=\"build-tap\" phx-value-point=\"bar\"",
@@ -1688,6 +1722,22 @@ defmodule Catenary.Live.BackgammonView do
   # while editing, the `phx-click`/`phx-value-point` wiring for tap-to-move.
   # A destination glow sits on its own wrapper so the drop-shadow is not
   # clipped away by the triangle's clip-path.
+  # Interactive cells render as real buttons so they are tabbable, respond to
+  # Enter/Space, and carry their own accessible name. Non-interactive cells stay
+  # divs: a board has 24 points and 2 bars, so making every one a tab stop would
+  # bury the rest of the page. Only cells that actually carry a tap become
+  # focusable, which lines up exactly with the `cursor-pointer` affordance.
+  defp cell_shell(opts, label, class) do
+    if opts[:click] == "" do
+      {"<div class=\"#{class}\">", "</div>"}
+    else
+      {
+        "<button type=\"button\" class=\"#{class}#{@cell_focus}\" aria-label=\"#{label}\"#{opts[:click]}>",
+        "</button>"
+      }
+    end
+  end
+
   defp point_cell(count, p, dir, actor_is_challenger, opts) do
     clip_poly =
       if dir == :up,
@@ -1699,7 +1749,10 @@ defmodule Catenary.Live.BackgammonView do
     edge = if dir == :up, do: "bottom-0 pb-6", else: "top-0 pt-6"
     cursor = if opts[:click] == "", do: "", else: " cursor-pointer"
 
-    "<div class=\"relative w-10 h-44#{cursor}\"#{opts[:click]}>" <>
+    {open, close} =
+      cell_shell(opts, point_label(p, count, opts[:side]), "relative w-10 h-44#{cursor}")
+
+    open <>
       "<div class=\"absolute inset-0#{glow}\">" <>
       ~s(<div class="absolute inset-0 #{point}" style="clip-path: #{clip_poly}"></div>) <>
       "</div>" <>
@@ -1707,7 +1760,17 @@ defmodule Catenary.Live.BackgammonView do
       stack(count, dir, actor_is_challenger, opts[:gained], opts[:lost], opts[:source]) <>
       "</div>" <>
       point_number(p, dir) <>
-      "</div>"
+      close
+  end
+
+  # A point reads out as its number, whose checkers stand there, and how many.
+  # `count` is signed in the position (positive for the actor, negative for the
+  # opponent), so the side comes from the row's side word, not the sign.
+  defp point_label(p, count, side) do
+    case abs(count) do
+      0 -> "Point #{p}, empty"
+      n -> "Point #{p}, #{side}, #{n} #{if n == 1, do: "checker", else: "checkers"}"
+    end
   end
 
   # The point number sits on the carved outer band (opposite the bar) as a
@@ -1857,10 +1920,19 @@ defmodule Catenary.Live.BackgammonView do
     pips = min(on_bar, 6 - ghost_slots)
     cursor = if opts[:click] == "", do: "", else: " cursor-pointer"
 
-    "<div class=\"w-10 h-44 bg-amber-950 flex flex-col items-center justify-center gap-px #{opts[:rect]}#{cursor}\"#{opts[:click]}>" <>
+    label = "Bar, #{opts[:side]}, #{on_bar} #{if on_bar == 1, do: "checker", else: "checkers"}"
+
+    {open, close} =
+      cell_shell(
+        opts,
+        label,
+        "w-10 h-44 bg-amber-950 flex flex-col items-center justify-center gap-px #{opts[:rect]}#{cursor}"
+      )
+
+    open <>
       checkers(pips, owner, actor_is_challenger, opts[:gained], nil, :up) <>
       overflow_badge(on_bar - pips) <>
-      if(opts[:lost], do: ghost_pip(actor_is_challenger), else: "") <> "</div>"
+      if(opts[:lost], do: ghost_pip(actor_is_challenger), else: "") <> close
   end
 
   # Bear-off tray: a narrow column to the right of the home board where
