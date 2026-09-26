@@ -37,4 +37,30 @@ defmodule CatenaryWeb.LiveTest do
     refute unshown =~ "text-amber-600"
     assert unshown =~ "btn-icon"
   end
+
+  test "compose triggers report the panel state and drive it open and shut" do
+    {:ok, view, html} = live(build_conn(), "/")
+    trigger = "#compose-trigger-journal"
+
+    closed = render(element(view, trigger))
+
+    # Each opener is hand-built string concatenation (post_button_for/1) or
+    # HEEx, so pin the whole aria contract: the trigger names the panel it
+    # controls, and reports that the panel is currently shut.
+    assert closed =~ ~s(phx-click="toggle-journal")
+    assert closed =~ ~s(aria-expanded="false")
+    assert closed =~ ~s(aria-controls="compose-panel")
+    refute html =~ ~s(id="compose-panel")
+
+    # Opening sets aria-expanded and renders the panel the id points at.
+    html = view |> element(trigger) |> render_click()
+    assert html =~ ~s(id="compose-panel")
+    assert render(element(view, trigger)) =~ ~s(aria-expanded="true")
+
+    # Re-picking the active opener closes it again (the toggle- clause in Live
+    # maps a repeat pick to :none), and the panel unmounts.
+    html = view |> element(trigger) |> render_click()
+    refute html =~ ~s(id="compose-panel")
+    assert render(element(view, trigger)) =~ ~s(aria-expanded="false")
+  end
 end
