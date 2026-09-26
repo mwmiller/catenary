@@ -54,6 +54,7 @@ defmodule Catenary.Live.Navigation do
        clump_id: clump_id,
        displayed_info: displayed_info,
        identity: identity,
+       extra_nav: forced_extra_nav,
        lower_nav: extra_nav(na)
      )}
   end
@@ -84,6 +85,15 @@ defmodule Catenary.Live.Navigation do
             {for post_type <- [:reply, :react, :tag, :mention], do: post_button_for(post_type)}
           </div>
         <% end %>
+      </div>
+      <div :if={@extra_nav != :none} class="w-full flex justify-end px-2 mt-2">
+        <button
+          type="button"
+          phx-click="toggle-none"
+          title="Close panel"
+          aria-label="Close panel"
+          class="btn-ghost"
+        >⍟</button>
       </div>
       <div class="w-full flex justify-center mt-2 px-2 overflow-x-auto">
         {@lower_nav}
@@ -447,7 +457,11 @@ defmodule Catenary.Live.Navigation do
   # show
   defp source_title({a, l, e}, clump_id) do
     if l |> QuaggaDef.base_log() |> QuaggaDef.log_def() |> Map.get(:type, "") |> is_binary() and
-         l |> QuaggaDef.base_log() |> QuaggaDef.log_def() |> Map.get(:type, "") |> String.starts_with?("image/") do
+         l
+         |> QuaggaDef.base_log()
+         |> QuaggaDef.log_def()
+         |> Map.get(:type, "")
+         |> String.starts_with?("image/") do
       Catenary.Display.entry_title(:image, %{})
     else
       %Baobab.Entry{payload: payload} = Baobab.log_entry(a, e, log_id: l, clump_id: clump_id)

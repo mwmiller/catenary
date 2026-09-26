@@ -7,6 +7,17 @@
   html {
     scrollbar-gutter: stable;
   }
+  /* Tailwind's dark: variant is media-based, so native widgets (scrollbars,
+     form controls, text selection, caret) must be told the same thing or
+     they stay light inside the dark UI. */
+  :root {
+    color-scheme: light;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      color-scheme: dark;
+    }
+  }
   h1 {
     @apply text-2xl m-1;
   }
@@ -68,6 +79,16 @@
 }
 
 @layer components {
+  /* Horizontally scrollable button strips (explorebar nav) scroll without
+     drawing a scrollbar, so the strip keeps its height in the sticky bar. */
+  .scrollbar-hide {
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+
   /* Icon-only navigation buttons (explorebar, timeline) */
   .btn-icon {
     @apply px-3 py-2 rounded-md text-lg leading-none transition-colors;
@@ -75,6 +96,13 @@
   }
   .btn-icon:disabled {
     @apply opacity-40 cursor-default hover:bg-transparent dark:hover:bg-transparent;
+  }
+  /* Explorebar button for the view currently on screen. Amber to match the
+     active tab treatment, but flat rather than filled so it reads as
+     "you are here" next to the unshown-entries amber highlight. */
+  .btn-icon-current {
+    @apply bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-200;
+    @apply hover:bg-amber-200 dark:hover:bg-amber-900/60;
   }
 
   /* Primary action buttons (post, submit, accept) */

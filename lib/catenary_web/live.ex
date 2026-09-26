@@ -6,9 +6,9 @@ defmodule CatenaryWeb.Live do
   require Logger
 
   alias Catenary.{
+    Display,
     Games.Backgammon.Chain,
     Games.Backgammon.Game,
-    Display,
     IndexWorker.Challenges,
     LogWriter,
     Navigation,
@@ -57,11 +57,11 @@ defmodule CatenaryWeb.Live do
          store_hash: Baobab.Persistence.content_hash(clump_id),
          store: Baobab.stored_info(clump_id),
          identities: Baobab.Identity.list(),
-          shown_hash: Preferences.shown_hash(),
-          has_unshown: has_unshown_entries?(clump_id),
-          has_identity_unshown_mentions: has_identity_unshown_mentions?(whoami),
-          aliases: Catenary.alias_state(),
-          profile_items: Catenary.profile_items_state(),
+         shown_hash: Preferences.shown_hash(),
+         has_unshown: has_unshown_entries?(clump_id),
+         has_identity_unshown_mentions: has_identity_unshown_mentions?(whoami),
+         aliases: Catenary.alias_state(),
+         profile_items: Catenary.profile_items_state(),
          view: view,
          extra_nav: :none,
          connect_mode: "announced",
@@ -313,6 +313,7 @@ defmodule CatenaryWeb.Live do
             class={stack_color(@entry_back)}
             phx-click="nav-backward"
             title="Back"
+            aria-label="Back"
             disabled={@entry_back == []}
           >⤶</button>
           <button
@@ -320,29 +321,37 @@ defmodule CatenaryWeb.Live do
             value="challenges"
             phx-click="toview"
             title="Challenges"
-            class="btn-icon"
+            aria-label="Challenges"
+            aria-current={aria_current(@view, :challenges)}
+            class={view_btn_cls(@view, :challenges)}
           >⚄</button>
           <button
             :if={Preferences.accept_log_name?(:tag)}
             value="tags"
             phx-click="toview"
             title="Tags"
-            class="btn-icon"
+            aria-label="Tags"
+            aria-current={aria_current(@view, :tags)}
+            class={view_btn_cls(@view, :tags)}
           >#</button>
           <button
             :if={Preferences.accept_log_name?(:react)}
             value="reactions"
             phx-click="toview"
             title="Reactions"
-            class="btn-icon"
+            aria-label="Reactions"
+            aria-current={aria_current(@view, :reactions)}
+            class={view_btn_cls(@view, :reactions)}
           >♥</button>
           <button
             value="unshown"
             phx-click="toview"
             title="Unshown"
+            aria-label="Unshown"
+            aria-current={aria_current(@view, :unshown)}
             class={[
-              if(@has_unshown, do: "text-amber-600 dark:text-amber-400", else: ""),
-              "btn-icon"
+              if(@has_unshown, do: "text-amber-600 dark:text-amber-400"),
+              view_btn_cls(@view, :unshown)
             ]}
           >◎</button>
           <button
@@ -353,26 +362,33 @@ defmodule CatenaryWeb.Live do
             value="images"
             phx-click="toview"
             title="Images"
-            class="btn-icon"
+            aria-label="Images"
+            aria-current={aria_current(@view, :images)}
+            class={view_btn_cls(@view, :images)}
           >▣</button>
           <button
             :if={Preferences.accept_log_name?(:alias)}
             value="aliases"
             phx-click="toview"
             title="Aliases"
-            class="btn-icon"
+            aria-label="Aliases"
+            aria-current={aria_current(@view, :aliases)}
+            class={view_btn_cls(@view, :aliases)}
           >~</button>
           <button
             :if={Preferences.accept_log_name?(:oasis)}
             value="oases"
             phx-click="toview"
             title="Peers"
-            class="btn-icon"
+            aria-label="Peers"
+            aria-current={aria_current(@view, :oases)}
+            class={view_btn_cls(@view, :oases)}
           >⇆</button>
           <button
             class={stack_color(@entry_fore)}
             phx-click="nav-forward"
             title="Forward"
+            aria-label="Forward"
             disabled={@entry_fore == []}
           >⤷</button>
         </div>
@@ -396,6 +412,14 @@ defmodule CatenaryWeb.Live do
   end
 
   def stack_color(_), do: "btn-icon"
+
+  # Marks the explorebar button for the view currently on screen, so the
+  # active destination is visible as well as announced.
+  def aria_current(view, view), do: "page"
+  def aria_current(_, _), do: nil
+
+  def view_btn_cls(view, view), do: "btn-icon btn-icon-current"
+  def view_btn_cls(_, _), do: "btn-icon"
 
   defp has_unshown_entries?(clump_id) do
     shown = Catenary.Preferences.get(:shown) |> Map.get(clump_id, MapSet.new())
@@ -436,11 +460,34 @@ defmodule CatenaryWeb.Live do
   defp timeline_nav(assigns) do
     ~H"""
     <div class="flex flex-col items-center gap-1 pt-4">
-      <button value="prev-author" phx-click="nav" title="Prev author" class="btn-icon">↥</button>
-      <button value="prev-entry" phx-click="nav" title="Prev entry" class="btn-icon">⇜</button>
-      <button phx-click="toggle-none" title="None" class="btn-icon">⍟</button>
-      <button value="next-entry" phx-click="nav" title="Next entry" class="btn-icon">⇝</button>
-      <button value="next-author" phx-click="nav" title="Next author" class="btn-icon">↧</button>
+      <button
+        value="prev-author"
+        phx-click="nav"
+        title="Prev author"
+        aria-label="Previous author"
+        class="btn-icon"
+      >↥</button>
+      <button
+        value="prev-entry"
+        phx-click="nav"
+        title="Prev entry"
+        aria-label="Previous entry"
+        class="btn-icon"
+      >⇜</button>
+      <button
+        value="next-entry"
+        phx-click="nav"
+        title="Next entry"
+        aria-label="Next entry"
+        class="btn-icon"
+      >⇝</button>
+      <button
+        value="next-author"
+        phx-click="nav"
+        title="Next author"
+        aria-label="Next author"
+        class="btn-icon"
+      >↧</button>
     </div>
     """
   end
@@ -1117,6 +1164,13 @@ defmodule CatenaryWeb.Live do
 
   def handle_event("menu", _, socket), do: {:noreply, socket}
 
+  # Escape dismisses the compose panel, mirroring the ⍟ close button in the
+  # activity bar. Renders as a no-op when no panel is open, since :none is
+  # already the resting state.
+  def handle_event("escape", _, socket) do
+    {:noreply, state_set(socket, %{extra_nav: :none})}
+  end
+
   # The native window reports its size back so we can remember it.
   def handle_event("window-resize", %{"width" => width, "height" => height}, socket) do
     with {w, ""} <- Integer.parse(width),
@@ -1258,20 +1312,37 @@ defmodule CatenaryWeb.Live do
         end
       end
 
-    assign(full_socket,
-      aliases: Catenary.alias_state(),
-      profile_items: Catenary.profile_items_state(),
-      indexing: Catenary.Indices.status(),
-      shown_hash: Preferences.shown_hash(),
-      has_unshown: has_unshown_entries?(clump_id),
-      has_identity_unshown_mentions: has_identity_unshown_mentions?(state.identity),
-      store_hash: shash,
-      store: si,
-      oases: Catenary.oasis_state(),
-      # This is a place holder for interesting stats later
-      # It is needed to make onboarding less confusing for now
-      opened: Baby.Connection.Registry.active() |> Enum.count()
-    )
+    refreshed =
+      assign(full_socket,
+        aliases: Catenary.alias_state(),
+        profile_items: Catenary.profile_items_state(),
+        indexing: Catenary.Indices.status(),
+        shown_hash: Preferences.shown_hash(),
+        has_unshown: has_unshown_entries?(clump_id),
+        has_identity_unshown_mentions: has_identity_unshown_mentions?(state.identity),
+        store_hash: shash,
+        store: si,
+        oases: Catenary.oasis_state(),
+        # This is a place holder for interesting stats later
+        # It is needed to make onboarding less confusing for now
+        opened: Baby.Connection.Registry.active() |> Enum.count()
+      )
+
+    if connected?(socket) and moved_to_new_content?(socket.assigns, state) do
+      push_event(refreshed, "reset-scroll", %{})
+    else
+      refreshed
+    end
+  end
+
+  # Each view renders its body inside a stable `.content-wrap` scroll container
+  # that LiveView morphs in place, so the browser keeps the old scroll offset
+  # across navigation. Advancing from a long entry would otherwise drop you at
+  # the bottom of the next one. Detected here rather than in each navigation
+  # handler so every path (arrows, timeline nav, tags, back/forward, the native
+  # menu, deep links) is covered by the single choke point.
+  defp moved_to_new_content?(old, new) do
+    {old[:view], old[:entry]} != {new.view, new.entry}
   end
 
   defp connector_wrap(host, port, socket) do

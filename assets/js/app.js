@@ -62,6 +62,21 @@ let MenuBridge = {
         URL.revokeObjectURL(url)
       }
     })
+
+    // Pushed by the server whenever the view or entry changes. The scroll
+    // containers are morphed in place rather than replaced, so the browser
+    // would otherwise keep the previous offset and drop the reader mid-entry.
+    this.handleEvent("reset-scroll", () => {
+      document.querySelectorAll(".content-wrap").forEach((el) => {
+        el.scrollTop = 0
+      })
+    })
+
+    this.el.ownerDocument.addEventListener("keydown", (e) => {
+      if (e.key === "Escape") {
+        this.pushEvent("escape", {})
+      }
+    })
   }
 }
 
