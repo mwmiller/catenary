@@ -25,7 +25,9 @@ defmodule Catenary.Live.TagViewer do
         </div>
         <div class="border-t border-slate-200 dark:border-slate-700 mb-4"></div>
         <%= for {type, entries} <- @card do %>
-          <h3 class="text-xs font-semibold uppercase tracking-wide text-slate-400 dark:text-slate-500 mb-2">{type}</h3>
+          <h3 class="text-xs font-semibold uppercase tracking-wide text-slate-400 dark:text-slate-500 mb-2">
+            {type}
+          </h3>
           <div class="grid grid-cols-3 gap-2 mb-4">
             {entries}
           </div>
@@ -80,7 +82,8 @@ defmodule Catenary.Live.TagViewer do
 
       acc <>
         ~s(<button value="#{entry_str}" phx-click="view-entry" class="block w-full text-left rounded-lg border border-slate-200 dark:border-slate-700 p-2 hover:border-amber-500 dark:hover:border-amber-400 transition-colors flex items-center gap-2">) <>
-        ava <> content <>
+        ava <>
+        content <>
         ~s(</button>)
     end)
     |> Phoenix.HTML.raw()

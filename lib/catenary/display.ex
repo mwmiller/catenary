@@ -79,12 +79,16 @@ defmodule Catenary.Display do
     alt = short_id(id)
 
     Phoenix.HTML.raw(
-      "<span class=\"inline-block flex-none overflow-hidden rounded-full\" style=\"width:" <> ss <> "px;height:" <> ss <> "px\">" <>
-        "<img alt=\"" <>
+      ~s(<span class="inline-block flex-none overflow-hidden rounded-full" style="width:) <>
+        ss <>
+        ~s(px;height:) <>
+        ss <>
+        ~s(px">) <>
+        ~s(<img alt=") <>
         alt <>
-        "\" class=\"" <>
+        ~s(" class=") <>
         all_classes <>
-        "\" style=\"width:100%;height:100%;object-fit:cover\" src=\"" <> uri <> "\"></span>"
+        ~s(" style="width:100%;height:100%;object-fit:cover" src=") <> uri <> ~s("></span>)
     )
   end
 

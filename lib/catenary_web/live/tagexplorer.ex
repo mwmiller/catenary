@@ -6,8 +6,7 @@ defmodule Catenary.Live.TagExplorer do
 
   @impl true
   def update(%{entry: which} = assigns, socket) do
-    {:ok,
-     assign(socket, Map.merge(assigns, %{card: extract(which), sort: :alpha, filter: ""}))}
+    {:ok, assign(socket, Map.merge(assigns, %{card: extract(which), sort: :alpha, filter: ""}))}
   end
 
   @impl true
@@ -19,40 +18,40 @@ defmodule Catenary.Live.TagExplorer do
     ~H"""
     <div id="tag-explore-wrap" class="content-wrap">
       <div class="flex flex-col gap-4">
-          <h1 class="text-lg font-semibold text-slate-800 dark:text-slate-100">Tag Explorer</h1>
-          <p :if={@card["tags"] == []} class="text-sm text-slate-400 dark:text-slate-500">
-            No tag messages.
-          </p>
-          <div :if={@card["tags"] != []} class="flex items-center gap-3">
-            <input
-              type="text"
-              placeholder="Filter tags..."
-              value={@filter}
-              phx-keyup="tag-filter"
+        <h1 class="text-lg font-semibold text-slate-800 dark:text-slate-100">Tag Explorer</h1>
+        <p :if={@card["tags"] == []} class="text-sm text-slate-400 dark:text-slate-500">
+          No tag messages.
+        </p>
+        <div :if={@card["tags"] != []} class="flex items-center gap-3">
+          <input
+            type="text"
+            placeholder="Filter tags..."
+            value={@filter}
+            phx-keyup="tag-filter"
+            phx-target={@myself}
+            name="filter"
+            class="w-48 rounded-full border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 px-3 py-1 text-sm text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500"
+          />
+          <div class="tab-group">
+            <button
+              phx-click="tag-sort"
+              phx-value-sort="alpha"
               phx-target={@myself}
-              name="filter"
-              class="w-48 rounded-full border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 px-3 py-1 text-sm text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500"
-            />
-            <div class="tab-group">
-              <button
-                phx-click="tag-sort"
-                phx-value-sort="alpha"
-                phx-target={@myself}
-                class={"px-6 py-2 text-sm font-semibold transition-colors #{if @sort == :alpha, do: "bg-amber-500 text-white", else: "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200"}"}
-              >↕</button>
-              <button
-                phx-click="tag-sort"
-                phx-value-sort="popular"
-                phx-target={@myself}
-                class={"px-6 py-2 text-sm font-semibold transition-colors #{if @sort == :popular, do: "bg-amber-500 text-white", else: "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200"}"}
-              >◆</button>
-            </div>
-          </div>
-          <div :if={@card["tags"] != []} class="flex flex-row flex-wrap gap-1.5">
-            {render_tags(@card["tags"], @sort, @filter)}
+              class={"px-6 py-2 text-sm font-semibold transition-colors #{if @sort == :alpha, do: "bg-amber-500 text-white", else: "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200"}"}
+            >↕</button>
+            <button
+              phx-click="tag-sort"
+              phx-value-sort="popular"
+              phx-target={@myself}
+              class={"px-6 py-2 text-sm font-semibold transition-colors #{if @sort == :popular, do: "bg-amber-500 text-white", else: "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200"}"}
+            >◆</button>
           </div>
         </div>
+        <div :if={@card["tags"] != []} class="flex flex-row flex-wrap gap-1.5">
+          {render_tags(@card["tags"], @sort, @filter)}
+        </div>
       </div>
+    </div>
     """
   end
 
@@ -60,34 +59,34 @@ defmodule Catenary.Live.TagExplorer do
     tags =
       all_groups
       |> List.flatten()
-      |> then(fn tags ->
-        case sort do
-          :alpha -> Enum.sort_by(tags, fn {t, _} -> t end)
-          :popular -> Enum.sort_by(tags, fn {_, c} -> -c end)
-        end
-      end)
-      |> then(fn tags ->
-        if filter == "" do
-          tags
-        else
-          Enum.filter(tags, fn {t, _} ->
-            String.contains?(String.downcase(t), String.downcase(filter))
-          end)
-        end
-      end)
+      |> sort_tags(sort)
+      |> filter_tags(filter)
 
     thresholds = percentile_thresholds(tags)
 
     tags
-    |> Enum.map(fn {t, c} ->
-      {size_class, bg_class, text_class, count_class} = tier(c, thresholds)
-      ~s(<button value="#{t}" phx-click="view-tag"><div class="rounded-full border #{bg_class} px-5 py-1 transition-colors hover:border-amber-500 dark:hover:border-amber-400"><span class="#{text_class} #{size_class}">#{t}</span><span class="ml-1 #{count_class}">#{c}</span></div></button>)
-    end)
+    |> Enum.map(fn {t, c} -> tag_pill(t, c, thresholds) end)
     |> then(fn
       [] -> ~s(<span class="text-sm text-slate-400 dark:text-slate-500">No matching tags.</span>)
       tags -> Enum.join(tags)
     end)
     |> Phoenix.HTML.raw()
+  end
+
+  defp tag_pill(t, c, thresholds) do
+    {size_class, bg_class, text_class, count_class} = tier(c, thresholds)
+
+    ~s(<button value="#{t}" phx-click="view-tag"><div class="rounded-full border #{bg_class} px-5 py-1 transition-colors hover:border-amber-500 dark:hover:border-amber-400"><span class="#{text_class} #{size_class}">#{t}</span><span class="ml-1 #{count_class}">#{c}</span></div></button>)
+  end
+
+  defp sort_tags(tags, :alpha), do: Enum.sort_by(tags, fn {t, _} -> t end)
+  defp sort_tags(tags, :popular), do: Enum.sort_by(tags, fn {_, c} -> -c end)
+
+  defp filter_tags(tags, ""), do: tags
+
+  defp filter_tags(tags, filter) do
+    needle = String.downcase(filter)
+    Enum.filter(tags, fn {t, _} -> String.contains?(String.downcase(t), needle) end)
   end
 
   defp percentile_thresholds(tags) do

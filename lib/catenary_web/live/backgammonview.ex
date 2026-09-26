@@ -34,11 +34,11 @@ defmodule Catenary.Live.BackgammonView do
   use Phoenix.LiveComponent
 
   alias Catenary.{
+    Display,
     Games.Backgammon.Chain,
     Games.Backgammon.Engine,
     Games.Backgammon.Game,
     Games.Backgammon.Notation,
-    Display,
     LogWriter
   }
 
@@ -1791,7 +1791,11 @@ defmodule Catenary.Live.BackgammonView do
     hi_idx = if dir == :down, do: min(n, 6), else: 1
 
     Enum.map_join(1..min(n, 6), fn i ->
-      checker(dark?, if(i == hi_idx, do: gained, else: false), if(i == hi_idx, do: mark, else: nil))
+      checker(
+        dark?,
+        if(i == hi_idx, do: gained, else: false),
+        if(i == hi_idx, do: mark, else: nil)
+      )
     end)
   end
 

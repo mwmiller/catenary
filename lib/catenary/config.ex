@@ -171,7 +171,7 @@ defmodule Catenary.Config do
   end
 
   defp finalize_cryouts({:ok, cryouts}) when is_list(cryouts), do: {:ok, Enum.reverse(cryouts)}
-  defp finalize_cryouts(error = {:error, _}), do: error
+  defp finalize_cryouts({:error, _} = error), do: error
 
   defp host_port(token) do
     cond do
@@ -231,12 +231,12 @@ defmodule Catenary.Config do
   Formats the current effective clumps map back into TOML text.
   """
   def export_config(clumps \\ nil) do
-    clumps = clumps || Catenary.Config.load_clumps() || Application.get_env(:catenary, :clumps) || %{}
+    clumps =
+      clumps || Catenary.Config.load_clumps() || Application.get_env(:catenary, :clumps) || %{}
 
     clumps
     |> Enum.sort_by(fn {id, _} -> id end)
-    |> Enum.map(fn {id, kw} -> format_clump_toml(id, kw) end)
-    |> Enum.join("\n\n")
+    |> Enum.map_join("\n\n", fn {id, kw} -> format_clump_toml(id, kw) end)
     |> Kernel.<>("\n")
   end
 
@@ -253,13 +253,13 @@ defmodule Catenary.Config do
   end
 
   defp format_cryouts_toml(cryouts) do
-    cryouts
-    |> Enum.map(&format_cryout_toml/1)
-    |> Enum.join(", ")
+    Enum.map_join(cryouts, ", ", &format_cryout_toml/1)
   end
 
-  defp format_cryout_toml([mdns: v]) when v == true or v == [], do: ~s("mdns")
-  defp format_cryout_toml([mdns: [period: {n, :second}]]), do: ~s("mdns ) <> format_period(n) <> ~s(")
+  defp format_cryout_toml(mdns: v) when v == true or v == [], do: ~s("mdns")
+
+  defp format_cryout_toml(mdns: [period: {n, :second}]),
+    do: ~s("mdns ) <> format_period(n) <> ~s(")
 
   defp format_cryout_toml(kw) do
     host = Keyword.get(kw, :host, "")

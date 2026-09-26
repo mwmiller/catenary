@@ -307,7 +307,7 @@ defmodule Catenary.Live.ChallengesExplorer do
              game.challenger <>
              ~s(" phx-value-challenge-commit=") <>
              to_string(Map.get(game, :challenge_commit) || "") <>
-              ~s(" phx-disable-with="𝄇" title="Accept challenge" aria-label="Accept challenge" class="btn-primary">⚔</button>)}
+             ~s(" phx-disable-with="𝄇" title="Accept challenge" aria-label="Accept challenge" class="btn-primary">⚔</button>)}
         ]
     else
       list
@@ -325,7 +325,7 @@ defmodule Catenary.Live.ChallengesExplorer do
           {:safe,
            ~s(<button type="button" phx-click="withdraw-challenge" value=") <>
              game.game_id <>
-              ~s(" phx-disable-with="𝄇" title="Withdraw challenge" aria-label="Withdraw challenge" class="btn-secondary">⤼</button>)}
+             ~s(" phx-disable-with="𝄇" title="Withdraw challenge" aria-label="Withdraw challenge" class="btn-secondary">⤼</button>)}
         ]
     else
       list

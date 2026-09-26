@@ -54,8 +54,16 @@ defmodule Catenary.LogWriter do
     t =
       case title do
         "" ->
-          if ol |> QuaggaDef.base_log() |> QuaggaDef.log_def() |> Map.get(:type, "") |> is_binary() and
-               ol |> QuaggaDef.base_log() |> QuaggaDef.log_def() |> Map.get(:type, "") |> String.starts_with?("image/") do
+          if ol
+             |> QuaggaDef.base_log()
+             |> QuaggaDef.log_def()
+             |> Map.get(:type, "")
+             |> is_binary() and
+               ol
+               |> QuaggaDef.base_log()
+               |> QuaggaDef.log_def()
+               |> Map.get(:type, "")
+               |> String.starts_with?("image/") do
             Catenary.Display.entry_title(:image, %{})
           else
             try do

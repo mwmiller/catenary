@@ -7,8 +7,7 @@ defmodule Catenary.Live.ReactionsExplorer do
 
   @impl true
   def update(%{entry: which, clump_id: clump_id} = assigns, socket) do
-    {:ok,
-     assign(socket, Map.merge(assigns, %{card: extract(which, clump_id), sort: :recent}))}
+    {:ok, assign(socket, Map.merge(assigns, %{card: extract(which, clump_id), sort: :recent}))}
   end
 
   @impl true
@@ -20,31 +19,31 @@ defmodule Catenary.Live.ReactionsExplorer do
     ~H"""
     <div id="reactions-explore-wrap" class="content-wrap">
       <div class="flex flex-col gap-4">
-          <h1 class="text-lg font-semibold text-slate-800 dark:text-slate-100">Reactions Explorer</h1>
-          <p :if={@card == []} class="text-sm text-slate-400 dark:text-slate-500">
-            No reaction messages.
-          </p>
-          <div :if={@card != []} class="flex items-center gap-3">
-            <div class="tab-group">
-              <button
-                phx-click="react-sort"
-                phx-value-sort="recent"
-                phx-target={@myself}
-                class={"px-6 py-2 text-sm font-semibold transition-colors #{if @sort == :recent, do: "bg-amber-500 text-white", else: "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200"}"}
-              ><span title="Most recent reactions">◷</span></button>
-              <button
-                phx-click="react-sort"
-                phx-value-sort="popular"
-                phx-target={@myself}
-                class={"px-6 py-2 text-sm font-semibold transition-colors #{if @sort == :popular, do: "bg-amber-500 text-white", else: "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200"}"}
-              ><span title="Most reacted to">★</span></button>
-            </div>
-          </div>
-          <div :if={@card != []}>
-            {render_grouped(@card, @sort, @clump_id)}
+        <h1 class="text-lg font-semibold text-slate-800 dark:text-slate-100">Reactions Explorer</h1>
+        <p :if={@card == []} class="text-sm text-slate-400 dark:text-slate-500">
+          No reaction messages.
+        </p>
+        <div :if={@card != []} class="flex items-center gap-3">
+          <div class="tab-group">
+            <button
+              phx-click="react-sort"
+              phx-value-sort="recent"
+              phx-target={@myself}
+              class={"px-6 py-2 text-sm font-semibold transition-colors #{if @sort == :recent, do: "bg-amber-500 text-white", else: "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200"}"}
+            ><span title="Most recent reactions">◷</span></button>
+            <button
+              phx-click="react-sort"
+              phx-value-sort="popular"
+              phx-target={@myself}
+              class={"px-6 py-2 text-sm font-semibold transition-colors #{if @sort == :popular, do: "bg-amber-500 text-white", else: "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200"}"}
+            ><span title="Most reacted to">★</span></button>
           </div>
         </div>
+        <div :if={@card != []}>
+          {render_grouped(@card, @sort, @clump_id)}
+        </div>
       </div>
+    </div>
     """
   end
 
@@ -57,22 +56,24 @@ defmodule Catenary.Live.ReactionsExplorer do
     end)
     |> Enum.group_by(fn {emoji, _, _} -> emoji end)
     |> Enum.sort_by(fn {emoji, items} -> {-length(items), emoji} end)
-    |> Enum.map(fn {emoji, items} ->
-      sorted =
-        items
-        |> Enum.map(fn {_, entry, reactions} -> {entry, reactions} end)
-        |> then(fn items -> sort_entries(items, sort) end)
-
-      pills = Enum.map_join(sorted, fn {entry, reactions} -> for_display(entry, reactions, clump_id) end)
-
-      ~s(<div class="flex flex-col gap-2">) <>
-        ~s(<h3 class="text-xs font-semibold uppercase tracking-wide text-slate-400 dark:text-slate-500 flex items-center gap-1.5">) <>
-        ~s(<span class="text-base">#{emoji}</span></h3>) <>
-        ~s(<div class="flex flex-row flex-wrap gap-1.5">#{pills}</div>) <>
-        ~s(</div>)
-    end)
-    |> Enum.join("")
+    |> Enum.map_join("", fn {emoji, items} -> reaction_group(emoji, items, sort, clump_id) end)
     |> Phoenix.HTML.raw()
+  end
+
+  defp reaction_group(emoji, items, sort, clump_id) do
+    sorted =
+      items
+      |> Enum.map(fn {_, entry, reactions} -> {entry, reactions} end)
+      |> then(fn items -> sort_entries(items, sort) end)
+
+    pills =
+      Enum.map_join(sorted, fn {entry, reactions} -> for_display(entry, reactions, clump_id) end)
+
+    ~s(<div class="flex flex-col gap-2">) <>
+      ~s(<h3 class="text-xs font-semibold uppercase tracking-wide text-slate-400 dark:text-slate-500 flex items-center gap-1.5">) <>
+      ~s(<span class="text-base">#{emoji}</span></h3>) <>
+      ~s(<div class="flex flex-row flex-wrap gap-1.5">#{pills}</div>) <>
+      ~s(</div>)
   end
 
   defp for_display({a, l, e} = entry, reactions, clump_id) do
@@ -93,9 +94,12 @@ defmodule Catenary.Live.ReactionsExplorer do
 
   defp sort_entries(entries, :recent) do
     entries
-    |> Enum.sort_by(fn {_, reactions} ->
-      reactions |> List.last() |> elem(0)
-    end, :desc)
+    |> Enum.sort_by(
+      fn {_, reactions} ->
+        reactions |> List.last() |> elem(0)
+      end,
+      :desc
+    )
   end
 
   defp sort_entries(entries, :popular) do

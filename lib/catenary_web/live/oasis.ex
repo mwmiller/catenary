@@ -187,7 +187,6 @@ defmodule Catenary.Live.OasisExplorer do
                 <% end %>
               </div>
             <% end %>
-
           <% _ -> %>
             <%= if @nodes == [] do %>
               <div class="font-mono text-xs rounded-lg border border-slate-200 dark:border-slate-700 p-3 text-slate-600 dark:text-slate-300">

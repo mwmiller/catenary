@@ -54,37 +54,18 @@ defmodule Catenary.IndexWorker.Tags do
       {:ok, data, ""} = CBOR.decode(payload)
       tags = (data["tags"] || []) |> Enum.map(fn s -> {"", String.trim(s)} end)
       [ent] = data["references"] || []
-      e = {oa, ol, oe} = List.to_tuple(ent)
+      e = List.to_tuple(ent)
 
-      title =
-        try do
-          %Baobab.Entry{payload: pl} = Baobab.log_entry(oa, oe, log_id: ol, clump_id: clump_id)
-          {:ok, od, ""} = CBOR.decode(pl)
-          Catenary.Display.entry_title(ol, od)
-        rescue
-          _ -> Catenary.index_to_string(e)
-        end
+      title = reference_title(e, clump_id)
 
       # Tags for entry
-      old =
-        case :ets.lookup(@name_atom, e) do
-          [] -> []
-          [{^e, val}] -> val
-        end
-
-      into = (old ++ tags) |> Enum.sort() |> Enum.uniq()
+      into = (ets_fetch(@name_atom, e) ++ tags) |> Enum.sort() |> Enum.uniq()
       :ets.insert(@name_atom, {e, into})
 
       # Entries for tag
       for tag <- tags do
-        old_val =
-          case :ets.lookup(@name_atom, tag) do
-            [] -> []
-            [{^tag, val}] -> val
-          end
-
         insert =
-          [{Indices.published_date(data), title, e} | old_val]
+          [{Indices.published_date(data), title, e} | ets_fetch(@name_atom, tag)]
           |> Enum.sort()
           |> Enum.uniq_by(fn {_p, _t, e} -> e end)
 
@@ -95,5 +76,22 @@ defmodule Catenary.IndexWorker.Tags do
     end
 
     entries_index(rest, clump_id)
+  end
+
+  defp ets_fetch(table, key) do
+    case :ets.lookup(table, key) do
+      [{^key, val}] -> val
+      [] -> []
+    end
+  end
+
+  # The referenced entry's title, falling back to the index string when the
+  # parent entry is missing or unreadable.
+  defp reference_title({oa, ol, oe} = e, clump_id) do
+    %Baobab.Entry{payload: pl} = Baobab.log_entry(oa, oe, log_id: ol, clump_id: clump_id)
+    {:ok, od, ""} = CBOR.decode(pl)
+    Catenary.Display.entry_title(ol, od)
+  rescue
+    _ -> Catenary.index_to_string(e)
   end
 end

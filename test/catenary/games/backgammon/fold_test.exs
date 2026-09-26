@@ -113,7 +113,14 @@ defmodule Catenary.Games.Backgammon.FoldTest do
 
     # The roll string in the entry must match the opener dice.
     turn1_roll = Game.roll_string(d_c, d_a)
-    turn1 = Map.put(new_turn(pk_challenger, 1, len - 2, c1_cur, c1_next, play1, a0_next), "roll", turn1_roll)
+
+    turn1 =
+      Map.put(
+        new_turn(pk_challenger, 1, len - 2, c1_cur, c1_next, play1, a0_next),
+        "roll",
+        turn1_roll
+      )
+
     turn2 = new_turn(pk_accepter, 2, len - 3, a2_cur, a2_next, play2, c1_next)
 
     %{
@@ -317,8 +324,13 @@ defmodule Catenary.Games.Backgammon.FoldTest do
       play1 = Engine.legal_plays(Engine.initial(), {d3, d4}) |> hd()
 
       turn1_roll = Game.roll_string(d3, d4)
+
       turn1 =
-        Map.put(new_turn("pk-a", 1, len - 5, a6_cur, a6_next, play1, r1c_next), "roll", turn1_roll)
+        Map.put(
+          new_turn("pk-a", 1, len - 5, a6_cur, a6_next, play1, r1c_next),
+          "roll",
+          turn1_roll
+        )
 
       {game, play_map, [r0c, r0a, r1c, r1a], turn1, c}
     end

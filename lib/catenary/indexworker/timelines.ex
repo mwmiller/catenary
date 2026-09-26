@@ -34,7 +34,11 @@ defmodule Catenary.IndexWorker.Timelines do
 
       data =
         if l |> QuaggaDef.base_log() |> QuaggaDef.log_def() |> Map.get(:type, "") |> is_binary() and
-             l |> QuaggaDef.base_log() |> QuaggaDef.log_def() |> Map.get(:type, "") |> String.starts_with?("image/") do
+             l
+             |> QuaggaDef.base_log()
+             |> QuaggaDef.log_def()
+             |> Map.get(:type, "")
+             |> String.starts_with?("image/") do
           %{}
         else
           {:ok, d, ""} = CBOR.decode(payload)
