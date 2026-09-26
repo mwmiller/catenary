@@ -291,6 +291,7 @@ defmodule Catenary.Live.BackgammonView do
                 <button
                   phx-click="roll-dice"
                   phx-target={@myself}
+                  phx-disable-with="𝄇"
                   title="Roll dice"
                   aria-label="Roll dice"
                   class="rounded-md border border-slate-300 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:border-slate-500 dark:hover:border-slate-500 hover:text-slate-800 dark:hover:text-slate-200 text-sm px-2 py-0.5 transition-colors"
