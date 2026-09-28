@@ -30,12 +30,45 @@ defmodule CatenaryWeb.LiveTest do
 
     unshown = view |> element("button[title=Unshown]") |> render()
 
-    # The test clump has no entries, so the "you have unread entries" highlight
+    # The test clump has no entries, so the "you have unshown entries" badge
     # must not be applied. This also pins that state_set/3 still assigns
     # has_unshown at all: the button below is its only consumer, and a missing
     # assign would raise while rendering it.
-    refute unshown =~ "text-amber-600"
+    refute unshown =~ "btn-icon-badge"
     assert unshown =~ "btn-icon"
+  end
+
+  test "the explorebar marks the current view without recolouring the glyph" do
+    {:ok, view, _html} = live(build_conn(), "/")
+
+    unshown = view |> element("button[title=Unshown]") |> render()
+    refute unshown =~ "btn-icon-current"
+    refute unshown =~ ~s(aria-current="page")
+
+    view |> element("button[title=Tags]") |> render_click()
+
+    tags = view |> element("button[title=Tags]") |> render()
+
+    # "You are here" is a background fill plus aria-current, never a glyph
+    # colour: a colour here would collide with any other highlight on the
+    # same button, and the layer order would silently pick the loser.
+    assert tags =~ "btn-icon-current"
+    assert tags =~ ~s(aria-current="page")
+    refute tags =~ "text-amber"
+  end
+
+  test "the reindex button sits outside the index indicator strip" do
+    {:ok, view, _html} = live(build_conn(), "/")
+
+    strip = view |> element(".index-strip") |> render()
+
+    # The indicators are a read-out and reindexing is an action, so they must
+    # not share a background: the button is a sibling of the strip, not a
+    # child, and the strip carries only the pills.
+    assert strip =~ "aria-label=\"Challenges indexed\""
+    refute strip =~ "Reindex"
+    assert has_element?(view, ".index-strip button[aria-label=Reindex]") == false
+    assert has_element?(view, "button[aria-label=Reindex]")
   end
 
   test "compose triggers report the panel state and drive it open and shut" do

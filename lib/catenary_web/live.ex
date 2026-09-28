@@ -349,11 +349,8 @@ defmodule CatenaryWeb.Live do
             title="Unshown"
             aria-label="Unshown"
             aria-current={aria_current(@view, :unshown)}
-            class={[
-              if(@has_unshown, do: "text-amber-600 dark:text-amber-400"),
-              view_btn_cls(@view, :unshown)
-            ]}
-          >◎</button>
+            class={view_btn_cls(@view, :unshown)}
+          >◎<span :if={@has_unshown} class="btn-icon-badge" aria-hidden="true"></span></button>
           <button
             :if={
               Preferences.accept_log_name?(:gif) or Preferences.accept_log_name?(:png) or
@@ -393,14 +390,24 @@ defmodule CatenaryWeb.Live do
           >⤷</button>
         </div>
 
-        <!-- Right: index status -->
-        <div class="shrink-0">
+        <!-- Right: index status, then the reindex control. Siblings rather
+             than one strip: the indicators are a read-out and the button is
+             an action, so they must not share a background. -->
+        <div class="shrink-0 flex items-center gap-1.5">
           <.live_component
             module={Catenary.Live.IndexStatus}
             id={:indices}
             index_version={@index_version}
             indexing={@indexing}
           />
+          <button
+            type="button"
+            phx-click="reindex"
+            phx-disable-with="⟳"
+            title="Reindex"
+            aria-label="Reindex"
+            class="shrink-0 rounded-md border border-slate-300 dark:border-slate-600 px-2 py-1 text-sm leading-none text-slate-600 dark:text-slate-300 transition-colors hover:border-amber-500 hover:bg-slate-100 hover:text-amber-700 dark:hover:border-amber-400 dark:hover:bg-slate-800 dark:hover:text-amber-400"
+          ><span aria-hidden="true">⟳</span></button>
         </div>
       </div>
     </div>
