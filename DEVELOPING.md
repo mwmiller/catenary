@@ -105,9 +105,40 @@ git push origin main --tags
 ```
 
 The tag must match the version in `src-tauri/tauri.conf.json`, so set it with
-`mix version.set` first and commit that. macOS artifacts are signed only if
-the signing secrets are present in the repository; without them the build
-succeeds and produces unsigned output.
+`mix version.set` first and commit that.
+
+**macOS artifacts are signed and notarized.** The Apple Developer secrets live
+in the repository's GitHub Actions secret store, so releases do not need any
+local setup and are not unsigned:
+
+| Secret | Set |
+| --- | --- |
+| `APPLE_CERTIFICATE` | yes |
+| `APPLE_CERTIFICATE_PASSWORD` | yes |
+| `APPLE_SIGNING_IDENTITY` | yes |
+| `APPLE_TEAM_ID` | yes |
+| `APPLE_ID` | yes |
+| `APPLE_PASSWORD` | yes |
+
+The macOS job gates on `APPLE_CERTIFICATE` alone: it runs `Build signed .app`
+when that secret is non-empty and falls back to `Build unsigned .app` only
+when it is empty. The `APPLE_ID` and `APPLE_PASSWORD` pair notarizes the
+bundle. `APPLE_PROVISIONING_PROFILE`, `APPLE_API_ISSUER`, and `APPLE_API_KEY`
+are also declared in the workflow but are unset, which is fine — the
+certificate path does not use them, and Apple ID notarization does not either.
+
+Do not describe a release as unsigned on the strength of this file's wording
+or on the presence of a fallback branch in the workflow. Both are there for
+forks, which have no access to these secrets. If you need to know how a
+particular release was actually built, ask:
+
+```
+gh secret list
+gh api repos/mwmiller/catenary/actions/jobs/<job-id> --jq '.steps[] | "\(.conclusion)\t\(.name)"'
+```
+
+The job that matters is `Native shell (Tauri) macOS aarch64`; `Build signed
+.app` should read `success` and `Build unsigned .app` should read `skipped`.
 
 To produce the artifacts locally instead:
 
