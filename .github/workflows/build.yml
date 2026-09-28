@@ -29,7 +29,7 @@ jobs:
 
       - uses: actions/setup-node@v5
         with:
-          node-version: "26"
+          node-version: "26.8.1"
 
       - name: Set up Elixir/Erlang/Zig via mise
         uses: jdx/mise-action@v4.2.5
@@ -37,7 +37,7 @@ jobs:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           install: true
 
-      - uses: dtolnay/rust-toolchain@stable
+      - uses: dtolnay/rust-toolchain@1.98.1
         with:
           targets: ${{ matrix.triple }}
 
@@ -94,13 +94,13 @@ jobs:
 
       - uses: actions/setup-node@v5
         with:
-          node-version: "26"
+          node-version: "26.8.1"
 
-      - name: Set up Rust (stable)
-        uses: dtolnay/rust-toolchain@stable
+      - name: Set up Rust (1.98.1)
+        uses: dtolnay/rust-toolchain@1.98.1
 
       - name: Install Tauri CLI
-        run: npm install -g @tauri-apps/cli@latest
+        run: npm install -g @tauri-apps/cli@2.12.0
 
       - uses: actions/download-artifact@v7
         with:
@@ -136,13 +136,13 @@ jobs:
 
       - uses: actions/setup-node@v5
         with:
-          node-version: "26"
+          node-version: "26.8.1"
 
-      - name: Set up Rust (stable)
-        uses: dtolnay/rust-toolchain@stable
+      - name: Set up Rust (1.98.1)
+        uses: dtolnay/rust-toolchain@1.98.1
 
       - name: Install Tauri CLI
-        run: npm install -g @tauri-apps/cli@latest
+        run: npm install -g @tauri-apps/cli@2.12.0
 
       - uses: actions/download-artifact@v7
         with:
@@ -180,11 +180,11 @@ jobs:
     steps:
       - uses: actions/checkout@v5
 
-      - name: Set up Rust (stable)
-        uses: dtolnay/rust-toolchain@stable
+      - name: Set up Rust (1.98.1)
+        uses: dtolnay/rust-toolchain@1.98.1
 
       - name: Install Tauri CLI
-        run: npm install -g @tauri-apps/cli@latest
+        run: npm install -g @tauri-apps/cli@2.12.0
 
       - name: Set up build tools via mise
         uses: jdx/mise-action@v4.2.5
