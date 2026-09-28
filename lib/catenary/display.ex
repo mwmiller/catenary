@@ -29,7 +29,11 @@ defmodule Catenary.Display do
 
   def scaled_avatar(id, mag, classes) do
     ss = Integer.to_string(mag * 8)
-    all_classes = Enum.join(["rounded-full" | classes], " ")
+    # Caller classes belong on the span (the sizing + clipping box), never on
+    # the img: a margin or display on the img is applied *inside* the 16px
+    # overflow-hidden window and shears the circle off-centre.
+    all_classes =
+      Enum.join(["inline-block flex-none overflow-hidden rounded-full" | classes], " ")
 
     uri =
       case :ets.lookup(:avatars, id) do
@@ -79,15 +83,15 @@ defmodule Catenary.Display do
     alt = short_id(id)
 
     Phoenix.HTML.raw(
-      ~s(<span class="inline-block flex-none overflow-hidden rounded-full" style="width:) <>
+      ~s(<span class=") <>
+        all_classes <>
+        ~s(" style="width:) <>
         ss <>
         ~s(px;height:) <>
         ss <>
         ~s(px">) <>
         ~s(<img alt=") <>
         alt <>
-        ~s(" class=") <>
-        all_classes <>
         ~s(" style="width:100%;height:100%;object-fit:cover" src=") <> uri <> ~s("></span>)
     )
   end
