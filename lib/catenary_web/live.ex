@@ -283,20 +283,28 @@ defmodule CatenaryWeb.Live do
     ~H"""
     <div class="sticky top-0 z-10 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-700">
       <div class="flex items-center justify-between min-w-0 px-2 py-1 gap-1">
-        <!-- Left: clump + identity -->
+        <!-- Left: settings + clump + identity -->
         <div class="flex items-center gap-1 shrink-0 text-sm font-mono">
           <button
-            phx-click="toview"
-            value="prefs"
-            class="hover:text-amber-700 dark:hover:text-amber-400 transition-colors"
-          >
-            {@clump_id}
-          </button>
+            phx-click="prefs"
+            title="Settings"
+            aria-label="Settings"
+            aria-current={aria_current(@view, :prefs)}
+            class={[
+              if(@view == :prefs, do: "bg-amber-100 dark:bg-amber-900/40"),
+              "flex items-center text-base leading-none rounded-md px-1.5 py-1 text-slate-500 dark:text-slate-400 hover:text-amber-700 dark:hover:text-amber-400 transition-colors"
+            ]}
+          >⚙</button>
+          <span
+            class="text-slate-500 dark:text-slate-400 select-none"
+            title="Clump"
+          >{@clump_id}</span>
           <span class="text-slate-400 dark:text-slate-600 select-none">/</span>
           <button
             value="origin"
             phx-click="nav"
-            title="Home"
+            title="Your profile"
+            aria-label="Your profile"
             class={[
               if(@has_identity_unshown_mentions, do: "text-amber-600 dark:text-amber-400", else: ""),
               "flex items-center gap-1 hover:text-amber-700 dark:hover:text-amber-400 transition-colors"
@@ -646,6 +654,13 @@ defmodule CatenaryWeb.Live do
     # This :all default might not make sense in the long-term
     # Its starting now. Under consideration 2023-09-03
     {:noreply, state_set(socket, %{view: String.to_existing_atom(sview), entry: :all})}
+  end
+
+  # Settings (⚙ in the explorebar) are a mode, not a content view: switching
+  # to them goes through state_set directly so they never appear on the
+  # back/forward history stack.
+  def handle_event("prefs", _, socket) do
+    {:noreply, state_set(socket, %{view: :prefs, entry: :all})}
   end
 
   def handle_event("shown", %{"value" => mark}, socket) do
@@ -1147,6 +1162,12 @@ defmodule CatenaryWeb.Live do
   # Menu selections from the native (Tauri) menu bar.
   def handle_event("menu", %{"view" => "dashboard"}, socket) do
     {:noreply, push_navigate(socket, to: ~p"/dashboard")}
+  end
+
+  # Preferences via the native menu: same mode (not navigation-history)
+  # treatment as the ⚙ explorebar button.
+  def handle_event("menu", %{"view" => "prefs"}, socket) do
+    {:noreply, state_set(socket, %{view: :prefs, entry: :none})}
   end
 
   def handle_event("menu", %{"view" => view, "entry" => entry}, socket) do

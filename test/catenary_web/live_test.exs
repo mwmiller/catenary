@@ -57,6 +57,48 @@ defmodule CatenaryWeb.LiveTest do
     refute tags =~ "text-amber"
   end
 
+  test "the clump id is a passive label; settings and profile are explicit buttons" do
+    {:ok, view, html} = live(build_conn(), "/")
+
+    # The clump id is context, not a navigation button: settings (⚙) and the
+    # self-profile (avatar + name) are explicit controls, and no explorebar
+    # control sends a "prefs" toview anymore.
+    assert has_element?(view, "span[title=Clump]")
+    assert has_element?(view, "button[aria-label=Settings]")
+    assert has_element?(view, ~s(button[aria-label="Your profile"]))
+    assert has_element?(view, "button[title=Clump]") == false
+    assert has_element?(view, "button[title=Home]") == false
+    refute html =~ ~s(value="prefs")
+  end
+
+  test "the settings cog opens prefs and carries the current-mode marker" do
+    {:ok, view, _html} = live(build_conn(), "/")
+
+    view |> element("button[title=Tags]") |> render_click()
+    refute view |> element("button[aria-label=Settings]") |> render() =~ ~s(aria-current="page")
+
+    view |> element("button[aria-label=Settings]") |> render_click()
+
+    settings = view |> element("button[aria-label=Settings]") |> render()
+    assert settings =~ ~s(aria-current="page")
+    # Settings is a mode, so the current-state marker is the amber fill only
+    assert settings =~ "bg-amber-100"
+  end
+
+  test "native-menu Preferences opens settings as a mode, not a history entry" do
+    {:ok, view, _html} = live(build_conn(), "/")
+
+    # Toview navigation records no history, so if Preferences also stays off
+    # the stack the Back button remains disabled through the whole trip.
+    view |> element("button[title=Tags]") |> render_click()
+
+    render_hook(view, "menu", %{"view" => "prefs", "entry" => "none"})
+
+    assert view |> element("button[aria-label=Settings]") |> render() =~ ~s(aria-current="page")
+    back = view |> element("button[title=Back]") |> render()
+    assert back =~ "disabled"
+  end
+
   test "the reindex button sits outside the index indicator strip" do
     {:ok, view, _html} = live(build_conn(), "/")
 
