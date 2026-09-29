@@ -37,6 +37,7 @@ defmodule Catenary.Live.PrefsManager do
   def render(assigns) do
     ~H"""
     <div id="preferences-view">
+      <h1 class="sr-only">Settings</h1>
       <div id="identview-wrap" class="content-wrap">
         <div class="mx-auto flex max-w-3xl flex-col gap-4">
           <div class="rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-4">
@@ -98,6 +99,7 @@ defmodule Catenary.Live.PrefsManager do
                       type="text"
                       id={n}
                       value={n}
+                      aria-label={"Rename identity " <> n}
                       phx-blur={"rename-id-" <> n}
                     />
                     <span class="min-w-0 flex-1 truncate text-sm">{Phoenix.HTML.raw(

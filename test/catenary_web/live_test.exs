@@ -104,6 +104,15 @@ defmodule CatenaryWeb.LiveTest do
     assert profile =~ "bg-amber-100"
   end
 
+  test "settings has a page heading and labels its rename inputs" do
+    {:ok, view, _html} = live(build_conn(), "/")
+
+    view |> element("button[aria-label=Settings]") |> render_click()
+
+    assert view |> element("h1") |> render() =~ "Settings"
+    assert has_element?(view, ~s(input[aria-label^="Rename identity"]))
+  end
+
   test "native-menu Preferences opens settings as a mode, not a history entry" do
     {:ok, view, _html} = live(build_conn(), "/")
 
