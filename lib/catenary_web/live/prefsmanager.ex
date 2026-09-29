@@ -76,7 +76,7 @@ defmodule Catenary.Live.PrefsManager do
           </div>
 
           <div class="rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-4">
-            <h2 class="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-400 dark:text-slate-500">
+            <h2 class="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
               Identities
             </h2>
             <form method="post" id="identity-form" phx-change="identity-change">
@@ -105,7 +105,7 @@ defmodule Catenary.Live.PrefsManager do
                     <span class="min-w-0 flex-1 truncate text-sm">{Phoenix.HTML.raw(
                       Display.linked_author(k, @aliases, :href)
                     )}</span>
-                    <span class="shrink-0 text-xs text-slate-500 dark:text-slate-400">{Phoenix.HTML.raw(
+                    <span class="shrink-0 text-xs text-slate-600 dark:text-slate-400">{Phoenix.HTML.raw(
                       log_info_string(@store, k)
                     )}</span>
                     <span class="flex w-8 shrink-0 items-center justify-center">
@@ -150,8 +150,8 @@ defmodule Catenary.Live.PrefsManager do
                 id="new-id"
                 phx-blur="new-id"
               />
-              <span class="min-w-0 flex-1 truncate text-xs text-slate-400 dark:text-slate-500">create and switch to</span>
-              <span class="shrink-0 text-xs text-slate-400 dark:text-slate-500">none yet</span>
+              <span class="min-w-0 flex-1 truncate text-xs text-slate-500 dark:text-slate-400">create and switch to</span>
+              <span class="shrink-0 text-xs text-slate-500 dark:text-slate-400">none yet</span>
               <span class="flex w-8 shrink-0 items-center justify-center" />
             </form>
             <form
@@ -170,7 +170,7 @@ defmodule Catenary.Live.PrefsManager do
               </span>
               <label
                 for="identity-file-input"
-                class="w-40 shrink-0 cursor-pointer truncate rounded-md border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 px-2 py-1 text-sm text-slate-400 dark:text-slate-500 hover:border-amber-500 dark:hover:border-amber-400"
+                class="w-40 shrink-0 cursor-pointer truncate rounded-md border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 px-2 py-1 text-sm text-slate-500 dark:text-slate-400 hover:border-amber-500 dark:hover:border-amber-400"
                 id="identity-file-label"
                 data-default="choose a .json file"
               >
@@ -184,7 +184,7 @@ defmodule Catenary.Live.PrefsManager do
                 accept="application/json,.json"
                 onchange="const l = document.getElementById('identity-file-label'); l.textContent = this.files[0] ? this.files[0].name : l.dataset.default; if (this.files[0]) { this.closest('form').submit(); }"
               />
-              <span class="min-w-0 flex-1 truncate text-xs text-slate-400 dark:text-slate-500">import identity keys</span>
+              <span class="min-w-0 flex-1 truncate text-xs text-slate-500 dark:text-slate-400">import identity keys</span>
             </form>
             <div class="mt-3 flex items-center gap-2 border-t border-slate-200 dark:border-slate-700 pt-3">
               <label class="text-sm text-slate-600 dark:text-slate-300" for="facet_id">❖ Facet</label>
@@ -200,7 +200,7 @@ defmodule Catenary.Live.PrefsManager do
           </div>
 
           <div class="rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-4">
-            <h2 class="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-400 dark:text-slate-500">
+            <h2 class="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
               Preferences
             </h2>
             <form method="post" id="pref-form" phx-change="prefs-change" class="flex flex-col gap-2">
@@ -224,7 +224,7 @@ defmodule Catenary.Live.PrefsManager do
           </div>
 
           <div class="rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-4">
-            <h2 class="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-400 dark:text-slate-500">
+            <h2 class="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
               Accept log types
             </h2>
             <form method="post" id="accept-form" phx-change="accept-change" phx-submit="new-entry">
@@ -248,7 +248,7 @@ defmodule Catenary.Live.PrefsManager do
                   </label>
                 <% end %>
               </div>
-              <h2 class="mt-4 mb-2 text-xs font-semibold uppercase tracking-wide text-slate-400 dark:text-slate-500">
+              <h2 class="mt-4 mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
                 Accept families
               </h2>
               <div class="grid grid-cols-3 gap-1">
@@ -269,7 +269,7 @@ defmodule Catenary.Live.PrefsManager do
           </div>
 
           <div class="rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-4">
-            <h2 class="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-400 dark:text-slate-500">
+            <h2 class="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
               Data maintenance
             </h2>
             <div class="flex flex-wrap gap-2">

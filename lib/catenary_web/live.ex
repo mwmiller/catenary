@@ -292,14 +292,14 @@ defmodule CatenaryWeb.Live do
             aria-current={aria_current(@view, :prefs)}
             class={[
               if(@view == :prefs, do: "bg-amber-100 dark:bg-amber-900/40"),
-              "flex items-center text-base leading-none rounded-md px-1.5 py-1 text-slate-500 dark:text-slate-400 hover:text-amber-700 dark:hover:text-amber-400 transition-colors"
+              "flex items-center text-base leading-none rounded-md px-1.5 py-1 text-slate-600 dark:text-slate-400 hover:text-amber-700 dark:hover:text-amber-400 transition-colors"
             ]}
           >⚙</button>
           <span
             class="text-slate-500 dark:text-slate-400 select-none"
             title="Clump"
           >{@clump_id}</span>
-          <span class="text-slate-400 dark:text-slate-600 select-none">/</span>
+          <span class="text-slate-500 dark:text-slate-400 select-none">/</span>
           <button
             value="origin"
             phx-click="nav"
