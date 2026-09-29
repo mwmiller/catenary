@@ -73,7 +73,7 @@ defmodule Catenary.Live.OasisExplorer do
               autocomplete="off"
             >
               <div class="flex items-center gap-2 py-2">
-                <div class="flex-none text-slate-400 dark:text-slate-500" title="Manual peer">
+                <div class="flex-none text-slate-600 dark:text-slate-400" title="Manual peer">
                   ⌖
                 </div>
                 <div class="flex-auto min-w-0 flex items-center gap-2">
@@ -85,7 +85,7 @@ defmodule Catenary.Live.OasisExplorer do
                     value={elem(@bootstrap, 0)}
                     class="flex-1 min-w-0 rounded-md border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 px-2 py-1 text-sm text-slate-500 dark:text-slate-400 placeholder:text-slate-400 dark:placeholder:text-slate-500"
                   />
-                  <span class="text-slate-400 dark:text-slate-500">:</span>
+                  <span class="text-slate-600 dark:text-slate-400">:</span>
                   <input
                     type="text"
                     name="port"
@@ -116,19 +116,19 @@ defmodule Catenary.Live.OasisExplorer do
               >
                 ↻
               </button>
-              <span class="font-mono text-[10px] text-slate-400 dark:text-slate-500">
+              <span class="font-mono text-[10px] text-slate-600 dark:text-slate-400">
                 Local network
               </span>
             </div>
             <%= if peer_rows(@mdns_peers, @manual) == [] do %>
               <div class="font-mono text-xs rounded-lg border border-slate-200 dark:border-slate-700 p-3 text-slate-600 dark:text-slate-300">
-                <span class="text-slate-400 dark:text-slate-500">∅</span>
+                <span class="text-slate-600 dark:text-slate-400">∅</span>
               </div>
             <% else %>
               <div class="font-mono text-xs flex flex-col divide-y divide-slate-200 dark:divide-slate-700">
                 <%= for {row, _index} <- Enum.with_index(peer_rows(@mdns_peers, @manual)) do %>
                   <div class="flex items-center gap-2 py-2">
-                    <div class="flex-none text-slate-400 dark:text-slate-500" title={row.title}>
+                    <div class="flex-none text-slate-600 dark:text-slate-400" title={row.title}>
                       {row.icon}
                     </div>
                     <%= if owner = row[:owner] do %>
@@ -136,7 +136,7 @@ defmodule Catenary.Live.OasisExplorer do
                         <div class="text-slate-800 dark:text-slate-100">
                           {Phoenix.HTML.raw(Display.linked_author(owner, @aliases))}
                         </div>
-                        <div class="text-slate-400 dark:text-slate-500 text-[10px]">
+                        <div class="text-slate-600 dark:text-slate-400 text-[10px]">
                           {row.subtitle}
                         </div>
                       </div>
@@ -145,7 +145,7 @@ defmodule Catenary.Live.OasisExplorer do
                         <div class="text-slate-800 dark:text-slate-100">
                           {row.title}
                         </div>
-                        <div class="text-slate-400 dark:text-slate-500 text-[10px]">
+                        <div class="text-slate-600 dark:text-slate-400 text-[10px]">
                           {row.subtitle}
                         </div>
                       </div>
@@ -164,7 +164,7 @@ defmodule Catenary.Live.OasisExplorer do
                         <% :failed -> %>
                           <span class="text-rose-600 dark:text-rose-400" title="Connection failed">⛒</span>
                         <% _ -> %>
-                          <span class="text-slate-400 dark:text-slate-500" title="Attempting sync">⥀</span>
+                          <span class="text-slate-600 dark:text-slate-400" title="Attempting sync">⥀</span>
                       <% end %>
                     <% else %>
                       <button
@@ -190,9 +190,9 @@ defmodule Catenary.Live.OasisExplorer do
           <% _ -> %>
             <%= if @nodes == [] do %>
               <div class="font-mono text-xs rounded-lg border border-slate-200 dark:border-slate-700 p-3 text-slate-600 dark:text-slate-300">
-                <span class="text-slate-400 dark:text-slate-500" title="No recent oases">∅</span>
+                <span class="text-slate-600 dark:text-slate-400" title="No recent oases">∅</span>
                 <%= if @opened > 0 do %>
-                  <span class="ml-1 text-slate-400 dark:text-slate-500" title="Attempting sync">
+                  <span class="ml-1 text-slate-600 dark:text-slate-400" title="Attempting sync">
                     ⥀
                   </span>
                 <% end %>
@@ -208,7 +208,7 @@ defmodule Catenary.Live.OasisExplorer do
                     </div>
                     <div class="flex-auto min-w-0">
                       <span class="text-slate-800 dark:text-slate-100">{recent["name"]}</span>
-                      <span class="text-slate-400 dark:text-slate-500">
+                      <span class="text-slate-600 dark:text-slate-400">
                         ({Phoenix.HTML.raw(Display.linked_author(elem(recent.id, 0), @aliases))})
                       </span>
                     </div>
