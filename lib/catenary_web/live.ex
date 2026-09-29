@@ -305,13 +305,17 @@ defmodule CatenaryWeb.Live do
             phx-click="nav"
             title="Your profile"
             aria-label="Your profile"
+            aria-current={if(profile_current?(@view, @entry, @identity), do: "page")}
             class={[
-              if(@has_identity_unshown_mentions, do: "text-amber-600 dark:text-amber-400", else: ""),
-              "flex items-center gap-1 hover:text-amber-700 dark:hover:text-amber-400 transition-colors"
+              if(profile_current?(@view, @entry, @identity),
+                do: "bg-amber-100 dark:bg-amber-900/40"
+              ),
+              "relative flex items-center gap-1 rounded-md px-1.5 py-0.5 hover:text-amber-700 dark:hover:text-amber-400 transition-colors"
             ]}
           >
             {Display.scaled_avatar(@identity, 2) |> Phoenix.HTML.raw()}
             <span class="truncate">{Display.linked_author(@identity, @aliases)}</span>
+            <span :if={@has_identity_unshown_mentions} class="btn-icon-badge" aria-hidden="true"></span>
           </button>
         </div>
 
@@ -435,6 +439,9 @@ defmodule CatenaryWeb.Live do
 
   def view_btn_cls(view, view), do: "btn-icon btn-icon-current"
   def view_btn_cls(_, _), do: "btn-icon"
+
+  def profile_current?(view, entry, identity),
+    do: view == :entries and entry == {:profile, identity}
 
   defp has_unshown_entries?(clump_id) do
     shown = Catenary.Preferences.get(:shown) |> Map.get(clump_id, MapSet.new())

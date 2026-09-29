@@ -85,6 +85,25 @@ defmodule CatenaryWeb.LiveTest do
     assert settings =~ "bg-amber-100"
   end
 
+  test "the profile button marks your own profile with the standard chip" do
+    {:ok, view, _html} = live(build_conn(), "/")
+
+    view |> element("button[title=Tags]") |> render_click()
+
+    profile = view |> element(~s(button[aria-label="Your profile"])) |> render()
+    refute profile =~ ~s(aria-current="page")
+    refute profile =~ "bg-amber-100"
+    # unshown mentions use the dot badge like every other button, never a
+    # recoloured label that collides with the current-state fill
+    refute profile =~ "text-amber-600"
+
+    view |> element(~s(button[aria-label="Your profile"])) |> render_click()
+
+    profile = view |> element(~s(button[aria-label="Your profile"])) |> render()
+    assert profile =~ ~s(aria-current="page")
+    assert profile =~ "bg-amber-100"
+  end
+
   test "native-menu Preferences opens settings as a mode, not a history entry" do
     {:ok, view, _html} = live(build_conn(), "/")
 
