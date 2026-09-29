@@ -153,7 +153,7 @@ defmodule Catenary.Live.OasisExplorer do
                     <%= if entry = row[:entry] do %>
                       <%= case entry.state do %>
                         <% :connected -> %>
-                          <span class="text-emerald-600 dark:text-emerald-400" title="Connected">⥀</span>
+                          <span class="text-emerald-700 dark:text-emerald-400" title="Connected">⥀</span>
                         <% :connecting -> %>
                           <span
                             class="text-amber-800 dark:text-amber-300 animate-pulse"
@@ -213,7 +213,7 @@ defmodule Catenary.Live.OasisExplorer do
                       </span>
                     </div>
                     <%= if recent.connected do %>
-                      <span class="text-emerald-600 dark:text-emerald-400" title="Connected">⥀</span>
+                      <span class="text-emerald-700 dark:text-emerald-400" title="Connected">⥀</span>
                     <% else %>
                       <button
                         class="px-3 py-1.5 text-sm rounded-md text-amber-800 dark:text-amber-300 hover:bg-amber-50 dark:hover:bg-amber-900/40 transition-colors"
