@@ -83,7 +83,7 @@ defmodule Catenary.Live.PrefsManager do
                 <%= for {n, k} <- @identities do %>
                   <div class={"flex items-center gap-3 py-2 #{if k == @identity, do: @picked, else: @unpicked}"}>
                     <label
-                      class="flex w-12 shrink-0 items-center gap-2 text-sm"
+                      class="flex w-16 shrink-0 items-center gap-2 text-sm"
                       title="Use as identity"
                     >
                       {Phoenix.HTML.raw(radio_value(k, @identity, "selection"))}
@@ -133,7 +133,7 @@ defmodule Catenary.Live.PrefsManager do
               phx-submit="new-id"
               class="flex items-center gap-3 border-t border-slate-200 py-2 dark:border-slate-700"
             >
-              <span class="flex w-12 shrink-0 items-center justify-start">
+              <span class="flex w-16 shrink-0 items-center justify-start">
                 <button
                   type="submit"
                   class="btn-ghost"
@@ -159,7 +159,7 @@ defmodule Catenary.Live.PrefsManager do
               class="flex items-center gap-3 border-t border-slate-200 py-2 dark:border-slate-700"
             >
               <input type="hidden" name="_csrf_token" value={Phoenix.Controller.get_csrf_token()} />
-              <span class="flex w-12 shrink-0 items-center justify-start">
+              <span class="flex w-16 shrink-0 items-center justify-start">
                 <button
                   type="submit"
                   class="btn-ghost"
