@@ -27,12 +27,9 @@ defmodule Catenary.Live.IndexStatus do
     ~H"""
     <div class="index-strip">
       <%= for {which, {char, state}} <- visible_indices(@indexing) do %>
-        <div
-          class={pill_class(state)}
-          title={pill_title(which, state)}
-          aria-label={pill_title(which, state)}
-        >
+        <div class={pill_class(state)} title={pill_title(which, state)}>
           <span aria-hidden="true">{char}</span>
+          <span class="sr-only">{pill_title(which, state)}</span>
         </div>
       <% end %>
     </div>

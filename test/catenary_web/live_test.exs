@@ -106,8 +106,10 @@ defmodule CatenaryWeb.LiveTest do
 
     # The indicators are a read-out and reindexing is an action, so they must
     # not share a background: the button is a sibling of the strip, not a
-    # child, and the strip carries only the pills.
-    assert strip =~ "aria-label=\"Challenges indexed\""
+    # child, and the strip carries only the pills. A generic div may not take
+    # aria-label, so the accessible name comes from sr-only text instead.
+    assert strip =~ ~s(class="sr-only">Challenges indexed)
+    refute strip =~ "aria-label"
     refute strip =~ "Reindex"
     assert has_element?(view, ".index-strip button[aria-label=Reindex]") == false
     assert has_element?(view, "button[aria-label=Reindex]")

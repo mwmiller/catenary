@@ -95,7 +95,7 @@ defmodule Catenary.Live.EntryViewer do
                   @card["published"]
                 )}
               </p>
-              <p class="text-xs text-slate-400 dark:text-slate-500">
+              <p class="text-xs text-slate-500 dark:text-slate-400">
                 {icon_entries(@card["back-refs"])}&nbsp;↹&nbsp;{icon_entries(@card["fore-refs"])}
               </p>
             </div>
@@ -270,11 +270,11 @@ defmodule Catenary.Live.EntryViewer do
         ""
 
       r == "" ->
-        ~s(<div class="flex-auto p-2"><h4 class="text-xs tracking-wide text-slate-400 dark:text-slate-500">Journal</h4>) <>
+        ~s(<div class="flex-auto p-2"><h2 class="text-xs tracking-wide text-slate-500 dark:text-slate-400">Journal</h2>) <>
           j <> "</div>"
 
       j == "" ->
-        ~s(<div class="flex-auto p-2"><h4 class="text-xs tracking-wide text-slate-400 dark:text-slate-500">Reply</h4>) <>
+        ~s(<div class="flex-auto p-2"><h2 class="text-xs tracking-wide text-slate-500 dark:text-slate-400">Reply</h2>) <>
           r <> "</div>"
 
       true ->
@@ -320,7 +320,7 @@ defmodule Catenary.Live.EntryViewer do
   defp tab_list_overflow(rest) do
     n = length(rest)
 
-    ~s(<li><span class="block px-2 py-1 text-xs text-slate-400 dark:text-slate-500">) <>
+    ~s(<li><span class="block px-2 py-1 text-xs text-slate-500 dark:text-slate-400">) <>
       "#{n} more #{if n == 1, do: "post", else: "posts"} not shown" <> "</span></li>"
   end
 
@@ -369,7 +369,7 @@ defmodule Catenary.Live.EntryViewer do
           |> Enum.reverse()
           |> Enum.join()
 
-        ~s(<div class="flex-auto p-2"><h4 class="text-xs tracking-wide text-slate-400 dark:text-slate-500">Logs</h4><div class="flex flex-row flex-wrap items-center gap-1.5">) <>
+        ~s(<div class="flex-auto p-2"><h2 class="text-xs tracking-wide text-slate-500 dark:text-slate-400">Logs</h2><div class="flex flex-row flex-wrap items-center gap-1.5">) <>
           buttons <> "</div></div>"
     end
   end
@@ -382,7 +382,7 @@ defmodule Catenary.Live.EntryViewer do
       entries ->
         {:safe, icons} = entries |> Enum.reverse() |> icon_entries
 
-        ~s(<h4 class="text-xs tracking-wide text-slate-400 dark:text-slate-500">Unshown mentions</h4><div class="p-2 flex flex-row">) <>
+        ~s(<h2 class="text-xs tracking-wide text-slate-500 dark:text-slate-400">Unshown mentions</h2><div class="p-2 flex flex-row">) <>
           icons <> "</div>"
     end
   end
