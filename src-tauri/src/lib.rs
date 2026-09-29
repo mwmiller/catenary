@@ -77,6 +77,34 @@ fn build_menu(app: &tauri::App) -> tauri::Result<()> {
     )?;
     let quit = PredefinedMenuItem::quit(handle, Some("Quit Catenary"))?;
 
+    let undo = PredefinedMenuItem::undo(handle, None)?;
+    let redo = PredefinedMenuItem::redo(handle, None)?;
+    let cut = PredefinedMenuItem::cut(handle, None)?;
+    let copy = PredefinedMenuItem::copy(handle, None)?;
+    let paste = PredefinedMenuItem::paste(handle, None)?;
+    let select_all = PredefinedMenuItem::select_all(handle, None)?;
+    // macOS opens the Character Viewer from a menu item holding this key
+    // equivalent, so the shortcut only works while an item claims it.
+    #[cfg(target_os = "macos")]
+    let emoji = MenuItemBuilder::with_id("emoji", "Emoji & Symbols")
+        .accelerator("Ctrl+Cmd+Space")
+        .build(handle)?;
+
+    let mut edit = SubmenuBuilder::new(handle, "Edit")
+        .item(&undo)
+        .item(&redo)
+        .separator()
+        .item(&cut)
+        .item(&copy)
+        .item(&paste)
+        .separator()
+        .item(&select_all);
+    #[cfg(target_os = "macos")]
+    {
+        edit = edit.separator().item(&emoji);
+    }
+    let edit = edit.build()?;
+
     let catenary = SubmenuBuilder::new(handle, "Catenary")
         .item(&about)
         .separator()
@@ -100,12 +128,28 @@ fn build_menu(app: &tauri::App) -> tauri::Result<()> {
     let menu = MenuBuilder::new(handle)
         .item(&catenary)
         .item(&go)
+        .item(&edit)
         .item(&view)
         .item(&window)
         .build()?;
 
     app.set_menu(menu)?;
     Ok(())
+}
+
+// Opens the macOS Character Viewer at the current insertion point. The
+// responder chain ends at NSApplication, which is what the standard Edit >
+// Emoji & Symbols item invokes, so calling it directly is equivalent to the
+// menu action firing.
+#[cfg(target_os = "macos")]
+fn show_character_palette() {
+    use objc2::MainThreadMarker;
+    use objc2_app_kit::NSApplication;
+
+    let Some(mtm) = MainThreadMarker::new() else {
+        return;
+    };
+    NSApplication::sharedApplication(mtm).orderFrontCharacterPalette(None);
 }
 
 // Spawns the backend synchronously and returns its PID once recorded, so
@@ -241,6 +285,8 @@ pub fn run() {
                     let _ = window.reload();
                 }
             }
+            #[cfg(target_os = "macos")]
+            "emoji" => show_character_palette(),
             _ => {}
         })
         .on_window_event(|window, event| {

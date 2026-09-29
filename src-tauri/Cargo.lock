@@ -271,6 +271,8 @@ name = "catenary"
 version = "0.199.0"
 dependencies = [
  "libc",
+ "objc2",
+ "objc2-app-kit",
  "serde",
  "serde_json",
  "tauri",
