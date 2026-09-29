@@ -243,7 +243,7 @@ defmodule Catenary.Live.OasisExplorer do
   defp tab_title("peers"), do: "Peers"
   defp tab_title(_), do: "Oasis Explorer"
 
-  defp mode_tab(true), do: "bg-amber-500 text-white"
+  defp mode_tab(true), do: "bg-amber-500 text-slate-900"
 
   defp mode_tab(false),
     do: "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200"
