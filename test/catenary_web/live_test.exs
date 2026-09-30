@@ -16,6 +16,11 @@ defmodule CatenaryWeb.LiveTest do
 
   defp entries, do: Baobab.all_entries(Preferences.get(:clump_id))
 
+  # The count assertions below print this when they fail, so a CI failure says
+  # which log wrote an entry rather than only that one turned up. Entries are
+  # {author, log_id, seqnum} tuples.
+  defp stored, do: entries()
+
   test "renders the three-column layout with the inner component" do
     {:ok, _view, html} = live(build_conn(), "/")
 
@@ -226,13 +231,13 @@ defmodule CatenaryWeb.LiveTest do
     # and no form left re-rendered against the entry that was just created.
     refute html =~ ~s(id="posting-form")
     assert has_element?(view, "#compose-trigger-journal")
-    assert length(entries()) == count + 1
+    assert length(entries()) == count + 1, "store: #{inspect(stored())}"
 
     # Reopening and resubmitting the identical payload inside the debounce
     # window writes nothing a second time.
     view |> element("#compose-trigger-journal") |> render_click()
     view |> element("#posting-form") |> render_submit(payload)
-    assert length(entries()) == count + 1
+    assert length(entries()) == count + 1, "store: #{inspect(stored())}"
   end
 
   test "a reply without a body is never published" do
@@ -256,10 +261,21 @@ defmodule CatenaryWeb.LiveTest do
     # entry being answered — neither is a reply of its own. It is what an
     # accidental Enter in the title field publishes.
     view |> element("#posting-form") |> render_submit(%{"log_id" => "533", "body" => "   "})
-    assert length(entries()) == count
+    assert length(entries()) == count, "store: #{inspect(stored())}"
 
     # A body of its own publishes.
     view |> element("#posting-form") |> render_submit(%{"log_id" => "533", "body" => "here"})
-    assert length(entries()) == count + 1
+    assert length(entries()) == count + 1, "store: #{inspect(stored())}"
+  end
+
+  test "only a repeat of the same payload inside the window is a double-click" do
+    payload = %{"log_id" => "360360", "title" => "One", "body" => "first body"}
+    last = {:erlang.phash2(payload), 1_000}
+
+    assert CatenaryWeb.Live.repeat_publish?(last, payload, 2_999, 2_000)
+
+    refute CatenaryWeb.Live.repeat_publish?(last, payload, 3_000, 2_000)
+    refute CatenaryWeb.Live.repeat_publish?(last, %{payload | "body" => "other"}, 1_001, 2_000)
+    refute CatenaryWeb.Live.repeat_publish?(nil, payload, 1_001, 2_000)
   end
 end

@@ -1075,13 +1075,14 @@ defmodule CatenaryWeb.Live do
   def handle_event("publish-resign", _, socket), do: {:noreply, socket}
 
   # A submit is dropped when it repeats the previous publish inside the
-  # debounce window or carries no reply body (repeat_publish?/3 and
+  # debounce window or carries no reply body (repeat_publish?/4 and
   # blank_reply?/1), and a publish that does go through closes the compose
   # panel.
   def handle_event("new-entry", values, socket) do
     now = System.monotonic_time(:millisecond)
+    repeat? = repeat_publish?(socket.assigns[:last_publish], values, now, publish_debounce_ms())
 
-    if repeat_publish?(socket, values, now) or blank_reply?(values) do
+    if repeat? or blank_reply?(values) do
       {:noreply, socket}
     else
       closed = socket.assigns.extra_nav
@@ -1354,15 +1355,18 @@ defmodule CatenaryWeb.Live do
   # same values inside the window is treated as an accident.
   @publish_debounce_ms 2_000
 
-  defp repeat_publish?(socket, values, now) do
-    case socket.assigns[:last_publish] do
-      {fingerprint, at} ->
-        fingerprint == :erlang.phash2(values) and now - at < @publish_debounce_ms
+  # The window is a wall-clock span, and the repeat-publish test on CI renders
+  # slowly enough to outlast the two seconds a double-click could ever take.
+  # Tests therefore set their own span, which is harmless: `last_publish` is
+  # socket state, and every test opens its own LiveView.
+  defp publish_debounce_ms,
+    do: Application.get_env(:catenary, :publish_debounce_ms, @publish_debounce_ms)
 
-      _ ->
-        false
-    end
-  end
+  @doc false
+  def repeat_publish?({fingerprint, at}, values, now, window_ms),
+    do: fingerprint == :erlang.phash2(values) and now - at < window_ms
+
+  def repeat_publish?(_last_publish, _values, _now, _window_ms), do: false
 
   # A reply carries its content in the body; the title is prefilled from the
   # entry being answered, so an empty body is never a deliberate reply. It is

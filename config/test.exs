@@ -5,6 +5,11 @@ import Config
 # clause mounts "/" with, breaking tests that assume the default view.
 config :catenary,
   application_dir: Path.expand("~/.catenary-test"),
+  # The publish debounce counts wall-clock milliseconds, and a CI runner can
+  # take longer than the two-second double-click window between two renders of
+  # the same test. Widening it costs nothing here: the fingerprint lives in
+  # LiveView socket state and every test mounts its own.
+  publish_debounce_ms: 300_000,
   clumps: %{
     "Dev" => [
       port: 0,
