@@ -1074,16 +1074,30 @@ defmodule CatenaryWeb.Live do
 
   def handle_event("publish-resign", _, socket), do: {:noreply, socket}
 
+  # A submit is dropped when it repeats the previous publish inside the
+  # debounce window or carries no reply body (repeat_publish?/3 and
+  # blank_reply?/1), and a publish that does go through closes the compose
+  # panel.
   def handle_event("new-entry", values, socket) do
-    {:noreply,
-     state_set(
-       socket,
-       Navigation.move_to(
-         "new",
-         %{view: :entries, entry: LogWriter.new_entry(values, socket)},
-         socket.assigns
-       )
-     )}
+    now = System.monotonic_time(:millisecond)
+
+    if repeat_publish?(socket, values, now) or blank_reply?(values) do
+      {:noreply, socket}
+    else
+      closed = socket.assigns.extra_nav
+      entry = LogWriter.new_entry(values, socket)
+      socket = assign(socket, last_publish: {:erlang.phash2(values), now})
+      moved = Navigation.move_to("new", %{view: :entries, entry: entry}, socket.assigns)
+
+      # Publishing closes the compose panel. What stays open is re-rendered
+      # against the entry just created — with an empty body and a ref to the
+      # reply that was only just posted — so one more click on the re-enabled
+      # button would publish that. Focus goes back to the trigger that opened
+      # it, exactly as it does for Escape.
+      socket = state_set(socket, Map.put(moved, :extra_nav, :none))
+
+      {:noreply, if(closed == :none, do: socket, else: focus_compose_trigger(socket, closed))}
+    end
   end
 
   def handle_event("accept-change", values, socket) do
@@ -1332,6 +1346,35 @@ defmodule CatenaryWeb.Live do
     |> MapSet.new()
   end
 
+  # A publish is debounced against a double-click. `phx-disable-with` only
+  # covers the round trip, so the button is live again the moment the reply is
+  # acked, and the re-rendered panel would hand the second click an empty form
+  # to post. Fingerprinting the payload keeps a deliberate second post of
+  # *different* content from ever being swallowed: only a repeat of the exact
+  # same values inside the window is treated as an accident.
+  @publish_debounce_ms 2_000
+
+  defp repeat_publish?(socket, values, now) do
+    case socket.assigns[:last_publish] do
+      {fingerprint, at} ->
+        fingerprint == :erlang.phash2(values) and now - at < @publish_debounce_ms
+
+      _ ->
+        false
+    end
+  end
+
+  # A reply carries its content in the body; the title is prefilled from the
+  # entry being answered, so an empty body is never a deliberate reply. It is
+  # what an accidental Enter in the title field (or the second half of a
+  # double-click) publishes.
+  defp blank_reply?(%{"log_id" => "533", "body" => body}) when is_binary(body),
+    do: String.trim(body) == ""
+
+  defp blank_reply?(%{"log_id" => "533"}), do: true
+
+  defp blank_reply?(_values), do: false
+
   defp state_set(socket, from_caller) when is_map(from_caller),
     do: state_set(socket, from_caller, [])
 
@@ -1340,6 +1383,23 @@ defmodule CatenaryWeb.Live do
   defp state_set(socket, from_caller, opts) when is_map(from_caller) do
     full_socket = assign(socket, from_caller)
     do_prefs(from_caller |> Map.to_list())
+
+    # A compose panel outlives the screen that offered it whenever navigation
+    # moves somewhere its trigger is not rendered (a reply on the tags screen,
+    # an alias on a tag), and the component would then draw an empty frame.
+    # Drop it here, where view and entry change, rather than only rendering
+    # around it in the component: `toggle-` reads this assign to decide
+    # whether a trigger opens or closes.
+    full_socket =
+      assign(full_socket,
+        extra_nav:
+          Catenary.Live.Navigation.resolve_extra_nav(
+            full_socket.assigns[:extra_nav],
+            full_socket.assigns.view,
+            full_socket.assigns.entry
+          )
+      )
+
     state = full_socket.assigns
     clump_id = state.clump_id
 
@@ -1610,7 +1670,10 @@ defmodule CatenaryWeb.Live do
 
       LogWriter.new_entry(challenge, socket)
 
-      {:noreply, state_set(socket, %{view: :challenges, entry: :all})}
+      # Same contract as `new-entry`: a published challenge takes its panel
+      # with it, so the re-enabled button cannot publish a second one.
+      socket = state_set(socket, %{view: :challenges, entry: :all, extra_nav: :none})
+      {:noreply, focus_compose_trigger(socket, :challenge)}
     else
       _ -> {:noreply, socket}
     end

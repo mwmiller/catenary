@@ -565,10 +565,22 @@ defmodule Catenary.LogWriter do
   defp maybe_post_mentions(text, parent, socket, true) do
     aliases =
       case socket.assigns.aliases do
-        {:ok, a} -> a
+        {:ok, a} -> Enum.to_list(a)
         _ -> []
       end
 
+    maybe_mention(text, parent, socket, aliases)
+  end
+
+  defp maybe_post_mentions(_, _, _, _), do: :ok
+
+  # No aliases set is a no-op, not a match-all. The pattern below is built by
+  # joining the alias names, so with none it compiles to an empty regex, which
+  # matches every string: publishing would then append a mention entry carrying
+  # no mentions at all — a body-less entry beside every post.
+  defp maybe_mention(_text, _parent, _socket, []), do: :ok
+
+  defp maybe_mention(text, parent, socket, aliases) do
     {:ok, re} =
       Enum.reduce(aliases, [], fn {_k, v}, a -> ["(?:~" <> v <> ")" | a] end)
       |> Enum.join("|")
@@ -603,8 +615,6 @@ defmodule Catenary.LogWriter do
         mentions_entry
     end
   end
-
-  defp maybe_post_mentions(_, _, _, _), do: :ok
 
   defp append_log_for_socket(contents, log_id, socket) do
     Baobab.append_log(contents, Catenary.id_for_key(socket.assigns.identity),

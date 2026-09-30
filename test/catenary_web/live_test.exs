@@ -3,6 +3,19 @@ defmodule CatenaryWeb.LiveTest do
 
   import Phoenix.LiveViewTest
 
+  alias Catenary.Preferences
+
+  setup do
+    # The publish tests below write into the test clump, which persists across
+    # runs. The unshown-entries badge reads the whole store, so declare
+    # whatever is already there seen rather than let a leftover entry light
+    # the badge for the tests that follow.
+    Preferences.mark_all_entries(:shown)
+    :ok
+  end
+
+  defp entries, do: Baobab.all_entries(Preferences.get(:clump_id))
+
   test "renders the three-column layout with the inner component" do
     {:ok, _view, html} = live(build_conn(), "/")
 
@@ -167,5 +180,86 @@ defmodule CatenaryWeb.LiveTest do
     html = view |> element(trigger) |> render_click()
     refute html =~ ~s(id="compose-panel")
     assert render(element(view, trigger)) =~ ~s(aria-expanded="false")
+  end
+
+  test "a compose panel drops away with its trigger when the screen changes" do
+    {:ok, view, _html} = live(build_conn(), "/")
+
+    # A profile screen offers the alias trigger; the tags screen does not.
+    view |> element(~s(button[aria-label="Your profile"])) |> render_click()
+    html = render_hook(view, "toggle-alias", %{})
+    assert html =~ ~s(id="compose-panel")
+    assert has_element?(view, "#compose-trigger-alias")
+
+    view |> element("button[title=Tags]") |> render_click()
+
+    # Gone with its trigger, rather than left as a frame around nothing.
+    refute has_element?(view, "#compose-trigger-alias")
+    refute has_element?(view, "#compose-panel")
+  end
+
+  test "a panel the screen does not offer never draws its frame" do
+    {:ok, view, _html} = live(build_conn(), "/")
+
+    view |> element("button[title=Tags]") |> render_click()
+
+    # The reply trigger is not rendered on this screen, so neither is its
+    # panel — not even when the toggle event arrives anyway.
+    refute has_element?(view, "#compose-trigger-reply")
+    refute render_hook(view, "toggle-reply", %{}) =~ ~s(id="compose-panel")
+
+    # While a panel this screen does offer still opens.
+    assert render_hook(view, "toggle-journal", %{}) =~ ~s(id="compose-panel")
+  end
+
+  test "publishing closes the compose panel and debounces a repeat" do
+    {:ok, view, _html} = live(build_conn(), "/")
+    count = length(entries())
+
+    view |> element("#compose-trigger-journal") |> render_click()
+    assert has_element?(view, "#posting-form")
+
+    payload = %{"log_id" => "360360", "title" => "One", "body" => "first body"}
+    html = view |> element("#posting-form") |> render_submit(payload)
+
+    # The panel leaves with the publish: no re-enabled button to click again,
+    # and no form left re-rendered against the entry that was just created.
+    refute html =~ ~s(id="posting-form")
+    assert has_element?(view, "#compose-trigger-journal")
+    assert length(entries()) == count + 1
+
+    # Reopening and resubmitting the identical payload inside the debounce
+    # window writes nothing a second time.
+    view |> element("#compose-trigger-journal") |> render_click()
+    view |> element("#posting-form") |> render_submit(payload)
+    assert length(entries()) == count + 1
+  end
+
+  test "a reply without a body is never published" do
+    {:ok, view, _html} = live(build_conn(), "/")
+
+    # Seed an entry to answer: publishing one lands us on it, which is what
+    # puts the reply trigger on screen.
+    view |> element("#compose-trigger-journal") |> render_click()
+
+    view
+    |> element("#posting-form")
+    |> render_submit(%{"log_id" => "360360", "title" => "Seed", "body" => "seed"})
+
+    assert has_element?(view, "#compose-trigger-reply")
+    view |> element("#compose-trigger-reply") |> render_click()
+    assert has_element?(view, "#posting-form")
+
+    count = length(entries())
+
+    # Whitespace is still an empty body, and the title is prefilled from the
+    # entry being answered — neither is a reply of its own. It is what an
+    # accidental Enter in the title field publishes.
+    view |> element("#posting-form") |> render_submit(%{"log_id" => "533", "body" => "   "})
+    assert length(entries()) == count
+
+    # A body of its own publishes.
+    view |> element("#posting-form") |> render_submit(%{"log_id" => "533", "body" => "here"})
+    assert length(entries()) == count + 1
   end
 end

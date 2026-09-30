@@ -5,6 +5,11 @@ defmodule Catenary.Live.Navigation do
   use Phoenix.LiveComponent
   alias Catenary.{Display, Preferences}
 
+  # The compose triggers `post_button_for/2` renders. Each of them gates on
+  # `Preferences.accept_log_name?/1`, so each of them can vanish while its
+  # panel is open.
+  @compose_triggers [:graph, :alias, :journal, :image, :reply, :react, :tag, :mention]
+
   @impl true
 
   def update(
@@ -13,27 +18,14 @@ defmodule Catenary.Live.Navigation do
       ) do
     {whom, ali} = alias_info(entry, clump_id)
 
-    displayed_info =
-      case {view, entry} do
-        {:entries, {_a, l, _e}} ->
-          case QuaggaDef.log_def(l) do
-            %{name: n} -> {:log, n}
-            _ -> {:family, QuaggaDef.family_for_block(l)}
-          end
-
-        {:entries, {pseudo, _}} when is_atom(pseudo) ->
-          {:pseudo, pseudo}
-
-        {:view, view} when is_atom(view) ->
-          {:view, view}
-
-        _ ->
-          {:unknown, :unknown}
-      end
+    displayed_info = displayed_info(view, entry)
 
     blocked = Catenary.blocked?(entry, clump_id)
 
-    forced_extra_nav = force_extra_nav(displayed_info, assigns[:extra_nav])
+    forced_extra_nav =
+      displayed_info
+      |> force_extra_nav(assigns[:extra_nav])
+      |> available_extra_nav(displayed_info)
 
     na =
       Map.merge(assigns, %{
@@ -402,10 +394,87 @@ defmodule Catenary.Live.Navigation do
 
   defp extra_nav(_), do: ""
 
-  defp force_extra_nav({:log, name}, :none) when name in [:jpeg, :png, :gif],
-    do: :image_avatar
+  @doc """
+  Returns `which` when the compose panel it names can actually be drawn for
+  `displayed_info`, and `:none` otherwise.
+
+  The triggers in `render/1` only exist on some screens — a reply needs a log
+  entry on screen, alias/block need a log or a profile — so a panel left open
+  across a screen change would otherwise draw an empty frame with no control
+  left to close it but the generic ⍟.
+  """
+  @spec available_extra_nav(atom(), tuple()) :: atom()
+  def available_extra_nav(:none, _displayed_info), do: :none
+
+  def available_extra_nav(which, displayed_info) do
+    if panel_available?(which, displayed_info), do: which, else: :none
+  end
+
+  @doc """
+  `available_extra_nav/2` for callers that hold the view and entry rather than
+  the derived `displayed_info`. Used by the parent LiveView's `state_set/3`,
+  which has to drop a stale panel the moment navigation invalidates it instead
+  of waiting for the component to render around it.
+  """
+  @spec resolve_extra_nav(atom(), atom(), term()) :: atom()
+  def resolve_extra_nav(:none, _view, _entry), do: :none
+
+  def resolve_extra_nav(which, view, entry),
+    do: available_extra_nav(which, displayed_info(view, entry))
+
+  # What is currently on screen, as the tagged form `displayed_matches/2` and
+  # the panel rules below both read.
+  defp displayed_info(view, entry) do
+    case {view, entry} do
+      {:entries, {_a, l, _e}} ->
+        case QuaggaDef.log_def(l) do
+          %{name: n} -> {:log, n}
+          _ -> {:family, QuaggaDef.family_for_block(l)}
+        end
+
+      {:entries, {pseudo, _}} when is_atom(pseudo) ->
+        {:pseudo, pseudo}
+
+      {:view, view} when is_atom(view) ->
+        {:view, view}
+
+      _ ->
+        {:unknown, :unknown}
+    end
+  end
+
+  # A panel is offered exactly when its trigger is: the same view rule
+  # `render/1` applies, plus the Preferences gate `post_button_for/2` applies.
+  # Panels with no trigger of their own are keyed off what they were forced
+  # for, or are always on offer.
+  defp panel_available?(which, displayed_info) when which in @compose_triggers do
+    trigger_available?(which, displayed_info) and Preferences.accept_log_name?(which)
+  end
+
+  defp panel_available?(:challenge, _displayed_info), do: true
+
+  defp panel_available?(:profile, _displayed_info), do: true
+
+  defp panel_available?(:image_avatar, displayed_info), do: image_log?(displayed_info)
+
+  defp panel_available?(_which, _displayed_info), do: false
+
+  defp trigger_available?(which, displayed_info) when which in [:reply, :react, :tag, :mention],
+    do: displayed_matches([:log], displayed_info)
+
+  defp trigger_available?(which, displayed_info) when which in [:graph, :alias],
+    do: displayed_matches([:log, :profile], displayed_info)
+
+  defp trigger_available?(_which, _displayed_info), do: true
+
+  defp force_extra_nav(displayed_info, :none) do
+    if image_log?(displayed_info), do: :image_avatar, else: :none
+  end
 
   defp force_extra_nav(_displayed_info, fallback), do: fallback
+
+  defp image_log?({:log, name}) when name in [:jpeg, :png, :gif], do: true
+  defp image_log?(_displayed_info), do: false
 
   # Known aliases as {key, name} pairs, offered for picking a challenge
   # target.  The user's own identity keys are excluded.
@@ -502,6 +571,11 @@ defmodule Catenary.Live.Navigation do
 
     submit_btn = Display.log_submit_button()
 
+    # A reply is nothing without its body, and the title is prefilled from the
+    # entry being answered, so the browser is asked to refuse an empty one
+    # rather than let the server drop it silently.
+    body_attrs = if which == :reply, do: " required", else: ""
+
     parts = [
       ~s(<form method="post" id="posting-form" phx-submit="new-entry" class="flex flex-col gap-3">),
       ~s(<input type="hidden" name="log_id" value="#{QuaggaDef.base_log(which)}" />),
@@ -509,7 +583,7 @@ defmodule Catenary.Live.Navigation do
       ~s(<label for="posting-title" class="#{label_cls()}">#{posting_icon(which)} Title</label>),
       ~s(<input id="posting-title" class="#{input_cls()}" type="text" value="#{st}" name="title" />),
       ~s(<label for="posting-body" class="#{label_cls()}">Body</label>),
-      ~s(<textarea id="posting-body" class="#{input_cls()}" name="body" rows="8"></textarea>),
+      ~s(<textarea id="posting-body" class="#{input_cls()}" name="body" rows="8"#{body_attrs}></textarea>),
       tag_html,
       submit_btn,
       "</form>"
