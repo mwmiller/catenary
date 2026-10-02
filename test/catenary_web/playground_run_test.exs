@@ -50,6 +50,22 @@ defmodule CatenaryWeb.PlaygroundRunTest do
     assert [%{"kind" => "stop", "detail" => "stopped"}] = socket.assigns.trace
   end
 
+  test "a drop-in run starts the trace over" do
+    {:noreply, socket} =
+      Live.handle_event(
+        "app-trace",
+        %{"entries" => [%{"kind" => "print", "detail" => "from the last run"}]},
+        socket([])
+      )
+
+    assert [_] = socket.assigns.trace
+
+    {:noreply, socket} = Live.handle_event("app-run-start", %{}, socket)
+
+    assert socket.assigns.trace == []
+    assert socket.assigns.trace_at == 0
+  end
+
   test "stepping clamps at both ends" do
     entries = for i <- 1..3, do: %{"kind" => "print", "detail" => "#{i}"}
     {:noreply, socket} = Live.handle_event("app-trace", %{"entries" => entries}, socket([]))

@@ -26,6 +26,7 @@ import {LiveSocket} from "phoenix_live_view"
 import topbar from "../vendor/topbar"
 import {AppRunner} from "./app_runner.js"
 import {CodeEditorHook} from "./code_editor.js"
+import {WasmDropin} from "./wasm_dropin.js"
 
 let csrfToken = document.querySelector("meta[name='csrf-token']").getAttribute("content")
 
@@ -103,7 +104,7 @@ window.catenarySave = async function(content, defaultName) {
 
 let liveSocket = new LiveSocket("/live", Socket, {
   params: {_csrf_token: csrfToken},
-  hooks: {MenuBridge, AppRunner, CodeEditor: CodeEditorHook}
+  hooks: {MenuBridge, AppRunner, CodeEditor: CodeEditorHook, WasmDropin}
 })
 
 // Show progress bar on live navigation and form submits

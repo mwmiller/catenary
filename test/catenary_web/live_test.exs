@@ -170,6 +170,24 @@ defmodule CatenaryWeb.LiveTest do
     refute view |> element("button[title=Back]") |> render() =~ "disabled"
   end
 
+  test "the playground rail carries a .wasm picker alongside Run and Stop" do
+    Preferences.set(:view, :playground)
+    Preferences.set(:entry, :all)
+
+    {:ok, view, html} = live(build_conn(), "/")
+
+    # Glyph, tooltip and the name the input announces: the picker is a file
+    # input behind ⇥ — the same glyph Preferences uses to import a file from
+    # disk (⇤ is its export) — and the pane it feeds is the one with the
+    # trace on.
+    assert html =~ "⇥"
+    refute html =~ "⇩"
+    assert has_element?(view, ~s(label[title="Import a .wasm file"][phx-hook="WasmDropin"]))
+    assert has_element?(view, ~s(input[type=file][accept=".wasm,application/wasm"]))
+    assert has_element?(view, ~s(input[aria-label="Import a .wasm file into the run pane"]))
+    assert has_element?(view, "#playground-pane[data-trace][data-worker-src]")
+  end
+
   test "the reindex button sits outside the index indicator strip" do
     {:ok, view, _html} = live(build_conn(), "/")
 

@@ -12,13 +12,17 @@ defmodule Catenary.Live.PlaygroundNav do
   the playground.
 
   What belongs here is commands acting on whatever is in the editor: Run and
-  Stop today, then replay, the store fixture picker and the publish panel.
-  What gets *walked* rather than run — a trace, a version — is the left rail's
-  job, `Catenary.Live.PlaygroundTimeline`. Neither rail is ever given a
-  disabled stand-in for a tool that does not exist yet: a button that cannot
-  be pressed would be a lie about the state of the build.
+  Stop for the buffer, then replay, the store fixture picker and the publish
+  panel — plus ⇥, which takes a foreign `.wasm` straight to the pane without
+  the buffer ever being involved. ⇥ is the glyph
+  `Catenary.Live.PrefsManager` already uses for bringing a file in from disk
+  (⇤ is its export), so this reads as an import rather than a download. What
+  gets *walked* rather than run — a trace, a version — is the left rail's job,
+  `Catenary.Live.PlaygroundTimeline`. Neither rail is ever given a disabled
+  stand-in for a tool that does not exist yet: a button that cannot be pressed
+  would be a lie about the state of the build.
 
-  Neither control publishes, so neither is amber — amber is reserved for
+  None of these controls publishes, so none is amber — amber is reserved for
   actions that actually write to a log.
   """
   use Phoenix.LiveComponent
@@ -44,6 +48,25 @@ defmodule Catenary.Live.PlaygroundNav do
           aria-label="Stop — terminate the running module"
           class="btn-icon"
         >■</button>
+        <%!-- The picker is a file input behind a glyph. ⇥ is what Preferences
+             already uses for an import, so the English lives in the label's
+             tooltip and in the input's own name; the hook reads the file and
+             hands it to the run pane, which is where instantiating it
+             happens. --%>
+        <label
+          id="wasm-dropin"
+          phx-hook="WasmDropin"
+          title="Import a .wasm file"
+          class="btn-icon cursor-pointer"
+        >
+          ⇥
+          <input
+            type="file"
+            accept=".wasm,application/wasm"
+            aria-label="Import a .wasm file into the run pane"
+            class="sr-only"
+          />
+        </label>
       </div>
     </div>
     """

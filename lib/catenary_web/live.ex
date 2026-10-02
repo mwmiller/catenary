@@ -815,6 +815,14 @@ defmodule CatenaryWeb.Live do
     {:noreply, assign(socket, source: String.slice(value, 0, @max_source_bytes))}
   end
 
+  # A drop-in starts and finishes in the pane — the LiveView never sees an
+  # `app-run` for one — so the pane says it is beginning before its first
+  # entry arrives, or that entry would land on the previous run's trace. A
+  # WAT run has already been cleared by `:playground_run`.
+  def handle_event("app-run-start", _params, socket) do
+    {:noreply, assign(socket, trace: [], trace_at: 0)}
+  end
+
   # The run's history, batched by the hook so a chatty module is one message
   # per flush rather than one per line, and the cursor over it. Both live on
   # the LiveView because that is what the left rail renders from.

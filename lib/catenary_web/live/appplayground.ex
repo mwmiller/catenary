@@ -121,8 +121,9 @@ defmodule Catenary.Live.AppPlayground do
           </div>
         </div>
         <p class="text-sm text-slate-600 dark:text-slate-400">
-          Compile, the publish panel and the fixture picker are not built. Run compiles the buffer
-          as WAT and starts it; the trace it produces is on the left.
+          Compile, the publish panel and the store fixture picker are not built. Run compiles the
+          buffer as WAT and starts it; ⇥ on the right rail — or a file dropped on the pane — runs a
+          .wasm instead, gated on it instantiating here. Both traces land on the left.
         </p>
       </div>
     </div>
