@@ -93,6 +93,49 @@ defmodule CatenaryWeb.PlaygroundRunTest do
     assert binary_part(module, 0, 4) == <<0, 97, 115, 109>>
   end
 
+  # The effect blobs are written out as escapes by hand, so a wrong one
+  # still compiles: the module answers with bytes the host cannot read, and
+  # the pane would be the first thing to say so. Decoding them here is the
+  # check that would otherwise be left to a run.
+  test "every effect blob in the starter is one clean CBOR value" do
+    source = AppPlayground.starter_source()
+
+    blobs =
+      for [_, address, payload] <-
+            Regex.scan(~r/\(data \(i32\.const (\d+)\) "([^"]*)"\)/, source) do
+        bytes =
+          Regex.replace(~r/\\([0-9a-fA-F]{2})/, payload, fn _, hex ->
+            <<String.to_integer(hex, 16)>>
+          end)
+
+        refute String.contains?(String.replace(payload, ~r/\\[0-9a-fA-F]{2}/, ""), "\\"),
+               "a stray escape at address #{address}"
+
+        decoded =
+          try do
+            CBOR.decode(bytes)
+          rescue
+            error -> {:undecodable, Exception.message(error)}
+          end
+
+        assert match?({:ok, _value, ""}, decoded),
+               "address #{address} is not one CBOR value with nothing after it: #{inspect(decoded)}"
+
+        {String.to_integer(address), byte_size(bytes)}
+      end
+
+    assert length(blobs) == 12
+    assert Enum.uniq(Enum.map(blobs, &elem(&1, 0))) |> length() == 12
+    # nothing may reach 0x1000, where the host writes the message it delivers
+    assert Enum.all?(blobs, fn {address, size} -> address + size <= 0x1000 end)
+
+    declared =
+      for [_, digits] <- Regex.scan(~r/local\.set \$len \(i32\.const (\d+)\)/, source),
+          do: String.to_integer(digits)
+
+    assert Enum.sort(declared) == Enum.map(blobs, &elem(&1, 1)) |> Enum.sort()
+  end
+
   test "a buffer that does not parse is a compile entry and a status payload" do
     {:noreply, socket} = Live.handle_info(:playground_run, socket(source: "not wat at all"))
 
