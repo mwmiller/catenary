@@ -1379,6 +1379,21 @@ defmodule CatenaryWeb.Live do
 
   defp blank_reply?(_values), do: false
 
+  # The alias index folds the active identity's log and no other, so the map
+  # it holds belongs to whichever identity was active when it ran. Switching
+  # identities has to fold the new log before any view reads names out of the
+  # old map. The worker broadcasts :index_change when the pass finishes, which
+  # is what comes back through here with the fresh map in the assigns.
+  defp maybe_reindex_aliases(socket, %{identity: who}) when is_binary(who) do
+    if Map.has_key?(socket.assigns, :identity) and socket.assigns.identity != who do
+      Catenary.Indices.update([:aliases])
+    end
+
+    :ok
+  end
+
+  defp maybe_reindex_aliases(_socket, _from_caller), do: :ok
+
   defp state_set(socket, from_caller) when is_map(from_caller),
     do: state_set(socket, from_caller, [])
 
@@ -1387,6 +1402,7 @@ defmodule CatenaryWeb.Live do
   defp state_set(socket, from_caller, opts) when is_map(from_caller) do
     full_socket = assign(socket, from_caller)
     do_prefs(from_caller |> Map.to_list())
+    maybe_reindex_aliases(socket, from_caller)
 
     # A compose panel outlives the screen that offered it whenever navigation
     # moves somewhere its trigger is not rendered (a reply on the tags screen,
