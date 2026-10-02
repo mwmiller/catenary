@@ -60,6 +60,7 @@ defmodule Catenary.MixProject do
       {:quagga_def, ">= 0.0.0"},
       {:scrypt_ex, "~> 0.1.0"},
       {:cbor, "~> 1.0"},
+      {:watusi, "~> 0.6"},
       {:mdex, "~> 0.13"},
       {:excon, "~> 4.0"},
       {:tz, "~> 0.28"},

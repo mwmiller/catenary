@@ -58,7 +58,10 @@ defmodule Catenary.Application do
       # Start the Endpoint (http/https)
       CatenaryWeb.Endpoint,
       Catenary.IndexSup,
-      Catenary.State
+      Catenary.State,
+      # Owns the table behind app-scoped local storage, so it outlives the
+      # LiveView processes that write to it.
+      Catenary.AppKV
     ]
 
     opts = [strategy: :one_for_one, name: Catenary.Supervisor]

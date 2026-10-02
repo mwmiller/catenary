@@ -40,23 +40,35 @@ defmodule Catenary.Live.ListingsExplorer do
         <% else %>
           <div class="flex flex-col gap-2">
             <%= for row <- @listings do %>
-              <%!-- The row is a card: the listing's own line on the left,
-                  the author in a cell of its own on the right, so neither
-                  ends up nested inside the other. --%>
+              <%!-- The row is a card with two actions, never one button
+                  inside another: nested buttons are invalid HTML, and the
+                  parser closes the outer one early, which used to throw the
+                  author out of its row and drag the third column out of the
+                  layout. Opening the app is the left branch, going to the
+                  author the right one, so they cannot nest. --%>
               <div class="flex items-stretch gap-2 rounded-lg border border-slate-200 dark:border-slate-700 p-2 hover:border-amber-500 dark:hover:border-amber-400 transition-colors">
-                <div class="min-w-0 flex-1 flex flex-col gap-1">
+                <button
+                  type="button"
+                  phx-click="open-app"
+                  phx-target={@myself}
+                  phx-value-pk={row.pk}
+                  phx-value-slug={row.slug}
+                  class="min-w-0 flex-1 text-left flex flex-col gap-1"
+                >
                   <span class="flex min-w-0 items-center gap-2">
                     {family_badge(row.family) |> Phoenix.HTML.raw()}
                     <span class="truncate font-mono text-sm text-slate-800 dark:text-slate-100">{row.slug}</span>
-                    <span class="rounded bg-slate-200 px-1.5 py-0.5 text-[10px] font-bold bg-slate-200 text-slate-700 dark:bg-slate-700 dark:text-slate-300">v{row.version}</span>
+                    <span class="rounded bg-slate-200 px-1.5 py-0.5 text-[10px] font-bold text-slate-700 dark:bg-slate-700 dark:text-slate-300">v{row.version}</span>
                   </span>
                   <span class="block truncate text-xs text-slate-500 dark:text-slate-400">{description_text(
                     row
                   )}</span>
-                </div>
+                </button>
                 <%!-- The right-hand column is as tall as the card, so the
                     author sits on the name line and the date drops to the
-                    description's line, both flush to the same right edge. --%>
+                    description's line, both flush to the same right edge.
+                    Stacked here rather than in the button, which is the
+                    action to open the app. --%>
                 <div class="flex shrink-0 flex-col items-end justify-between text-xs text-slate-500 dark:text-slate-400">
                   <div class="flex items-center gap-1.5">
                     {Display.scaled_avatar(row.pk, 2) |> Phoenix.HTML.raw()}
@@ -72,6 +84,30 @@ defmodule Catenary.Live.ListingsExplorer do
     </div>
     """
   end
+
+  # Opening a listing is navigation, and navigation belongs to the parent
+  # LiveView. Components run in that process, so a message shaped like the
+  # one the parent already handles is the whole hand-off.
+  #
+  # The row is looked up again rather than trusted: the click payload comes
+  # from the client, and only a `(pk, slug)` the control log actually
+  # announces should be openable.
+  @impl true
+  def handle_event("open-app", %{"pk" => pk, "slug" => slug}, socket) do
+    if listed?(pk, slug) do
+      send(self(), %{view: :app, entry: {:app, {pk, slug}}})
+    end
+
+    {:noreply, socket}
+  end
+
+  defp listed?(pk, slug) when is_binary(pk) and is_binary(slug) do
+    :ets.lookup(:listings, {pk, slug}) != []
+  rescue
+    ArgumentError -> false
+  end
+
+  defp listed?(_pk, _slug), do: false
 
   # Read defensively: the endpoint starts ahead of the index workers, so a
   # first paint can beat the `:listings` table into existence.

@@ -277,6 +277,38 @@ defmodule CatenaryWeb.Live do
     """
   end
 
+  def render(%{view: :app, entry: {:app, {pk, slug}}} = assigns) do
+    assigns = assign(assigns, pk: pk, slug: slug)
+
+    ~H"""
+    <.three_column_layout {assigns}>
+      <.live_component
+        module={Catenary.Live.AppViewer}
+        id={:app}
+        index_version={@index_version}
+        pk={@pk}
+        slug={@slug}
+        clump_id={@clump_id}
+        aliases={@aliases}
+        entry={@entry}
+      />
+    </.three_column_layout>
+    """
+  end
+
+  # The app view only means anything with an app to run. Landing here from a
+  # saved entry whose listing has since delisted gets a plain message rather
+  # than a function-clause crash on the whole LiveView.
+  def render(%{view: :app} = assigns) do
+    ~H"""
+    <.three_column_layout {assigns}>
+      <div id="app-explore-wrap" class="content-wrap">
+        <p class="text-sm text-slate-400 dark:text-slate-600">No app open.</p>
+      </div>
+    </.three_column_layout>
+    """
+  end
+
   def render(%{view: :entries} = assigns) do
     ~H"""
     <.three_column_layout {assigns}>
