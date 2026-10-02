@@ -18,6 +18,34 @@
       color-scheme: dark;
     }
   }
+  /* Playground editor colours. Custom properties rather than Tailwind
+     utilities because CodeMirror paints its own DOM from a JS theme and can
+     only read what is already on the cascade — this is how the app's
+     media-based dark: variant reaches it. */
+  :root {
+    --ed-bg: #ffffff;
+    --ed-fg: #0f172a;
+    --ed-muted: #94a3b8;
+    --ed-caret: #0f172a;
+    --ed-gutter: #64748b;
+    --ed-selection: #fde68a99;
+    --ed-active: #f8fafc;
+    --ed-match: #fef3c7;
+    --ed-border: #e2e8f0;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --ed-bg: #0f172a;
+      --ed-fg: #f1f5f9;
+      --ed-muted: #64748b;
+      --ed-caret: #f1f5f9;
+      --ed-gutter: #64748b;
+      --ed-selection: #f59e0b66;
+      --ed-active: #1e293b;
+      --ed-match: #78350f;
+      --ed-border: #334155;
+    }
+  }
   h1 {
     @apply text-2xl m-1;
   }

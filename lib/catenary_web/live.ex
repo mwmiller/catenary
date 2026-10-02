@@ -10,6 +10,7 @@ defmodule CatenaryWeb.Live do
     Games.Backgammon.Chain,
     Games.Backgammon.Game,
     IndexWorker.Challenges,
+    Live.AppPlayground,
     LogWriter,
     Navigation,
     Preferences
@@ -18,6 +19,17 @@ defmodule CatenaryWeb.Live do
   # The control log the challenge forms publish to; the same value
   # LogWriter's challenge clauses match on.
   @challenge_log_id Integer.to_string(QuaggaDef.control_log(:backgammon))
+
+  # What one playground draft may hold in socket state. An authoring buffer,
+  # not a file format — the publish path re-checks against the real artifact
+  # cap — so this only bounds what a keystroke may carry up the socket.
+  @max_source_bytes 256 * 1024
+
+  # How much of a run's trace the LiveView keeps. The hook batches and trims
+  # before it sends, and this trims again, because the trace is held in
+  # assigns for the life of the session and a module that prints in a loop
+  # must not be able to grow it without bound.
+  @trace_limit 200
 
   def mount(params, session, socket) do
     # Making sure these exist, but also faux docs
@@ -68,6 +80,9 @@ defmodule CatenaryWeb.Live do
          profile_items: Catenary.profile_items_state(),
          view: view,
          extra_nav: :none,
+         source: AppPlayground.starter_source(),
+         trace: [],
+         trace_at: 0,
          connect_mode: "announced",
          manual: %{},
          mdns_peers: [],
@@ -309,6 +324,25 @@ defmodule CatenaryWeb.Live do
     """
   end
 
+  # The playground is authoring, not indexing, so it has no button on the
+  # explorebar strip — that strip is the views gated on a log name and reads
+  # as what is indexed. It arrives from the listings header's *New app*
+  # action instead, and `entry: :all` is the blank draft: there is no app open
+  # here yet, only the pane that will hold one.
+  def render(%{view: :playground} = assigns) do
+    ~H"""
+    <.three_column_layout {assigns}>
+      <.live_component
+        module={Catenary.Live.AppPlayground}
+        id={:playground}
+        source={@source}
+        clump_id={@clump_id}
+        identity={@identity}
+      />
+    </.three_column_layout>
+    """
+  end
+
   def render(%{view: :entries} = assigns) do
     ~H"""
     <.three_column_layout {assigns}>
@@ -514,6 +548,19 @@ defmodule CatenaryWeb.Live do
     end
   end
 
+  # The playground is an authoring workspace, not a feed screen: the compose
+  # and challenge triggers post to logs, which is not what is happening here.
+  # Swapping the rail is a render decision only — every assign `Navigation`
+  # reads (history stacks, the open compose panel, the current entry) belongs to
+  # this LiveView, so the component draws again unchanged on the way back.
+  defp activitybar(%{view: :playground} = assigns) do
+    ~H"""
+    <div class="mt-5 min-h-[400px]">
+      <.live_component module={Catenary.Live.PlaygroundNav} id={:playground_nav} />
+    </div>
+    """
+  end
+
   defp activitybar(assigns) do
     ~H"""
     <div class="mt-5 min-h-[400px]">
@@ -532,6 +579,23 @@ defmodule CatenaryWeb.Live do
         clump_id={@clump_id}
       />
     </div>
+    """
+  end
+
+  # Prev/next author and entry walk a timeline, and a draft has none: following
+  # these would push entries onto the history stacks for a screen that ignores
+  # them. The rail itself stays — same width, same height, different tools —
+  # so the three-column layout does not collapse and shift the editor when the
+  # author leaves the playground and comes back. The explorebar's Back and
+  # Forward stay live too: that is the author's own way home.
+  defp timeline_nav(%{view: :playground} = assigns) do
+    ~H"""
+    <.live_component
+      module={Catenary.Live.PlaygroundTimeline}
+      id={:playground_timeline}
+      trace={@trace}
+      trace_at={@trace_at}
+    />
     """
   end
 
@@ -568,6 +632,28 @@ defmodule CatenaryWeb.Live do
       >↧</button>
     </div>
     """
+  end
+
+  # Compiling belongs here rather than in the rail button that asks for it:
+  # the draft is this LiveView's assign, and the module has to reach the pane
+  # as one push either way. A failure is a trace entry and a status line, not
+  # an exception — a buffer that does not compile is the ordinary case while
+  # it is being written.
+  def handle_info(:playground_run, socket) do
+    socket = assign(socket, trace: [], trace_at: 0)
+
+    case compile_wat(socket.assigns.source) do
+      {:ok, wasm} ->
+        {:noreply, push_event(socket, "app-run", %{"wasm" => Base.encode64(wasm)})}
+
+      {:error, message} ->
+        socket = record_trace(socket, [%{"kind" => "compile", "detail" => message}])
+        {:noreply, push_event(socket, "app-run", %{"error" => message})}
+    end
+  end
+
+  def handle_info(:playground_stop, socket) do
+    {:noreply, push_event(socket, "app-stop", %{})}
   end
 
   def handle_info(<<"toggle-", _::binary>> = event, socket), do: handle_event(event, nil, socket)
@@ -717,6 +803,36 @@ defmodule CatenaryWeb.Live do
     # This :all default might not make sense in the long-term
     # Its starting now. Under consideration 2023-09-03
     {:noreply, state_set(socket, %{view: String.to_existing_atom(sview), entry: :all})}
+  end
+
+  # The playground draft lives on the LiveView rather than in the
+  # AppPlayground component: navigating away destroys the component, and an
+  # editor buffer that empties when you click ⬡ is not an editor buffer. The
+  # CodeEditor hook debounces, so this is one message per burst of typing
+  # rather than one per keystroke.
+  def handle_event("playground-source", %{"value" => value}, socket)
+      when is_binary(value) do
+    {:noreply, assign(socket, source: String.slice(value, 0, @max_source_bytes))}
+  end
+
+  # The run's history, batched by the hook so a chatty module is one message
+  # per flush rather than one per line, and the cursor over it. Both live on
+  # the LiveView because that is what the left rail renders from.
+  def handle_event("app-trace", %{"entries" => entries}, socket) when is_list(entries) do
+    {:noreply, record_trace(socket, entries)}
+  end
+
+  def handle_event("trace-step", %{"value" => step}, socket) do
+    last = max(length(socket.assigns.trace) - 1, 0)
+
+    at =
+      case step do
+        "prev" -> max(socket.assigns.trace_at - 1, 0)
+        "next" -> min(socket.assigns.trace_at + 1, last)
+        _ -> socket.assigns.trace_at
+      end
+
+    {:noreply, assign(socket, trace_at: at)}
   end
 
   # Settings (⚙ in the explorebar) are a mode, not a content view: switching
@@ -1444,6 +1560,32 @@ defmodule CatenaryWeb.Live do
   end
 
   defp maybe_reindex_aliases(_socket, _from_caller), do: :ok
+
+  # WAT to wasm for the playground's Run. watusi raises on a buffer it cannot
+  # parse, and a buffer that does not parse is the ordinary case while it is
+  # being written rather than a crash of the LiveView process, so the raise
+  # is the error channel.
+  defp compile_wat(source) when is_binary(source) do
+    {:ok, Watusi.to_wasm(source)}
+  rescue
+    error -> {:error, Exception.message(error)}
+  end
+
+  # Append to the run's trace, keeping the newest @trace_limit entries and
+  # moving the cursor to the tail: a fresh trace is read from the end, the
+  # way a print log is. Malformed entries are dropped rather than rendered —
+  # the list comes off the socket, so it is data the LiveView did not write.
+  defp record_trace(socket, entries) do
+    clean =
+      for %{"kind" => kind, "detail" => detail} <- entries,
+          is_binary(kind),
+          is_binary(detail) do
+        %{"kind" => kind, "detail" => String.slice(detail, 0, 400)}
+      end
+
+    trace = Enum.slice(socket.assigns.trace ++ clean, -@trace_limit, @trace_limit)
+    assign(socket, trace: trace, trace_at: max(length(trace) - 1, 0))
+  end
 
   defp state_set(socket, from_caller) when is_map(from_caller),
     do: state_set(socket, from_caller, [])

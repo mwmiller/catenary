@@ -60,6 +60,11 @@ fn build_menu(app: &tauri::App) -> tauri::Result<()> {
     let unshown = MenuItemBuilder::with_id("unshown", "Unshown")
         .accelerator("CmdOrCtrl+U")
         .build(handle)?;
+    // The playground is where a new app starts, so it takes the shortcut a
+    // "New" item would otherwise hold.
+    let playground = MenuItemBuilder::with_id("playground", "Playground")
+        .accelerator("CmdOrCtrl+N")
+        .build(handle)?;
     let profile = MenuItemBuilder::with_id("profile", "My Profile")
         .accelerator("CmdOrCtrl+Shift+P")
         .build(handle)?;
@@ -117,6 +122,7 @@ fn build_menu(app: &tauri::App) -> tauri::Result<()> {
         .separator()
         .item(&oases)
         .item(&unshown)
+        .item(&playground)
         .separator()
         .item(&profile)
         .build()?;
@@ -275,6 +281,15 @@ pub fn run() {
                     "main",
                     "catenary-menu",
                     json!({ "view": "unshown", "entry": "all" }),
+                );
+            }
+            // A blank draft, the same destination as the listings header's
+            // New app button, so it is a navigation with history behind it.
+            "playground" => {
+                let _ = app.emit_to(
+                    "main",
+                    "catenary-menu",
+                    json!({ "view": "playground", "entry": "all" }),
                 );
             }
             "profile" => {

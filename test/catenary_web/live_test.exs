@@ -11,6 +11,17 @@ defmodule CatenaryWeb.LiveTest do
     # whatever is already there seen rather than let a leftover entry light
     # the badge for the tests that follow.
     Preferences.mark_all_entries(:shown)
+
+    # Every test here boots at "/" and the navigation tests below change the
+    # persisted view and entry, which is what the next test would boot into.
+    # Hand each one the same starting screen.
+    starting = %{view: Preferences.get(:view), entry: Preferences.get(:entry)}
+
+    on_exit(fn ->
+      Preferences.set(:view, starting.view)
+      Preferences.set(:entry, starting.entry)
+    end)
+
     :ok
   end
 
@@ -143,6 +154,20 @@ defmodule CatenaryWeb.LiveTest do
     assert view |> element("button[aria-label=Settings]") |> render() =~ ~s(aria-current="page")
     back = view |> element("button[title=Back]") |> render()
     assert back =~ "disabled"
+  end
+
+  test "the native Go menu opens the playground as a navigation" do
+    {:ok, view, _html} = live(build_conn(), "/")
+
+    # The same destination as the listings header's New app button, so it
+    # arrives with history behind it rather than as a mode like Settings —
+    # Back is live and returns to where the menu was opened from.
+    view |> element("button[title=Tags]") |> render_click()
+
+    render_hook(view, "menu", %{"view" => "playground", "entry" => "all"})
+
+    assert view |> element("h1") |> render() =~ "Playground"
+    refute view |> element("button[title=Back]") |> render() =~ "disabled"
   end
 
   test "the reindex button sits outside the index indicator strip" do

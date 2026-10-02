@@ -14,6 +14,11 @@ defmodule Catenary.Live.ListingsExplorer do
   lists. With only `:app` announced today that is all-or-nothing, but the
   check is written against the row's own tag so a second family on the
   `:listing` control log arrives already filtered.
+
+  The header also carries the **New app** action. That is navigation out of
+  this view rather than a listing — it opens the playground on an empty
+  draft — and it is where listing filter and sort controls will sit when
+  they arrive, beside it rather than replacing it.
   """
   use Phoenix.LiveComponent
   alias Catenary.Display
@@ -28,11 +33,22 @@ defmodule Catenary.Live.ListingsExplorer do
     ~H"""
     <div id="listings-explore-wrap" class="content-wrap">
       <div class="flex flex-col gap-4">
-        <div class="flex items-center justify-between">
+        <div class="flex items-center justify-between gap-2">
           <h1 class="text-lg font-semibold text-slate-800 dark:text-slate-100">Listings Explorer</h1>
-          <span :if={@listings != []} class="text-xs text-slate-400 dark:text-slate-500">
-            {@listings |> length() |> pluralize("listing", "listings")}
-          </span>
+          <div class="flex shrink-0 items-center gap-3">
+            <span :if={@listings != []} class="text-xs text-slate-400 dark:text-slate-500">
+              {@listings |> length() |> pluralize("listing", "listings")}
+            </span>
+            <button
+              :if={Catenary.Preferences.accept_log_name?(:listing)}
+              type="button"
+              phx-click="new-playground"
+              phx-target={@myself}
+              title="New app"
+              aria-label="New app — open the playground"
+              class="btn-ghost"
+            >+</button>
+          </div>
         </div>
 
         <%= if @listings == [] do %>
@@ -96,6 +112,19 @@ defmodule Catenary.Live.ListingsExplorer do
   def handle_event("open-app", %{"pk" => pk, "slug" => slug}, socket) do
     if listed?(pk, slug) do
       send(self(), %{view: :app, entry: {:app, {pk, slug}}})
+    end
+
+    {:noreply, socket}
+  end
+
+  # Authoring is navigation like opening a listing is: the blank draft is the
+  # `:all` entry, and the parent's `handle_info` carries it onto the back stack
+  # the same way. The button is already hidden without the listing log, but the
+  # gate is repeated because the message rather than the button is what opens
+  # the view, and a playground with no log to publish to is a dead end.
+  def handle_event("new-playground", _, socket) do
+    if Catenary.Preferences.accept_log_name?(:listing) do
+      send(self(), %{view: :playground, entry: :all})
     end
 
     {:noreply, socket}

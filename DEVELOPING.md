@@ -52,6 +52,22 @@ anything in `assets/`:
 mix assets.deploy
 ```
 
+## Third-party JavaScript
+
+Everything under `assets/vendor/` is committed rather than installed, so a
+normal build runs no npm and fetches nothing: the page loads only what the
+repository already contains, which is what keeps offline and desktop use
+honest. Do not add a `package.json`.
+
+That makes the vendored files an upgrade, not a build step. The playground's
+CodeMirror editor bundle is produced by a script, run by hand only when you
+deliberately want a newer library — that one run needs the network, installs
+into a temporary directory, and removes it again:
+
+```
+./scripts/build-codemirror.sh
+```
+
 ## Tests and checks
 
 ```
