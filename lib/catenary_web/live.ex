@@ -15,6 +15,10 @@ defmodule CatenaryWeb.Live do
     Preferences
   }
 
+  # The control log the challenge forms publish to; the same value
+  # LogWriter's challenge clauses match on.
+  @challenge_log_id Integer.to_string(QuaggaDef.control_log(:backgammon))
+
   def mount(params, session, socket) do
     # Making sure these exist, but also faux docs
     {:asc, :desc, :author, :logid, :seq}
@@ -112,9 +116,6 @@ defmodule CatenaryWeb.Live do
         facet_id={@facet_id}
         aliases={@aliases}
         accepted_logs={@accepted_logs}
-        challenge_checked={
-          Map.get(assigns, :challenge_checked, Preferences.accept_log_name?(:challenge))
-        }
       />
     </.three_column_layout>
     """
@@ -242,6 +243,20 @@ defmodule CatenaryWeb.Live do
     """
   end
 
+  def render(%{view: :listings} = assigns) do
+    ~H"""
+    <.three_column_layout {assigns}>
+      <.live_component
+        module={Catenary.Live.ListingsExplorer}
+        id={:listings}
+        index_version={@index_version}
+        entry={:all}
+        aliases={@aliases}
+      />
+    </.three_column_layout>
+    """
+  end
+
   def render(%{view: :game, entry: {:game, gid}} = assigns) do
     assigns = assign(assigns, game_id: gid)
 
@@ -338,6 +353,15 @@ defmodule CatenaryWeb.Live do
             class={view_btn_cls(@view, :challenges)}
           >⚄</button>
           <button
+            :if={Preferences.accept_log_name?(:listing)}
+            value="listings"
+            phx-click="toview"
+            title="Listings"
+            aria-label="Listings"
+            aria-current={aria_current(@view, :listings)}
+            class={view_btn_cls(@view, :listings)}
+          >⬡</button>
+          <button
             :if={Preferences.accept_log_name?(:tag)}
             value="tags"
             phx-click="toview"
@@ -346,6 +370,18 @@ defmodule CatenaryWeb.Live do
             aria-current={aria_current(@view, :tags)}
             class={view_btn_cls(@view, :tags)}
           >#</button>
+          <button
+            :if={
+              Preferences.accept_log_name?(:gif) or Preferences.accept_log_name?(:png) or
+                Preferences.accept_log_name?(:jpeg)
+            }
+            value="images"
+            phx-click="toview"
+            title="Images"
+            aria-label="Images"
+            aria-current={aria_current(@view, :images)}
+            class={view_btn_cls(@view, :images)}
+          >▣</button>
           <button
             :if={Preferences.accept_log_name?(:react)}
             value="reactions"
@@ -363,18 +399,6 @@ defmodule CatenaryWeb.Live do
             aria-current={aria_current(@view, :unshown)}
             class={view_btn_cls(@view, :unshown)}
           >◎<span :if={@has_unshown} class="btn-icon-badge" aria-hidden="true"></span></button>
-          <button
-            :if={
-              Preferences.accept_log_name?(:gif) or Preferences.accept_log_name?(:png) or
-                Preferences.accept_log_name?(:jpeg)
-            }
-            value="images"
-            phx-click="toview"
-            title="Images"
-            aria-label="Images"
-            aria-current={aria_current(@view, :images)}
-            class={view_btn_cls(@view, :images)}
-          >▣</button>
           <button
             :if={Preferences.accept_log_name?(:alias)}
             value="aliases"
@@ -927,7 +951,7 @@ defmodule CatenaryWeb.Live do
 
       accept =
         %{
-          "log_id" => "777",
+          "log_id" => @challenge_log_id,
           "type" => "accept",
           "game_id" => gid,
           "family" => tag,
@@ -958,7 +982,7 @@ defmodule CatenaryWeb.Live do
     case Base.decode16(game_id, case: :lower) do
       {:ok, gid} ->
         LogWriter.new_entry(
-          %{"log_id" => "777", "type" => "withdraw", "game_id" => gid},
+          %{"log_id" => @challenge_log_id, "type" => "withdraw", "game_id" => gid},
           socket
         )
 
@@ -1110,12 +1134,7 @@ defmodule CatenaryWeb.Live do
       |> Enum.filter(fn name -> Map.has_key?(values, "log_name-#{name}") end)
       |> MapSet.new()
 
-    challenge_checked = MapSet.member?(checked, :challenge)
-
-    {:noreply,
-     socket
-     |> assign(accepted_logs: checked)
-     |> assign(challenge_checked: challenge_checked)}
+    {:noreply, assign(socket, accepted_logs: checked)}
   end
 
   def handle_event("connect", %{"value" => where}, socket) do
@@ -1672,7 +1691,7 @@ defmodule CatenaryWeb.Live do
 
       challenge =
         %{
-          "log_id" => "777",
+          "log_id" => @challenge_log_id,
           "type" => "challenge",
           "game_id" => game_id,
           "family" => tag,

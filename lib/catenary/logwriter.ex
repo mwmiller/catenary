@@ -5,6 +5,9 @@ defmodule Catenary.LogWriter do
   @moduledoc """
   Functions for dealing with writing to the Baobab log store
   """
+  @challenge_log QuaggaDef.control_log(:backgammon)
+  @challenge_log_str Integer.to_string(@challenge_log)
+
   @doc """
   Append a log with interface-provided values for the given Phoenix socket
   """
@@ -246,19 +249,25 @@ defmodule Catenary.LogWriter do
     all_family_names =
       QuaggaDef.families() |> Enum.map(fn {name, _tag} -> Atom.to_string(name) end)
 
-    fam_blocked = "challenge" in dl
+    form_fams = Catenary.checkbox_expander(values, "family-")
+
+    # A family is governed by its own control log, so rejecting that log
+    # blocks the family whatever the form submitted, and accepting it leaves
+    # the family to its checkbox.
+    gated_fams =
+      for {name, %{control_log: control}} <- QuaggaDef.family_defs(),
+          Atom.to_string(control) in dl,
+          do: Atom.to_string(name)
+
+    blocked_fams = Enum.uniq(gated_fams ++ (all_family_names -- form_fams))
+
+    unblocked_fams =
+      Enum.filter(all_family_names, fn s -> s in form_fams and s not in blocked_fams end)
 
     fam_data =
-      if fam_blocked do
-        %{"block_families" => all_family_names, "unblock_families" => []}
-      else
-        accepted_fams = Catenary.checkbox_expander(values, "family-")
-        blocked_fams = Enum.reject(all_family_names, fn s -> s in accepted_fams end)
-
-        case {blocked_fams, accepted_fams} do
-          {[], []} -> %{}
-          _ -> %{"block_families" => blocked_fams, "unblock_families" => accepted_fams}
-        end
+      case {blocked_fams, unblocked_fams} do
+        {[], []} -> %{}
+        _ -> %{"block_families" => blocked_fams, "unblock_families" => unblocked_fams}
       end
 
     %Baobab.Entry{author: a, log_id: l, seqnum: e} =
@@ -351,10 +360,10 @@ defmodule Catenary.LogWriter do
     {Baobab.Identity.as_base62(a), l, e}
   end
 
-  # Backgammon challenge log (777)
+  # Backgammon challenge log (the family's control log)
   def new_entry(
         %{
-          "log_id" => "777",
+          "log_id" => @challenge_log_str,
           "type" => type,
           "family" => family
         } = values,
@@ -375,13 +384,16 @@ defmodule Catenary.LogWriter do
         "published" => DateTime.utc_now() |> DateTime.to_string()
       }
       |> CBOR.encode()
-      |> append_log_for_socket(777, socket)
+      |> append_log_for_socket(@challenge_log, socket)
 
     Indices.update(:challenges)
     {Baobab.Identity.as_base62(a), l, e}
   end
 
-  def new_entry(%{"log_id" => "777", "type" => "withdraw", "game_id" => game_id}, socket) do
+  def new_entry(
+        %{"log_id" => @challenge_log_str, "type" => "withdraw", "game_id" => game_id},
+        socket
+      ) do
     %Baobab.Entry{author: a, log_id: l, seqnum: e} =
       %{
         "type" => "withdraw",
@@ -389,7 +401,7 @@ defmodule Catenary.LogWriter do
         "published" => DateTime.utc_now() |> DateTime.to_string()
       }
       |> CBOR.encode()
-      |> append_log_for_socket(777, socket)
+      |> append_log_for_socket(@challenge_log, socket)
 
     Indices.update(:challenges)
     {Baobab.Identity.as_base62(a), l, e}

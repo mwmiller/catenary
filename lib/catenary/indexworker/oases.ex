@@ -1,7 +1,7 @@
 defmodule Catenary.IndexWorker.Oases do
   use Catenary.IndexWorker.Common,
     name_atom: :oases,
-    indica: {"⇆", "⇄"},
+    indica: {"↻", "⇆"},
     logs: QuaggaDef.logs_for_name(:oasis)
 
   @moduledoc """

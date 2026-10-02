@@ -3,7 +3,7 @@ defmodule Catenary.IndexWorker.About do
   use Catenary.IndexWorker.Common,
     name_atom: :about,
     extra_tables: [:avatars],
-    indica: {"⸘", "‽"},
+    indica: {"★", "☆"},
     logs: QuaggaDef.logs_for_name(:about)
 
   @moduledoc """

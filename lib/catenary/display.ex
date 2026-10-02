@@ -177,7 +177,14 @@ defmodule Catenary.Display do
   defp faux_title(:react, _), do: "Reaction"
   defp faux_title(:oasis, %{"name" => name}), do: "Oasis: " <> name
   defp faux_title(:tag, _), do: "Tagging"
-  defp faux_title(:challenge, %{"type" => "challenge"}), do: "Backgammon Challenge"
+  defp faux_title(:listing, %{"slug" => slug}) when is_binary(slug), do: "Listing: " <> slug
+  defp faux_title(:listing, _), do: "Listing"
+
+  defp faux_title(:challenge, %{"type" => "challenge", "family" => fam})
+       when is_integer(fam) and fam >= 1 and fam <= 255,
+       do: pretty_family(fam) <> " Challenge"
+
+  defp faux_title(:challenge, %{"type" => "challenge"}), do: "Challenge"
   defp faux_title(:challenge, %{"type" => "accept"}), do: "Challenge Accepted"
   defp faux_title(:challenge, %{"type" => "withdraw"}), do: "Challenge Withdrawn"
   defp faux_title(:challenge, _), do: "Challenge Log Entry"
@@ -259,4 +266,11 @@ defmodule Catenary.Display do
   end
 
   defp cap_atom_string(a), do: a |> Atom.to_string() |> String.capitalize()
+
+  defp pretty_family(tag) do
+    case QuaggaDef.family_name(tag) do
+      :unknown -> "Family #{tag}"
+      name -> cap_atom_string(name)
+    end
+  end
 end

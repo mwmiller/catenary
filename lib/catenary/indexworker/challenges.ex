@@ -3,8 +3,8 @@ defmodule Catenary.IndexWorker.Challenges do
 
   use Catenary.IndexWorker.Common,
     name_atom: :challenges,
-    indica: {"🎲", "▢"},
-    logs: QuaggaDef.logs_for_name(:challenge)
+    indica: {"🎲", "⚄"},
+    logs: QuaggaDef.control_logs(:backgammon)
 
   alias Catenary.Games.Backgammon.Fold
 

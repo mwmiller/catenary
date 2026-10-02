@@ -127,7 +127,7 @@ defmodule Catenary.Live.Navigation do
         phx-submit="new-challenge"
         class="flex flex-col gap-3 mt-3"
       >
-        <input type="hidden" name="log_id" value="777" />
+        <input type="hidden" name="log_id" value={to_string(QuaggaDef.control_log(:backgammon))} />
         <input type="hidden" name="to" value={@whom} />
         <div class="flex items-center gap-2">
           {Display.scaled_avatar(@whom, 2) |> Phoenix.HTML.raw()}
@@ -137,7 +137,7 @@ defmodule Catenary.Live.Navigation do
         </div>
         <label for="family" class={label_cls()}>Family</label>
         <select id="family" name="family" class={input_cls()}>
-          <%= for {name, tag} <- QuaggaDef.families() do %>
+          <%= for {name, tag} <- QuaggaDef.families_for_control_log(:challenge) do %>
             <option value={tag}>{name}</option>
           <% end %>
         </select>
@@ -161,10 +161,10 @@ defmodule Catenary.Live.Navigation do
         phx-submit="new-challenge"
         class="flex flex-col gap-3 mt-3"
       >
-        <input type="hidden" name="log_id" value="777" />
+        <input type="hidden" name="log_id" value={to_string(QuaggaDef.control_log(:backgammon))} />
         <label for="family" class={label_cls()}>Family</label>
         <select id="family" name="family" class={input_cls()}>
-          <%= for {name, tag} <- QuaggaDef.families() do %>
+          <%= for {name, tag} <- QuaggaDef.families_for_control_log(:challenge) do %>
             <option value={tag}>{name}</option>
           <% end %>
         </select>

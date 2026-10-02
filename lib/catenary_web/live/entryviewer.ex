@@ -4,7 +4,7 @@ defmodule Catenary.Live.EntryViewer do
   """
   require Logger
   use Phoenix.LiveComponent
-  alias Catenary.{Display, Preferences}
+  alias Catenary.{Apps, Display, Preferences}
 
   @image_logs Catenary.image_logs()
   @impl true
@@ -579,6 +579,23 @@ defmodule Catenary.Live.EntryViewer do
     e -> malformed(e, cbor)
   end
 
+  # App listings announced on a listing control log, plus the de-listings that
+  # retract them. The slug names the thing being announced, so it carries the
+  # title and the body stays plain text: this payload is peer-authored, and the
+  # template escapes whatever reaches it.
+  defp extract_type(cbor, %{name: :listing}) do
+    {:ok, data, ""} = CBOR.decode(cbor)
+
+    %{
+      "title" => Display.entry_title(:listing, data),
+      "body" => listing_body(data),
+      "back-refs" => maybe_refs(data["references"]),
+      "published" => data["published"]
+    }
+  rescue
+    e -> malformed(e, cbor)
+  end
+
   # Fallback for any recognized log without a purpose-built viewer
   # render the decoded payload as an inspect dump in a fenced
   # markdown code block. Falls through the specific clauses above, so it also
@@ -600,6 +617,41 @@ defmodule Catenary.Live.EntryViewer do
   rescue
     e -> malformed(e, cbor)
   end
+
+  defp listing_body(data) do
+    slug = Map.get(data, "slug") || "unknown slug"
+
+    case data["type"] do
+      "delist" ->
+        slug <> " was de-listed"
+
+      _ ->
+        # The listing's own words when it has them: the title already names
+        # the slug, and this is the card a reader decides on. The summary of
+        # fields is what a listing that never said anything gets.
+        case Apps.description(data) do
+          nil ->
+            [slug, listing_family(Map.get(data, "family")), listing_version(Map.get(data, "v"))]
+            |> Enum.reject(&is_nil/1)
+            |> Enum.join(" · ")
+
+          description ->
+            description
+        end
+    end
+  end
+
+  defp listing_family(tag) when is_integer(tag) and tag >= 1 and tag <= 255 do
+    case QuaggaDef.family_name(tag) do
+      :unknown -> "family #{tag}"
+      name -> Atom.to_string(name)
+    end
+  end
+
+  defp listing_family(_), do: nil
+
+  defp listing_version(v) when is_integer(v), do: "v#{v}"
+  defp listing_version(_), do: nil
 
   defp graph_logs_body(data) do
     accept = Map.get(data, "accept", [])

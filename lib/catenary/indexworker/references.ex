@@ -2,7 +2,7 @@ defmodule Catenary.IndexWorker.References do
   @name_atom :references
   use Catenary.IndexWorker.Common,
     name_atom: :references,
-    indica: {"↪︎", "↩︎"},
+    indica: {"◉", "◌"},
     logs: QuaggaDef.logs_for_encoding(:cbor)
 
   @moduledoc """

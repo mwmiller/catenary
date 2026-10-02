@@ -1,6 +1,27 @@
 defmodule Catenary.IndexWorker.Common do
   @moduledoc """
   Common.__using__/1 setup shared by all index worker GenServers: table names, the :logs_of_interest module attribute, start_link, and index/init plumbing.
+
+  ## `indica: {running, idle}`
+
+  The two glyphs the status pill shows while this worker is indexing and
+  while it is idle. Three rules, applied to every worker:
+
+    * **Distinct.** The pair must be tellable apart at pill size; color alone
+      already differs (amber vs slate), but the glyph has to carry the state
+      on its own too. No worker may share a glyph with another worker's
+      `indica`, or two pills in the strip become indistinguishable.
+
+    * **`idle` is the view's identity.** Where the explorebar has a button
+      for this index, the idle glyph *is* that button's glyph, so the resting
+      pill reads as "that view" and lights up into something else while
+      indexing.
+
+    * **`running` is the state.** The heavier or otherwise contrasting form
+      of the pair: filled against outline, motion against rest.
+
+  Example: `indica: {"▦", "▣"}` — images runs as a filled grid and rests as
+  the same `▣` the explorebar button uses.
   """
   def extract_opts(opts) do
     name_atom = Keyword.get(opts, :name_atom)
@@ -21,6 +42,18 @@ defmodule Catenary.IndexWorker.Common do
       alias Catenary.Preferences
 
       @logs_of_interest unquote(loi)
+
+      @doc """
+      The `{running, idle}` status-pill glyphs for this worker.
+
+      Read by the tests that hold the rules in the moduledoc above — see
+      the `indica` tests under `test/catenary/indexworker/`.
+
+          {running, idle} = Catenary.IndexWorker.Tags.indica()
+          running != idle
+      """
+      @spec indica() :: {binary, binary}
+      def indica, do: {unquote(run), unquote(idle)}
 
       def start_link(state) do
         GenServer.start_link(__MODULE__, state, name: unquote(na))

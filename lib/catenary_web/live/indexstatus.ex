@@ -11,6 +11,7 @@ defmodule Catenary.Live.IndexStatus do
   @log_type_map %{
     about: [:about],
     aliases: [:alias],
+    listings: [:listing],
     challenges: [:challenge],
     graph: [:graph],
     images: [:gif, :png, :jpeg],

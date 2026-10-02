@@ -7,6 +7,7 @@ defmodule Catenary.IndexSup do
     Challenges,
     Graph,
     Images,
+    Listings,
     Mentions,
     Oases,
     Reactions,
@@ -39,6 +40,7 @@ defmodule Catenary.IndexSup do
       Timelines,
       About,
       Challenges,
+      Listings,
       Oases
     ]
 

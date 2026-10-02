@@ -258,8 +258,9 @@ defmodule Catenary.Live.PrefsManager do
                       type="checkbox"
                       name={"family-#{name}"}
                       value={name}
-                      checked={family_checked?(name, @challenge_checked)}
-                      class="h-4 w-4 rounded border-slate-300 dark:border-slate-600 text-amber-500 dark:text-amber-400 focus:ring-1 focus:ring-amber-500/60 dark:focus:ring-400/60"
+                      checked={family_checked?(name, @accepted_logs)}
+                      disabled={QuaggaDef.family_control_log(name) not in @accepted_logs}
+                      class="h-4 w-4 rounded border-slate-300 dark:border-slate-600 text-amber-500 dark:text-amber-400 focus:ring-1 focus:ring-amber-500/60 dark:focus:ring-400/60 disabled:opacity-40"
                     />&nbsp;{name}
                   </label>
                 <% end %>
@@ -305,14 +306,14 @@ defmodule Catenary.Live.PrefsManager do
     """
   end
 
-  defp family_checked?(name, challenge_checked) do
-    if challenge_checked do
-      tag = QuaggaDef.families()[name]
-      clump_id = Preferences.get(:clump_id)
+  # A family is governed by its own control log, so it can only be on when
+  # that log is accepted and it is not blocked outright.
+  defp family_checked?(name, accepted_logs) do
+    tag = QuaggaDef.family_tag(name)
+    clump_id = Preferences.get(:clump_id)
+
+    QuaggaDef.family_control_log(name) in accepted_logs and
       not Catenary.BlockLog.blocked_family?(tag, clump_id)
-    else
-      false
-    end
   end
 
   defp log_info_string(store, k) do

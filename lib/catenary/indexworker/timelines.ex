@@ -2,7 +2,7 @@ defmodule Catenary.IndexWorker.Timelines do
   @name_atom :timelines
   use Catenary.IndexWorker.Common,
     name_atom: :timelines,
-    indica: {"✐", "✎"},
+    indica: {"✎", "☰"},
     logs:
       Enum.reduce(Catenary.timeline_logs(), [], fn n, a -> a ++ QuaggaDef.logs_for_name(n) end)
 
