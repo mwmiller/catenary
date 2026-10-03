@@ -67,6 +67,24 @@ defmodule CatenaryWeb.LiveTest do
     assert unshown =~ "btn-icon"
   end
 
+  test "unshown app records never flag the unshown button" do
+    # The setup above swept the store shown; this app-kind entry written
+    # after the sweep is the only unshown entry, and the badge reads the
+    # same backlog rule as the Unshown explorer, which skips it.
+    Baobab.append_log(
+      CBOR.encode(%{"type" => "artifact"}),
+      Catenary.id_for_key(Preferences.get(:identity)),
+      log_id: Catenary.Apps.artifact_log(),
+      clump_id: Preferences.get(:clump_id)
+    )
+
+    {:ok, view, _html} = live(build_conn(), "/")
+
+    unshown = view |> element("button[title=Unshown]") |> render()
+    refute unshown =~ "btn-icon-badge"
+    assert unshown =~ "btn-icon"
+  end
+
   test "the explorebar marks the current view without recolouring the glyph" do
     {:ok, view, _html} = live(build_conn(), "/")
 

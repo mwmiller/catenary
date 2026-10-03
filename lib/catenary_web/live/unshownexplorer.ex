@@ -63,7 +63,10 @@ defmodule Catenary.Live.UnshownExplorer do
   defp extract(:all, clump_id) do
     shown = Catenary.Preferences.get(:shown) |> Map.get(clump_id, MapSet.new())
 
+    # App-family entries are plumbing with their own surfaces, so they are
+    # not part of this backlog — see Apps.social_backlog?/1.
     Baobab.all_entries(clump_id)
+    |> Enum.filter(&Catenary.Apps.social_backlog?/1)
     |> MapSet.new()
     |> MapSet.difference(shown)
     |> MapSet.to_list()

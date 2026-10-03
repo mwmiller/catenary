@@ -196,4 +196,24 @@ defmodule Catenary.AppsTest do
       assert {:error, :bad_args} = Catenary.Apps.verify_channel(nil, nil, nil)
     end
   end
+
+  describe "social_backlog?/1" do
+    # The Unshown explorer and the explorebar badge read this rule: app
+    # plumbing (release kind entries and channel messages) must never ask
+    # for a one-at-a-time review, while announcements stay reviewable.
+    test "app family records are plumbing, not backlog" do
+      refute Catenary.Apps.social_backlog?({"ExampleAuthor1", Catenary.Apps.manifest_log(), 1})
+      refute Catenary.Apps.social_backlog?({"ExampleAuthor1", Catenary.Apps.artifact_log(), 1})
+      refute Catenary.Apps.social_backlog?({"ExampleAuthor1", Catenary.Apps.source_log(), 1})
+      refute Catenary.Apps.social_backlog?({"ExampleAuthor1", @channel, 1})
+    end
+
+    test "announcements and other families stay on the backlog" do
+      assert Catenary.Apps.social_backlog?({"ExampleAuthor1", Catenary.Apps.control_log(), 1})
+
+      assert Catenary.Apps.social_backlog?(
+               {"ExampleAuthor1", QuaggaDef.derived_log_base(0, 1), 1}
+             )
+    end
+  end
 end

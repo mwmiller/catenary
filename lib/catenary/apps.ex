@@ -106,6 +106,28 @@ defmodule Catenary.Apps do
   def listing_logs, do: QuaggaDef.control_logs(:app)
 
   @doc """
+  Whether an entry belongs on the social backlog surfaces: the Unshown
+  explorer and the explorebar badge that points at it.
+
+  The app family's records — release kind entries and channel messages —
+  are plumbing. They are reached through the listings that announce them
+  and the viewer that runs them, never through a backlog that walks every
+  entry a clump holds. Skipping them keeps a publish run from lighting the
+  badge with records nobody reviews one at a time.
+
+  ## Examples
+
+      iex> Catenary.Apps.social_backlog?({"ExampleAuthor1", Catenary.Apps.artifact_log(), 1})
+      false
+
+      iex> Catenary.Apps.social_backlog?({"ExampleAuthor1", Catenary.Apps.control_log(), 1})
+      true
+
+  """
+  @spec social_backlog?({binary, integer, integer}) :: boolean
+  def social_backlog?({_, log_id, _}), do: QuaggaDef.family_for_block(log_id) != :app
+
+  @doc """
   Whether a term is an acceptable application slug.
 
   Slugs are strict ASCII `[a-z0-9-]{1,64}` and are hashed byte-for-byte.

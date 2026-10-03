@@ -540,7 +540,13 @@ defmodule CatenaryWeb.Live do
 
   defp has_unshown_entries?(clump_id) do
     shown = Catenary.Preferences.get(:shown) |> Map.get(clump_id, MapSet.new())
-    Baobab.all_entries(clump_id) |> Enum.any?(fn entry -> not MapSet.member?(shown, entry) end)
+
+    # The badge counts what the Unshown explorer would list, so the backlog
+    # rule lives in one place: app-family plumbing never lights it.
+    Baobab.all_entries(clump_id)
+    |> Enum.any?(fn entry ->
+      Catenary.Apps.social_backlog?(entry) and not MapSet.member?(shown, entry)
+    end)
   end
 
   defp has_identity_unshown_mentions?(identity) do

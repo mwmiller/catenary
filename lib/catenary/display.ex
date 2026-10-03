@@ -180,6 +180,14 @@ defmodule Catenary.Display do
   defp faux_title(:listing, %{"slug" => slug}) when is_binary(slug), do: "Listing: " <> slug
   defp faux_title(:listing, _), do: "Listing"
 
+  defp faux_title(:app, %{"type" => "note", "app" => app}) when is_binary(app),
+    do: "Note from " <> app
+
+  defp faux_title(:app, %{"type" => "note"}), do: "App Note"
+  defp faux_title(:app, %{"type" => "manifest"}), do: "App Manifest"
+  defp faux_title(:app, %{"type" => "artifact"}), do: "App Artifact"
+  defp faux_title(:app, %{"type" => "source"}), do: "App Source"
+
   defp faux_title(:challenge, %{"type" => "challenge", "family" => fam})
        when is_integer(fam) and fam >= 1 and fam <= 255,
        do: pretty_family(fam) <> " Challenge"
