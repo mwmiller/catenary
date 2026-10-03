@@ -196,6 +196,16 @@ defmodule Catenary.AppHostTest do
                %{clump_id: "clump-a", pk: "publisher", slug: "slug"}
     end
 
+    test "a context can carry whose data its reads answer as" do
+      assert AppHost.app("clump-a", "publisher", "slug", "reader") ==
+               %{clump_id: "clump-a", pk: "publisher", slug: "slug", author: "reader"}
+
+      # No fixture picked collapses to the ordinary context rather than
+      # being a shape the rest of the host has to branch on.
+      assert AppHost.app("clump-a", "publisher", "slug", nil) ==
+               AppHost.app("clump-a", "publisher", "slug")
+    end
+
     test "a context missing any part is refused before an operation runs" do
       assert {:error, :bad_app} =
                AppHost.handle(%{clump_id: "c", pk: "p"}, "storage_get", %{key: "k"})
@@ -821,6 +831,51 @@ defmodule Catenary.AppHostTest do
 
     test "malformed arguments are refused", ctx do
       assert {:error, :bad_args} = AppHost.handle(ctx.app, "profile", %{author: "nonsense"})
+    end
+  end
+
+  # The fixture the playground's picker points a run at: an author the
+  # module never names reads as this one, while the listing, its channel
+  # and the key that signs stay the app's own (§6).
+  describe "reading as another author" do
+    test "a plain timeline read answers as the context author", ctx do
+      app = AppHost.app(ctx.clump_id, ctx.app.pk, "example-app", @foreign_author)
+      journal = List.first(QuaggaDef.logs_for_name(:journal))
+
+      with_index(:timelines, @foreign_author, [{100, {@foreign_author, journal, 1}}])
+      with_index(:timelines, ctx.app.pk, [{50, {ctx.app.pk, journal, 1}}])
+
+      assert {:ok, [%{"author" => author}]} = AppHost.handle(app, "timeline", %{})
+      assert author == @foreign_author
+    end
+
+    test "an author the module names beats the context's", ctx do
+      app = AppHost.app(ctx.clump_id, ctx.app.pk, "example-app", @foreign_author)
+
+      assert {:ok, profile} = AppHost.handle(app, "profile", %{author: ctx.app.pk})
+      assert profile["author"] == ctx.app.pk
+    end
+
+    test "a profile reads the context author's own about", ctx do
+      app = AppHost.app(ctx.clump_id, ctx.app.pk, "example-app", @foreign_author)
+
+      with_index(:about, @foreign_author, %{"name" => "Fixture"})
+
+      assert {:ok, profile} = AppHost.handle(app, "profile", %{})
+      assert profile["author"] == @foreign_author
+      assert profile["about"] == %{"name" => "Fixture"}
+    end
+
+    test "the channel a publish lands on stays the app's own", ctx do
+      ctx =
+        with_channel(ctx, [
+          {0, CBOR.encode(%{"type" => "note", "text" => "hi", "published" => "2026-10-01"})}
+        ])
+
+      app = AppHost.app(ctx.clump_id, ctx.app.pk, "example-app", @foreign_author)
+
+      assert {:ok, [entry]} = AppHost.handle(app, "channel", %{})
+      assert entry["author"] == ctx.app.pk
     end
   end
 

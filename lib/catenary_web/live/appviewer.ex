@@ -9,7 +9,10 @@ defmodule Catenary.Live.AppViewer do
   never name a different scope for itself: every `app-want` is answered
   against this fixed context, built server-side, and every `publish` lands
   on the channel that context derives and is signed with the identity the
-  parent said is signed in (§6).
+  parent said is signed in (§6). Beneath the pane the component mounts the
+  channel browser (`Catenary.Live.ChannelList`) — the viewer is one of the
+  two surfaces a channel is reachable through (§11 risk 2) — and a publish
+  from the pane moves a counter so the list reads the store again.
 
   Drawing the app is the `AppRunner` hook's job, mounted on the pane and
   left alone by `phx-update="ignore"` so LiveView's patches do not overwrite
@@ -37,6 +40,7 @@ defmodule Catenary.Live.AppViewer do
     socket =
       socket
       |> assign(assigns |> Map.put(:app, app) |> Map.put(:scope, scope))
+      |> assign_new(:channel_bump, fn -> 0 end)
       |> assign_wasm_src()
 
     {:ok, socket}
@@ -83,6 +87,16 @@ defmodule Catenary.Live.AppViewer do
           >
           </div>
         </div>
+
+        <.live_component
+          module={Catenary.Live.ChannelList}
+          id={:app_channel}
+          clump_id={@clump_id}
+          pk={@pk}
+          slug={@slug}
+          channel_bump={@channel_bump}
+          index_version={@index_version}
+        />
       </div>
     </div>
     """
@@ -104,14 +118,22 @@ defmodule Catenary.Live.AppViewer do
   # is judged against is this component's — the listing that is open and
   # the identity signed in. Somebody else's app running here has no key in
   # this scope that could sign what its channel would accept (§6), so the
-  # refusal arrives as the reason the loop strikes on.
+  # refusal arrives as the reason the loop strikes on. A landing publish
+  # moves the channel counter so the listing beneath the pane reads the
+  # store again and shows the entry that just arrived.
   def handle_event("app-publish", %{"entry" => entry}, socket) do
-    {:reply, AppPublish.publish(socket.assigns.scope, entry), socket}
+    reply = AppPublish.publish(socket.assigns.scope, entry)
+    {:reply, reply, bump_channel(socket, reply)}
   end
 
   def handle_event("app-publish", _params, socket) do
     {:reply, %{"ok" => false, "error" => "bad_args"}, socket}
   end
+
+  defp bump_channel(socket, %{"ok" => true}),
+    do: assign(socket, channel_bump: socket.assigns.channel_bump + 1)
+
+  defp bump_channel(socket, _reply), do: socket
 
   # The pane is ignored by LiveView, so it is never patched — only replaced.
   # Naming it after the app is what makes a second app get a fresh pane (and

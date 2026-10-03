@@ -3,7 +3,7 @@ defmodule CatenaryWeb.LiveTest do
 
   import Phoenix.LiveViewTest
 
-  alias Catenary.Preferences
+  alias Catenary.{Preferences, SampleAuthorFixture}
 
   setup do
     # The publish tests below write into the test clump, which persists across
@@ -204,6 +204,46 @@ defmodule CatenaryWeb.LiveTest do
     assert has_element?(view, ~s(input[type=file][accept=".wasm,application/wasm"]))
     assert has_element?(view, ~s(input[aria-label="Import a .wasm file into the run pane"]))
     assert has_element?(view, "#playground-pane[data-trace][data-worker-src]")
+  end
+
+  test "the playground rail browses the draft's own channel" do
+    Preferences.set(:view, :playground)
+    Preferences.set(:entry, :all)
+
+    {:ok, _view, html} = live(build_conn(), "/")
+
+    # Beneath the trace: the same channel browser the app viewer mounts,
+    # pointed here at (identity, "playground").
+    assert html =~ ~s(id="playground_channel")
+    assert html =~ "Channel"
+  end
+
+  test "the fixture picker points a run at the sample author and back" do
+    Preferences.set(:view, :playground)
+    Preferences.set(:entry, :all)
+
+    # The pick writes on first use — the identity and its seeded entries —
+    # so the test takes that footprint back afterwards like any other store
+    # write it caused.
+    SampleAuthorFixture.purge()
+    on_exit(fn -> SampleAuthorFixture.purge() end)
+
+    {:ok, view, _html} = live(build_conn(), "/")
+
+    view |> element(~s(button[title="Data source"])) |> render_click()
+
+    assert has_element?(view, "#fixture-panel")
+    assert render(view) =~ ~s(value="self" checked)
+
+    view |> form("#fixture-form", fixture: "sample") |> render_change()
+
+    # The pick ensures the fixture before it takes effect, and the message
+    # it sends up is handled after the change event replies — so the next
+    # read of the view is the one that shows the new choice.
+    assert render(view) =~ ~s(value="sample" checked)
+
+    view |> form("#fixture-form", fixture: "self") |> render_change()
+    assert render(view) =~ ~s(value="self" checked)
   end
 
   test "the reindex button sits outside the index indicator strip" do

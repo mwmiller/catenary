@@ -22,7 +22,22 @@ defmodule CatenaryWeb.AppViewerTest do
     app = AppHost.app(clump_id, identity, "viewer-app")
     AppKV.clear(app)
 
+    # A publish from any test here would be the next test's channel
+    # contents — and the tests run in no fixed order — so the channel this
+    # app derives is taken back before the first test and after every one.
+    purge_channel(clump_id, identity, "viewer-app")
+    on_exit(fn -> purge_channel(clump_id, identity, "viewer-app") end)
+
     %{app: app, clump_id: clump_id, identity: identity}
+  end
+
+  defp purge_channel(clump_id, identity, slug) do
+    for facet <- 0..7 do
+      Baobab.purge(Catenary.id_for_key(identity),
+        log_id: Apps.app_log_id(identity, slug, facet),
+        clump_id: clump_id
+      )
+    end
   end
 
   defp publish(fields) do
@@ -239,5 +254,77 @@ defmodule CatenaryWeb.AppViewerTest do
 
     assert {:reply, %{"ok" => false, "error" => "not_the_publisher"}, _socket} =
              AppViewer.handle_event("app-publish", %{"entry" => entry}, socket)
+  end
+
+  # The component as the parent renders it — the full assign set a render
+  # of the view would pass, including the two counters the channel browser
+  # memoises on. `aliases` is the state tuple `short_id/2` folds, which
+  # the parent builds once at mount.
+  defp render_viewer(ctx, slug) do
+    render_component(AppViewer, %{
+      id: :app,
+      clump_id: ctx.clump_id,
+      pk: ctx.identity,
+      slug: slug,
+      identity: ctx.identity,
+      facet_id: Preferences.get(:facet_id),
+      aliases: nil,
+      index_version: 0,
+      entry: {:app, {ctx.identity, slug}}
+    })
+  end
+
+  # Entries in an app's channel, on the facet this device writes on — the
+  # same store write a publish makes, without going through the pane. The
+  # append is by the identity's *name*, which is what the store keys on,
+  # and the setup fixture takes the channel back afterwards.
+  defp channel_entry(ctx, slug, data) do
+    log_id = Apps.app_log_id(ctx.identity, slug, Preferences.get(:facet_id))
+
+    Baobab.append_log(
+      CBOR.encode(Map.put_new(data, "published", DateTime.utc_now() |> DateTime.to_string())),
+      Catenary.id_for_key(ctx.identity),
+      log_id: log_id,
+      clump_id: ctx.clump_id
+    )
+  end
+
+  test "the viewer lists the open app's channel beneath its pane", ctx do
+    channel_entry(ctx, "viewer-app", %{
+      "type" => "note",
+      "text" => "written to the channel while the pane runs"
+    })
+
+    html = render_viewer(ctx, "viewer-app")
+
+    # The browser's own id, its heading, and the entry itself — each row a
+    # link into the viewer, the way every entry elsewhere is.
+    assert html =~ ~s(id="app_channel")
+    assert html =~ "Channel"
+    assert html =~ "written to the channel while the pane runs"
+    assert html =~ ~s(phx-click="view-entry")
+  end
+
+  test "a quiet channel says so rather than drawing an empty list", ctx do
+    html = render_viewer(ctx, "viewer-app")
+    assert html =~ "Nothing published here yet."
+  end
+
+  test "a landing publish moves the counter the channel list rereads on", ctx do
+    socket = viewer_socket(ctx, "viewer-app")
+    entry = %{"type" => "note", "text" => "bump"} |> CBOR.encode() |> Base.encode64()
+
+    assert {:reply, %{"ok" => true}, bumped} =
+             AppViewer.handle_event("app-publish", %{"entry" => entry}, socket)
+
+    assert bumped.assigns.channel_bump == socket.assigns.channel_bump + 1
+
+    # A refusal moves nothing: there is no entry to show, so there is no
+    # reason to read the store again. Judged from where the last landing
+    # publish left the counter.
+    assert {:reply, %{"ok" => false}, refused} =
+             AppViewer.handle_event("app-publish", %{}, bumped)
+
+    assert refused.assigns.channel_bump == bumped.assigns.channel_bump
   end
 end

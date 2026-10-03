@@ -33,6 +33,15 @@ defmodule Catenary.Live.PlaygroundNav do
   The gate a run is judged by (`_gate`, `_gateVerdict`) is the pane's
   business and is not consulted to publish: §5 decision #21 keeps that
   decision with whoever is watching the app, not with the editor.
+
+  The fixture picker (◈) is a radio pair rather than a form: the pick
+  decides *whose data* a run's unnamed reads answer as — this identity's
+  real store, or the canned sample author `Catenary.SampleAuthor` keeps.
+  The panel forwards the choice up like every other command here; the
+  LiveView holds the fixture (and the sample key it ensures on first pick)
+  beside the draft. Nothing the picker does signs anything, and a publish
+  still lands on the signed-in identity's own channel (§6) whatever the
+  run is pointed at.
   """
   use Phoenix.LiveComponent
 
@@ -41,8 +50,15 @@ defmodule Catenary.Live.PlaygroundNav do
   @impl true
   def update(assigns, socket) do
     # The open/closed state is this component's own — the parent is told
-    # what to publish, never which panel is showing.
-    {:ok, socket |> assign(assigns) |> assign_new(:publish, fn -> false end)}
+    # what to publish, never which panel is showing. The fixture *choice*
+    # is the other way round: it belongs to the run, so it arrives from the
+    # parent and is only read here.
+    {:ok,
+     socket
+     |> assign(assigns)
+     |> assign_new(:publish, fn -> false end)
+     |> assign_new(:fixture_open, fn -> false end)
+     |> assign_new(:fixture, fn -> :self end)}
   end
 
   @impl true
@@ -87,6 +103,16 @@ defmodule Catenary.Live.PlaygroundNav do
         </label>
         <button
           type="button"
+          phx-click="toggle-fixture"
+          phx-target={@myself}
+          aria-expanded={to_string(@fixture_open)}
+          aria-controls="fixture-panel"
+          title="Data source"
+          aria-label="Data source — pick whose store data a run reads"
+          class="btn-icon"
+        >◈</button>
+        <button
+          type="button"
           phx-click="toggle-publish"
           phx-target={@myself}
           aria-expanded={to_string(@publish)}
@@ -105,6 +131,50 @@ defmodule Catenary.Live.PlaygroundNav do
           aria-label="Close panel"
           class="btn-ghost"
         >⍟</button>
+      </div>
+      <div :if={@fixture_open} id="fixture-panel" class="w-full flex justify-center px-2 mt-1">
+        <form
+          id="fixture-form"
+          phx-change="pick-fixture"
+          phx-target={@myself}
+          class={panel_cls() <> " w-full"}
+        >
+          <label class="flex items-start gap-2 mb-2 cursor-pointer">
+            <input
+              type="radio"
+              name="fixture"
+              value="self"
+              checked={fixture_self?(@fixture)}
+              class="mt-1 accent-amber-500"
+            />
+            <span class="text-sm text-slate-700 dark:text-slate-300">
+              This identity
+              <span class="block text-xs text-slate-500 dark:text-slate-400">
+                Real data: whatever this device holds for you.
+              </span>
+            </span>
+          </label>
+          <label class="flex items-start gap-2 mb-2 cursor-pointer">
+            <input
+              type="radio"
+              name="fixture"
+              value="sample"
+              checked={not fixture_self?(@fixture)}
+              class="mt-1 accent-amber-500"
+            />
+            <span class="text-sm text-slate-700 dark:text-slate-300">
+              Sample author
+              <span class="block text-xs text-slate-500 dark:text-slate-400">
+                Canned fixture: three journal posts and a profile, written on first pick.
+              </span>
+            </span>
+          </label>
+          <p class={help_cls()}>
+            A pick decides whose data an unnamed read answers as — timeline,
+            profile, logs. Publishing always lands on this identity's own
+            channel under this identity's key.
+          </p>
+        </form>
       </div>
       <div :if={@publish} id="publish-panel" class="w-full flex justify-center px-2 mt-1">
         <form
@@ -194,10 +264,32 @@ defmodule Catenary.Live.PlaygroundNav do
     {:noreply, assign(socket, publish: not socket.assigns.publish)}
   end
 
+  def handle_event("toggle-fixture", _params, socket) do
+    {:noreply, assign(socket, fixture_open: not socket.assigns.fixture_open)}
+  end
+
+  # The radios carry their own value; the choice itself lives on the run,
+  # so this is a message up rather than state kept here.
+  def handle_event("pick-fixture", %{"fixture" => choice}, socket)
+      when choice in ["self", "sample"] do
+    send(self(), {:playground_fixture, choice})
+    {:noreply, socket}
+  end
+
+  def handle_event("pick-fixture", _params, socket) do
+    {:noreply, socket}
+  end
+
   # The form's own words, plus nothing: the buffer the words apply to is the
   # LiveView's assign, which merges it in and hands the lot to the writer.
   def handle_event("publish-app", params, socket) do
     send(self(), {:playground_publish, params})
     {:noreply, assign(socket, publish: false)}
   end
+
+  # The fixture arrives as `:self` or as whatever the run resolved — a
+  # sample key it already ensured. Only the tag decides the radio.
+  defp fixture_self?(:sample), do: false
+  defp fixture_self?({:sample, _pk}), do: false
+  defp fixture_self?(_), do: true
 end

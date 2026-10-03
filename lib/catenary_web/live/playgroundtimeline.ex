@@ -10,6 +10,13 @@ defmodule Catenary.Live.PlaygroundTimeline do
   this lists that in order and steps a cursor through it with the same two
   glyphs the feed rail uses, so the gesture reads the same on both screens.
 
+  Beneath the trace the rail carries the draft's own channel
+  (`Catenary.Live.ChannelList`): every entry the scratch publishes landed
+  on, newest first, so what the run wrote is readable beside what it
+  printed without leaving the screen. Its counters arrive from the parent
+  — only the LiveView hears the publish land — so the list rereads the
+  store when (and only when) an entry could have arrived.
+
   A *version* belongs here too — prev/next published version of the app,
   which is the entry-walking gesture with the app as the list — but there is
   nothing to step through until the app can be published, so it is not drawn.
@@ -20,6 +27,16 @@ defmodule Catenary.Live.PlaygroundTimeline do
   is one click behind the author rather than one component instance.
   """
   use Phoenix.LiveComponent
+
+  alias Catenary.Live.{AppPlayground, ChannelList}
+
+  @impl true
+  def update(
+        %{trace: _trace, trace_at: _trace_at, clump_id: _clump_id, identity: _identity} = assigns,
+        socket
+      ) do
+    {:ok, assign(socket, assigns)}
+  end
 
   @impl true
   def render(assigns) do
@@ -65,6 +82,18 @@ defmodule Catenary.Live.PlaygroundTimeline do
           <span class="block break-words text-slate-700 dark:text-slate-200">{entry["detail"]}</span>
         </li>
       </ol>
+
+      <div class="mt-3 border-t border-slate-200 pt-2 dark:border-slate-700">
+        <.live_component
+          module={ChannelList}
+          id={:playground_channel}
+          clump_id={@clump_id}
+          pk={@identity}
+          slug={AppPlayground.scratch_slug()}
+          channel_bump={@channel_bump}
+          index_version={@index_version}
+        />
+      </div>
     </div>
     """
   end

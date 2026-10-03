@@ -21,6 +21,11 @@ defmodule Catenary.Live.AppPlayground do
   the keys out of any published app's space. The same scope is what a
   `publish` derives its channel from (§6), which is why the facet this
   device writes on comes in with the rest of it.
+
+  The context may also carry a fixture author — whatever the store fixture
+  picker pointed the run at — which moves only whose data an *unnamed*
+  read answers as. The scope above is untouched by it: publishes still
+  derive from this identity and the scratch slug (§6).
   """
   use CatenaryWeb, :live_component
 
@@ -81,15 +86,28 @@ defmodule Catenary.Live.AppPlayground do
   @spec starter_source() :: String.t()
   def starter_source, do: @starter
 
+  @doc """
+  The slug the scratch scope derives its channel from — the same name the
+  publish path stamps and the left rail's channel browser reads.
+  """
+  @spec scratch_slug() :: String.t()
+  def scratch_slug, do: @scratch_slug
+
   @impl true
   def update(
         %{clump_id: clump_id, identity: identity, facet_id: facet_id} = assigns,
         socket
       ) do
-    app = AppHost.app(clump_id, identity, @scratch_slug)
+    app = AppHost.app(clump_id, identity, @scratch_slug, fixture_author(assigns[:fixture]))
     scope = %{app: app, identity: identity, facet_id: facet_id}
     {:ok, assign(socket, assigns |> Map.put(:app, app) |> Map.put(:scope, scope))}
   end
+
+  # A run pointed at the sample author reads as that key; a run pointed at
+  # this identity's own data is the ordinary context, and the absence of
+  # the key is how the host is told so.
+  defp fixture_author({:sample, pk}) when is_binary(pk), do: pk
+  defp fixture_author(_), do: nil
 
   @impl true
   def render(assigns) do
@@ -128,10 +146,12 @@ defmodule Catenary.Live.AppPlayground do
           </div>
         </div>
         <p class="text-sm text-slate-600 dark:text-slate-400">
-          The store fixture picker is not built. Run compiles the buffer — DSL by default, WAT
+          ◈ on the right rail picks whose store data the run reads — this identity's own
+          entries, or the canned sample author written on first pick — while a run that
+          publishes (the starter does) appends to this identity's own playground channel
+          either way. Run compiles the buffer — DSL by default, WAT
           when the buffer opens with a module — and starts it; a buffer that does not compile
-          reports its diagnostic on the status line and in the trace. A run that publishes (the
-          starter does) appends to this identity's own playground channel. ⇪ opens the publish
+          reports its diagnostic on the status line and in the trace. ⇪ opens the publish
           panel, which compiles the buffer as it stands and writes the artifact — source beside
           the bytes — and a listing to this identity's own app logs — the trace line names the
           release version and the artifact's hash. ⇥ on the right rail — or a file dropped on
@@ -158,9 +178,18 @@ defmodule Catenary.Live.AppPlayground do
   # A publish is the same round trip with nothing to answer back on: the
   # entry goes up wrapped the way a want's arguments are, and the scope it
   # is judged against is this component's, so a draft can only ever append
-  # to the channel its own (identity, "playground") derives (§6).
+  # to the channel its own (identity, "playground") derives (§6). A landing
+  # publish moves the parent's channel counter: the browser for this very
+  # channel is the left rail's, a sibling of this component, and only the
+  # parent can reach it.
   def handle_event("app-publish", %{"entry" => entry}, socket) do
-    {:reply, AppPublish.publish(socket.assigns.scope, entry), socket}
+    reply = AppPublish.publish(socket.assigns.scope, entry)
+
+    if reply["ok"] do
+      send(self(), :playground_channel_bump)
+    end
+
+    {:reply, reply, socket}
   end
 
   def handle_event("app-publish", _params, socket) do

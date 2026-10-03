@@ -63,4 +63,70 @@ defmodule CatenaryWeb.Live.PlaygroundNavTest do
     assert html =~ "btn-primary"
     assert html =~ "Publish</button>"
   end
+
+  test "the fixture panel opens on its trigger and shuts again" do
+    socket = nav(%{fixture: :self})
+
+    refute socket.assigns.fixture_open
+
+    {:noreply, socket} = PlaygroundNav.handle_event("toggle-fixture", %{}, socket)
+    assert socket.assigns.fixture_open
+
+    {:noreply, socket} = PlaygroundNav.handle_event("toggle-fixture", %{}, socket)
+    refute socket.assigns.fixture_open
+  end
+
+  test "the picked fixture is a message up, never state kept on the rail" do
+    socket = nav(%{fixture: :self})
+
+    {:noreply, _socket} =
+      PlaygroundNav.handle_event("pick-fixture", %{"fixture" => "sample"}, socket)
+
+    assert_received {:playground_fixture, "sample"}
+
+    {:noreply, socket} =
+      PlaygroundNav.handle_event("pick-fixture", %{"fixture" => "self"}, socket)
+
+    assert_received {:playground_fixture, "self"}
+
+    # A value outside the pair is ignored rather than forwarded as-is.
+    {:noreply, _socket} =
+      PlaygroundNav.handle_event("pick-fixture", %{"fixture" => "elsewhere"}, socket)
+
+    refute_received {:playground_fixture, _}
+  end
+
+  test "the closed rail offers no fixture panel, the open one offers both choices" do
+    # The trigger's own `aria-controls` names the panel either way, so the
+    # panel's identity is the `id` rather than the string it is named by.
+    refute render_component(PlaygroundNav, %{id: :playground_nav, fixture: :self}) =~
+             ~s(id="fixture-panel")
+
+    html =
+      render_component(PlaygroundNav, %{
+        id: :playground_nav,
+        fixture: :self,
+        fixture_open: true
+      })
+
+    assert html =~ ~s(id="fixture-panel")
+    assert html =~ ~s(name="fixture")
+    assert html =~ ~s(value="self")
+    assert html =~ ~s(value="sample")
+    # This identity is the default: its radio is the checked one.
+    assert html =~ ~s(value="self" checked)
+    refute html =~ ~s(value="sample" checked)
+  end
+
+  test "the checked choice follows the fixture the run is pointed at" do
+    html =
+      render_component(PlaygroundNav, %{
+        id: :playground_nav,
+        fixture: {:sample, String.duplicate("1", 43)},
+        fixture_open: true
+      })
+
+    assert html =~ ~s(value="sample" checked)
+    refute html =~ ~s(value="self" checked)
+  end
 end

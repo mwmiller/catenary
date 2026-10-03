@@ -15,10 +15,12 @@ defmodule Catenary.AppHost do
   Two things belong to the caller rather than to this module:
 
     * **Building `app`.** The context names which listing is running
-      (`pk`, `slug`) and which store it runs against (`clump_id`). The
-      LiveView must assemble it from its own assigns, never from anything
-      a worker sent, or an app could widen its scope into another app's
-      keys.
+      (`pk`, `slug`) and which store it runs against (`clump_id`), and —
+      when the playground's fixture picker pointed the run at another
+      identity — whose entries a plain read answers as (`author`,
+      optional). The LiveView must assemble it from its own assigns,
+      never from anything a worker sent, or an app could widen its scope
+      into another app's keys.
 
     * **Transport.** `handle/3` returns Elixir terms, and payload bytes
       are returned as a `CBOR.Tag` rather than a bare binary: Elixir
@@ -30,7 +32,12 @@ defmodule Catenary.AppHost do
 
   alias Catenary.{AppKV, AppRate, Apps}
 
-  @type app :: %{clump_id: String.t(), pk: binary, slug: String.t()}
+  @type app :: %{
+          optional(:author) => binary,
+          clump_id: String.t(),
+          pk: binary,
+          slug: String.t()
+        }
 
   # The operation allow-list. Matching on the names themselves rather than
   # turning a wire string into an atom means an unrecognised operation
@@ -76,6 +83,23 @@ defmodule Catenary.AppHost do
   def app(clump_id, pk, slug)
       when is_binary(clump_id) and is_binary(pk) and is_binary(slug),
       do: %{clump_id: clump_id, pk: pk, slug: slug}
+
+  @doc """
+  Build an app context whose plain reads default to `author`.
+
+  `pk` still names the listing every publish is judged against — the
+  author only answers *whose data* an op reads when the module does not
+  name one itself. `nil` collapses to `app/3`, so a run without a picked
+  fixture is the ordinary context and no caller branches on it.
+  """
+  @spec app(String.t(), binary, String.t(), binary | nil) :: app
+  def app(clump_id, pk, slug, author)
+      when is_binary(clump_id) and is_binary(pk) and is_binary(slug) and is_binary(author),
+      do: %{clump_id: clump_id, pk: pk, slug: slug, author: author}
+
+  def app(clump_id, pk, slug, _author)
+      when is_binary(clump_id) and is_binary(pk) and is_binary(slug),
+      do: app(clump_id, pk, slug)
 
   @doc """
   Run one host operation for `app`, named by `op`.
@@ -124,12 +148,21 @@ defmodule Catenary.AppHost do
   # as the identity that wrote it and a published app as its publisher, and
   # both are keys this host already holds — naming them back would be
   # ceremony the module cannot get wrong.
+  # An op that names an author is about that author, whatever the run was
+  # pointed at. An op that does not is about the run's reading identity —
+  # the store fixture the picker chose, and failing that the app's own key,
+  # which is what "the author a module never names" has always meant. The
+  # default never touches which channel a publish lands on or which key
+  # signs it: that stays with the listing and the signed-in identity (§6).
   defp resolve_author(app, args) do
     case arg(args, :author) do
-      :error -> as_author(app.pk)
+      :error -> default_author(app)
       {:ok, author} -> as_author(author)
     end
   end
+
+  defp default_author(%{author: author}) when is_binary(author), do: as_author(author)
+  defp default_author(app), do: as_author(app.pk)
 
   defp log_read(%{clump_id: clump_id} = app, args) do
     with {:ok, author} <- resolve_author(app, args),

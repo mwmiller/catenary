@@ -15,7 +15,8 @@ defmodule CatenaryWeb.Live do
     Live.AppPlayground,
     LogWriter,
     Navigation,
-    Preferences
+    Preferences,
+    SampleAuthor
   }
 
   # The control log the challenge forms publish to; the same value
@@ -83,6 +84,15 @@ defmodule CatenaryWeb.Live do
          view: view,
          extra_nav: :none,
          source: AppPlayground.starter_source(),
+         # Whose store data an unnamed read answers as while a draft runs:
+         # this identity's own data, or the sample author the fixture picker
+         # points at. `{:sample, pk}` carries the key the pick ensured, so
+         # the run never has to resolve it again.
+         fixture: :self,
+         # Moved by the components that land an entry on a channel, and
+         # read by the channel browser so a list rereads the store only
+         # when something it shows could have changed.
+         channel_bump: 0,
          trace: [],
          trace_at: 0,
          connect_mode: "announced",
@@ -343,6 +353,7 @@ defmodule CatenaryWeb.Live do
         clump_id={@clump_id}
         identity={@identity}
         facet_id={@facet_id}
+        fixture={@fixture}
       />
     </.three_column_layout>
     """
@@ -567,7 +578,11 @@ defmodule CatenaryWeb.Live do
   defp activitybar(%{view: :playground} = assigns) do
     ~H"""
     <div class="mt-5 min-h-[400px]">
-      <.live_component module={Catenary.Live.PlaygroundNav} id={:playground_nav} />
+      <.live_component
+        module={Catenary.Live.PlaygroundNav}
+        id={:playground_nav}
+        fixture={@fixture}
+      />
     </div>
     """
   end
@@ -606,6 +621,10 @@ defmodule CatenaryWeb.Live do
       id={:playground_timeline}
       trace={@trace}
       trace_at={@trace_at}
+      clump_id={@clump_id}
+      identity={@identity}
+      channel_bump={@channel_bump}
+      index_version={@index_version}
     />
     """
   end
@@ -643,6 +662,40 @@ defmodule CatenaryWeb.Live do
       >↧</button>
     </div>
     """
+  end
+
+  # The fixture picker's radio pair: one choice keeps the run reading this
+  # identity's real store, the other points it at the sample author. The
+  # pick *ensures* the fixture — identity and seeded entries on first use —
+  # before it takes effect, so a run never starts pointed at a fixture that
+  # is not there yet; a refusal is a trace line and the run stays where it
+  # was rather than half-changed.
+  def handle_info({:playground_fixture, "self"}, socket) do
+    {:noreply, assign(socket, fixture: :self)}
+  end
+
+  def handle_info({:playground_fixture, "sample"}, socket) do
+    %{clump_id: clump_id, facet_id: facet_id} = socket.assigns
+
+    case SampleAuthor.ensure(clump_id, facet_id) do
+      {:ok, pk} ->
+        {:noreply, assign(socket, fixture: {:sample, pk})}
+
+      {:error, message} ->
+        detail = "sample author unavailable: " <> to_string(message)
+        {:noreply, record_trace(socket, [%{"kind" => "fixture", "detail" => detail}])}
+    end
+  end
+
+  def handle_info({:playground_fixture, _unknown}, socket) do
+    {:noreply, socket}
+  end
+
+  # A landing publish on the draft's own channel: the browser for it lives
+  # in the left rail, so the counter that tells it to read again lives here
+  # beside the draft both were reached from.
+  def handle_info(:playground_channel_bump, socket) do
+    {:noreply, assign(socket, channel_bump: socket.assigns.channel_bump + 1)}
   end
 
   # Compiling belongs here rather than in the rail button that asks for it:
