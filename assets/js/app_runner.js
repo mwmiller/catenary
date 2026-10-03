@@ -24,8 +24,16 @@
 // back following the ABI — a refusal stops it on the spot. That gate is what
 // the publish path will lean on, so it is recorded in the trace like
 // everything else.
+//
+// Two messages come from this file rather than from the host: `tick`s on
+// requestAnimationFrame once a module asks for `animate`, and `ui` events
+// for the pointer over the view's canvas. Both are paced by the same rule —
+// one delivery in flight at a time — so a module that draws at its own pace
+// is what limits the rate, and the deadline armed over `_deliver` covers a
+// tick that never comes back (§3).
 
 import {AppLoop, fromBase64, isMap} from "./app_loop.js"
+import {applyDraw, checkDraw} from "./app_draw.js"
 import {buildView} from "./app_view.js"
 import {encode} from "./cbor.js"
 const DEADLINE_MS = 5000
@@ -33,6 +41,11 @@ const PRINT_LIMIT = 64 * 1024
 const TRACE_LIMIT = 200
 const TRACE_DETAIL_LIMIT = 400
 const TRACE_FLUSH_MS = 120
+// Pointer events arrive faster than any module answers them, so the queue
+// between the pane and the worker is bounded: moves coalesce into the one
+// sample waiting, and past the cap the oldest entry goes rather than the
+// newest — a down or an up is worth more than a stale move.
+const UI_QUEUE_LIMIT = 8
 // Somebody else's artifact, so the drop-in gets the order of magnitude of
 // the artifact budget rather than the buffer's own size cap.
 const MAX_WASM_BYTES = 4 * 1024 * 1024
@@ -44,6 +57,10 @@ export const AppRunner = {
     this._trace = []
     this._traceTimer = null
     this._gate = false
+    this._inFlight = false
+    this._animateOn = false
+    this._raf = null
+    this._ui = []
     this._loop = this._newLoop()
 
     this.handleEvent("app-run", payload => this._run(payload || {}))
@@ -73,6 +90,12 @@ export const AppRunner = {
     this.el.addEventListener("dragover", this._onDragOver)
     this.el.addEventListener("dragleave", this._onDragLeave)
     this.el.addEventListener("drop", this._onDrop)
+    // Delegated from the pane rather than bound to each canvas: the canvas
+    // is rebuilt on every render, and the pane outlives all of them.
+    this._onPointer = event => this._pointer(event)
+    this.el.addEventListener("pointerdown", this._onPointer)
+    this.el.addEventListener("pointermove", this._onPointer)
+    this.el.addEventListener("pointerup", this._onPointer)
 
     const src = this.el.dataset.wasmSrc
     if (src) this._load(src)
@@ -86,6 +109,9 @@ export const AppRunner = {
     this.el.removeEventListener("dragover", this._onDragOver)
     this.el.removeEventListener("dragleave", this._onDragLeave)
     this.el.removeEventListener("drop", this._onDrop)
+    this.el.removeEventListener("pointerdown", this._onPointer)
+    this.el.removeEventListener("pointermove", this._onPointer)
+    this.el.removeEventListener("pointerup", this._onPointer)
     this.el.classList.remove("run-pane-drop")
     this._teardown()
   },
@@ -122,6 +148,32 @@ export const AppRunner = {
         view.appendChild(built.node)
         view.classList.remove("hidden")
       },
+      draw: ops => {
+        // One canvas per view, the first one the tree declares: the lease
+        // that keeps a viewer to one app at a time is the same one canvas
+        // (§3), so a draw does not get to choose where it lands.
+        const canvas = this.el.querySelector("#app-view canvas[data-app-canvas]")
+        const problem = canvas ? checkDraw(ops) : "a draw with no canvas in the view"
+        this._record("draw", problem ? "rejected" : `${ops.length} ops`)
+        if (problem) {
+          this._loop.strike(problem)
+          return
+        }
+        try {
+          const failure = applyDraw(canvas, ops)
+          if (failure) this._loop.strike(failure)
+        } catch (error) {
+          this._loop.strike(`the draw could not be applied (${error.message})`)
+        }
+      },
+      animate: on => {
+        // The on/off is worth one trace entry; the ticks themselves are
+        // not — sixty an second would push the run's own history out of
+        // the rail the reader is stepping through.
+        this._record("animate", on ? "on" : "off")
+        if (on) this._startAnimate()
+        else this._stopAnimate()
+      },
       want: (op, args) => {
         this._record("want", op)
         return this._want(op, args)
@@ -143,6 +195,8 @@ export const AppRunner = {
     if (this._traceTimer !== null) clearTimeout(this._traceTimer)
     this._traceTimer = null
     this._trace = []
+    this._ui = []
+    this._inFlight = false
     this._gate = payload.gate === true
     if (this._gate) this.pushEvent("app-run-start", {})
 
@@ -265,15 +319,23 @@ export const AppRunner = {
         this._deliver({msg: "init"})
         break
       case "effects":
+        // The worker is free the moment it posts the answer, so the next
+        // tick or queued pointer event may go out while this delivery's
+        // effects are still being applied — the loop queues those behind
+        // the array it is working on, which is what keeps two deliveries
+        // from interleaving (§3).
         this._disarm()
+        this._inFlight = false
         // The gate is judged on the first tick *after* its effects have been
         // applied: a module that instantiates and then hands back junk has
         // instantiated, but it has not passed. A stop during that run speaks
         // first, so the verdict below finds the gate already closed.
         await this._loop.effects(message.bytes)
+        this._flushUi()
         this._gateVerdict()
         break
       case "error":
+        this._inFlight = false
         this._loop.stop(`the module failed (${message.message})`)
         break
       default:
@@ -285,6 +347,7 @@ export const AppRunner = {
     if (this._loop.stopped || !this._worker) return
     const bytes = encode(message)
     this._arm()
+    this._inFlight = true
     this._worker.postMessage({type: "deliver", bytes}, [bytes.buffer])
   },
 
@@ -343,8 +406,84 @@ export const AppRunner = {
 
   _teardown() {
     this._disarm()
+    this._stopAnimate()
     if (this._worker) this._worker.terminate()
     this._worker = null
+  },
+
+  // `{"do":"animate"}` turns the pane's frame clock on; `on: false` turns
+  // it off. Each frame delivers one `{"msg":"tick","t":…}` — and only when
+  // the previous delivery has been answered, so a module that takes 100 ms
+  // a frame ticks ten a second rather than building a queue of sixteen
+  // millisecond promises it has not kept. Skipping the frame *is* the
+  // budget: the deadline armed in `_deliver` is what stops a module that
+  // never answers at all.
+  _startAnimate() {
+    if (this._animateOn) return
+    this._animateOn = true
+    const frame = time => {
+      if (!this._animateOn) return
+      if (!this._inFlight && this._worker && this._loop && !this._loop.stopped) {
+        this._deliver({msg: "tick", t: time})
+      }
+      this._raf = requestAnimationFrame(frame)
+    }
+    this._raf = requestAnimationFrame(frame)
+  },
+
+  _stopAnimate() {
+    this._animateOn = false
+    if (this._raf !== null) cancelAnimationFrame(this._raf)
+    this._raf = null
+  },
+
+  // Pointer events over the view's canvas, delegated from the pane. The
+  // coordinates are the module's own — canvas pixels, origin at its top
+  // left — because the module owns the geometry and does the hit-testing
+  // (§3). A capture on the way down keeps the matching `up` arriving even
+  // when the pointer leaves the region mid-drag.
+  _pointer(event) {
+    const target = event.target
+    if (!(target instanceof Element)) return
+    const canvas = target.closest("canvas[data-app-canvas]")
+    if (!canvas) return
+
+    const type = {pointerdown: "down", pointermove: "move", pointerup: "up"}[event.type]
+    if (!type) return
+
+    if (type === "down") {
+      try {
+        canvas.setPointerCapture(event.pointerId)
+      } catch (_) {
+        // A capture is a convenience; without one the `up` simply does
+        // not arrive if the pointer has left, which is the old behaviour.
+      }
+    }
+
+    const entry = {type, x: Math.round(event.offsetX), y: Math.round(event.offsetY)}
+    if (type !== "move") entry.button = event.button
+    this._queueUi(entry)
+  },
+
+  // One message to the module at a time, newest sample wins for a move.
+  _queueUi(entry) {
+    const last = this._ui[this._ui.length - 1]
+    if (entry.type === "move" && last && last.type === "move") {
+      this._ui[this._ui.length - 1] = entry
+    } else {
+      this._ui.push(entry)
+    }
+    if (this._ui.length > UI_QUEUE_LIMIT) this._ui.shift()
+    this._flushUi()
+  },
+
+  _flushUi() {
+    if (this._inFlight || this._ui.length === 0) return
+    if (!this._worker || !this._loop || this._loop.stopped) {
+      this._ui = []
+      return
+    }
+    this._deliver({msg: "ui", event: this._ui.shift()})
   }
 }
 

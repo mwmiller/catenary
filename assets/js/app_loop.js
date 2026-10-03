@@ -101,6 +101,22 @@ export class AppLoop {
         case "render":
           this.sinks.render(effect.view)
           break
+        case "draw":
+          this.sinks.draw(effect.ops)
+          break
+        case "animate": {
+          // The flag defaults to on: `{"do":"animate"}` alone starts the
+          // ticks, and `{"do":"animate","on":false}` is how a module stops
+          // them again. Anything other than a boolean is a strike rather
+          // than a guess — a typo'd flag must not leave a loop running.
+          const on = effect.on === undefined ? true : effect.on
+          if (typeof on !== "boolean") {
+            this.strike("an animate effect with an unusable flag")
+            break
+          }
+          this.sinks.animate(on)
+          break
+        }
         case "want":
           wants.push(effect)
           break
