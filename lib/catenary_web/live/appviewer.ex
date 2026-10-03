@@ -120,7 +120,7 @@ defmodule Catenary.Live.AppViewer do
   defp pane_id(pk, slug), do: "app-pane-#{pk}-#{slug}"
 
   # Where the module comes from: the route that serves this author's
-  # release of the slug, once the store holds a manifest for it — and no
+  # release of the slug, once the store holds a listing for it — and no
   # source at all before that, which the pane keeps as its "No module
   # loaded." line. The dev fixtures are releases like anything else now;
   # there is no second answer for them to fall back on.

@@ -6,12 +6,13 @@ defmodule Catenary.Apps do
   Applications live in derived-log family `0x2` (`QuaggaDef.family_tag/1`).
   Two shapes of log exist inside it:
 
-    * **kind logs** — three fixed sub-ids every author carries: the manifest
-      and the artifact, which holds the wasm bytes and the exact WAT they
-      were built from together (one release payload, one traffic class), plus
-      a third sub-id retired with the separate source entry but kept
-      reserved. Fixed sub-ids give an index worker a static scan list; the
-      values are reserved so a hash-derived channel base can never land on
+    * **kind logs** — three fixed sub-ids every author carries: the artifact,
+      which holds the wasm bytes and the exact WAT they were built from
+      together (one release payload, one traffic class), plus two retired
+      sub-ids kept reserved — the manifest, whose release metadata rides the
+      listing on the control log now, and the separate source entry. Fixed
+      sub-ids give an index worker a static scan list; the values are
+      reserved so a hash-derived channel base can never land on
       one (`kind_log?/1` is the publish-path check that makes the
       p ~= 3/2^48 collision harmless).
 
@@ -60,7 +61,11 @@ defmodule Catenary.Apps do
   @spec family() :: 1..255
   def family, do: @family
 
-  @doc "The manifest kind base: every author's own copy of their app manifests."
+  @doc """
+  The retired manifest kind base: release metadata rides the listing on the
+  control log now, but the sub-id stays reserved so nothing can ever derive
+  onto it, and older stores still resolve through the entries left here.
+  """
   @spec manifest_log() :: base
   def manifest_log, do: @manifest
 
@@ -591,21 +596,26 @@ defmodule Catenary.Apps do
   end
 
   # ================================================================
-  # Reading a release back out: manifest → artifact, by hash.
+  # Reading a release back out: listing → artifact, by hash.
   #
   # The write side above is `Catenary.LogWriter.publish_app/2`; this is
-  # what a viewer and the release route ask for. Nothing here trusts the
-  # listing that led to a release — the listing is discovery, the manifest
-  # is the authority — and nothing here trusts the manifest about its own
-  # bytes: the artifact is found by hashing candidates until one matches
-  # the hash the manifest names.
+  # what a viewer and the release route ask for. The newest listing IS the
+  # release record — identity, declared version, ABI and the hash the
+  # bytes must have — and nothing here trusts it about its own bytes: the
+  # artifact is found by hashing candidates until one matches. Listings
+  # written before the fold point at a manifest entry by sequence number
+  # instead; that path still resolves so older stores keep reading, and
+  # the manifest sub-id stays reserved for it.
   # ================================================================
 
   @doc """
-  The newest manifest an author has published for a slug, if any.
+  The newest listing an author has published for a slug, if any.
+
+  The listing is the release record: it carries the slug's identity, the
+  declared version, the ABI and the SHA-256 its artifact must hash to.
 
   A writer's device facet is not knowable from the outside, so all 256
-  facets of the manifest base are considered — but only the ones the store
+  facets of the control log are considered — but only the ones the store
   actually holds, because `Baobab.stored_info/1` decides which logs get
   read at all. Newest means the newest `published` stamp, with the entry's
   own sequence number breaking a tie.
@@ -613,19 +623,21 @@ defmodule Catenary.Apps do
   ## Examples
 
       iex> clump = Catenary.Preferences.get(:clump_id)
-      iex> Catenary.Apps.manifest(clump, "ExampleAuthor1", "example-app")
+      iex> Catenary.Apps.listing(clump, "ExampleAuthor1", "example-app")
       {:error, :not_released}
 
-      iex> Catenary.Apps.manifest("Dev", "ExampleAuthor1", "Not A Slug")
+      iex> Catenary.Apps.listing("Dev", "ExampleAuthor1", "Not A Slug")
       {:error, :invalid_slug}
 
   """
-  @spec manifest(binary, pk, slug) :: {:ok, map} | {:error, :not_released | :invalid_slug}
-  def manifest(clump_id, pk, slug) when is_binary(clump_id) and is_binary(pk) do
+  @spec listing(binary, pk, slug) :: {:ok, map} | {:error, :not_released | :invalid_slug}
+  def listing(clump_id, pk, slug) when is_binary(clump_id) and is_binary(pk) do
     with {:ok, slug} <- validate_slug(slug) do
       clump_id
-      |> kind_entries(pk, @manifest)
-      |> Enum.filter(fn {_entry, data} -> data["type"] == "manifest" and data["slug"] == slug end)
+      |> kind_entries(pk, control_log())
+      |> Enum.filter(fn {_entry, data} ->
+        data["type"] == "listing" and data["family"] == @family and data["slug"] == slug
+      end)
       |> Enum.max_by(fn {entry, data} -> {data["published"] || "", entry.seqnum} end, fn ->
         nil
       end)
@@ -637,7 +649,9 @@ defmodule Catenary.Apps do
   end
 
   @doc """
-  Whether an author has a manifest published for a slug.
+  Whether an author has a release published for a slug: a listing that
+  either carries its own record or points at a manifest the store still
+  holds.
 
   This is what the viewer asks before it points a pane at the release
   route: a slug nobody has released gets the pane's own words instead of a
@@ -655,16 +669,16 @@ defmodule Catenary.Apps do
   """
   @spec released?(binary, pk, slug) :: boolean
   def released?(clump_id, pk, slug) do
-    match?({:ok, _manifest}, manifest(clump_id, pk, slug))
+    match?({:ok, _record}, release_record(clump_id, pk, slug))
   end
 
   @doc """
-  A release resolved to the bytes it runs on: its newest manifest, and the
-  artifact that manifest names.
+  A release resolved to the bytes it runs on: the record its newest
+  listing carries, and the artifact that record names.
 
-  The bytes are found by hash — `artifact` in the manifest is a SHA-256 of
-  them — so an entry that does not hash to what the manifest names is not
-  this release's artifact, whatever it claims to be. The manifest's `abi`
+  The bytes are found by hash — `artifact` in the record is a SHA-256 of
+  them — so an entry that does not hash to what the listing names is not
+  this release's artifact, whatever it claims to be. The record's `abi`
   is checked too: this host runs `catenary_v1` modules and answers for
   nothing else.
 
@@ -683,18 +697,46 @@ defmodule Catenary.Apps do
 
   """
   @spec release(binary, pk, slug) ::
-          {:ok, %{manifest: map, bytes: binary, text: binary | nil}}
+          {:ok, %{bytes: binary, text: binary | nil}}
           | {:error, :not_released | :invalid_slug | :unsupported_abi | :no_artifact}
   def release(clump_id, pk, slug) do
-    with {:ok, manifest} <- manifest(clump_id, pk, slug),
-         :ok <- supported_abi(manifest),
-         {:ok, data} <- artifact_data(clump_id, pk, slug, manifest) do
-      {:ok, %{manifest: manifest, bytes: data["bytes"], text: data["text"]}}
+    with {:ok, record} <- release_record(clump_id, pk, slug),
+         :ok <- supported_abi(record),
+         {:ok, data} <- artifact_data(clump_id, pk, slug, record) do
+      {:ok, %{bytes: data["bytes"], text: data["text"]}}
     end
   end
 
+  # The metadata a release resolves through: the newest listing, or — for
+  # a listing written before the fold, which points at a manifest entry by
+  # sequence number — that manifest.
+  defp release_record(clump_id, pk, slug) do
+    with {:ok, listing} <- listing(clump_id, pk, slug) do
+      if is_binary(listing["artifact"]) do
+        {:ok, listing}
+      else
+        legacy_manifest(clump_id, pk, listing)
+      end
+    end
+  end
+
+  defp legacy_manifest(clump_id, pk, %{"v" => v, "slug" => slug}) when is_integer(v) do
+    clump_id
+    |> kind_entries(pk, @manifest)
+    |> Enum.filter(fn {entry, data} ->
+      data["type"] == "manifest" and data["slug"] == slug and entry.seqnum == v
+    end)
+    |> List.last()
+    |> case do
+      {_entry, data} -> {:ok, data}
+      nil -> {:error, :not_released}
+    end
+  end
+
+  defp legacy_manifest(_clump_id, _pk, _listing), do: {:error, :not_released}
+
   defp supported_abi(%{"abi" => "catenary_v1"}), do: :ok
-  defp supported_abi(_manifest), do: {:error, :unsupported_abi}
+  defp supported_abi(_record), do: {:error, :unsupported_abi}
 
   defp artifact_data(clump_id, pk, slug, %{"artifact" => wanted}) when is_binary(wanted) do
     clump_id
@@ -713,12 +755,13 @@ defmodule Catenary.Apps do
     end
   end
 
-  defp artifact_data(_clump_id, _pk, _slug, _manifest), do: {:error, :no_artifact}
+  defp artifact_data(_clump_id, _pk, _slug, _record), do: {:error, :no_artifact}
 
-  # Every decodable entry an author holds on one kind base, across whatever
-  # device facets they wrote to. The store's own log list decides which
-  # logs are read, so an author who has never released reads as nothing
-  # rather than as 256 misses.
+  # Every decodable entry an author holds on one base — a kind base, or
+  # the control log the listings ride — across whatever device facets they
+  # wrote to. The store's own log list decides which logs are read, so an
+  # author who has never released reads as nothing rather than as 256
+  # misses.
   defp kind_entries(clump_id, pk, base) do
     Baobab.stored_info(clump_id)
     |> Enum.filter(fn {author, log_id, _seq} ->

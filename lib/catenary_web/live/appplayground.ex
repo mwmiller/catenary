@@ -132,9 +132,9 @@ defmodule Catenary.Live.AppPlayground do
           when the buffer opens with a module — and starts it; a buffer that does not compile
           reports its diagnostic on the status line and in the trace. A run that publishes (the
           starter does) appends to this identity's own playground channel. ⇪ opens the publish
-          panel, which compiles the buffer as it stands and writes the artifact, its source, a
-          manifest and a listing to this identity's own app logs — the trace line names the
-          manifest revision and the artifact's hash. ⇥ on the right rail — or a file dropped on
+          panel, which compiles the buffer as it stands and writes the artifact — source beside
+          the bytes — and a listing to this identity's own app logs — the trace line names the
+          release version and the artifact's hash. ⇥ on the right rail — or a file dropped on
           the pane — runs a .wasm instead, gated on it instantiating here. Everything that
           happens lands on the left, in one trace: where each entry went, and what the host
           refused and why.

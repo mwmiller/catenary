@@ -677,7 +677,7 @@ defmodule CatenaryWeb.Live do
     detail =
       case LogWriter.publish_app(values, socket) do
         {:ok, release} ->
-          "published #{release.slug} · #{release.bytes} bytes · manifest v#{release.revision}" <>
+          "published #{release.slug} · #{release.bytes} bytes · release v#{release.version}" <>
             " · h'" <> Base.encode16(release.code, case: :lower) <> "'"
 
         {:error, message} ->

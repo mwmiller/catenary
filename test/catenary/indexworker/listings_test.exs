@@ -33,8 +33,8 @@ defmodule Catenary.IndexWorker.ListingsTest do
 
   test "a valid listing is indexed, junk is not, and a delist removes it" do
     # None of these can become a row: an illegal slug, a family the
-    # control log does not announce, a listing with no `v`, an entry that
-    # names no family, and a type nothing dispatches on.
+    # control log does not announce, a listing carrying no version at all,
+    # an entry that names no family, and a type nothing dispatches on.
     publish(%{"type" => "listing", "family" => 2, "slug" => "Bad-Slug", "v" => 1})
     publish(%{"type" => "listing", "family" => 9, "slug" => "other-family", "v" => 1})
     publish(%{"type" => "listing", "family" => 2, "slug" => "no-version"})
@@ -99,6 +99,20 @@ defmodule Catenary.IndexWorker.ListingsTest do
       publish(%{"type" => "delist", "family" => 2, "slug" => slug})
     end
 
+    reindex()
+    assert display() == []
+  end
+
+  # The folded listing carries its declared version as text; the integer
+  # `v` an older listing pointed at its manifest with still reads, so both
+  # shapes label a row without either one being dropped as junk.
+  test "a folded listing's declared version labels its row" do
+    publish(%{"type" => "listing", "family" => 2, "slug" => "semver-app", "version" => "1.2.3"})
+    reindex()
+
+    assert [%{slug: "semver-app", version: "1.2.3"}] = display()
+
+    publish(%{"type" => "delist", "family" => 2, "slug" => "semver-app"})
     reindex()
     assert display() == []
   end

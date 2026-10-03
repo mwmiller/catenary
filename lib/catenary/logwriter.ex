@@ -561,8 +561,8 @@ defmodule Catenary.LogWriter do
   @max_source_bytes 256 * 1024
 
   @doc """
-  Publish a playground buffer as an application: artifact, manifest and
-  listing — three entries, in that order.
+  Publish a playground buffer as an application: artifact and listing —
+  two entries, in that order.
 
   The artifact entry carries the release payload as one unit: the wasm
   bytes and the exact WAT they were built from together. They are the same
@@ -570,13 +570,19 @@ defmodule Catenary.LogWriter do
   whole — so splitting them across logs would buy scan time nothing needs
   and cost the source a pointer of its own.
 
+  The listing is the release record as well as the announcement: slug,
+  title, description, declared version, ABI and the SHA-256 the artifact
+  must hash to. Discovery and metadata are the same small entry, so a
+  peer that accepts announcements already holds everything needed to
+  understand the release — and there is no second write to keep in step.
+
   `values` carries the words the author typed — `slug`, `title`,
   `description`, `version` — plus `source`, the buffer the playground
   holds. The module is built here rather than handed in by the caller so
   that compile, size caps and append are one choke point: every caller
   passes the same checks (§9.7).
 
-  The appends run artifact → manifest → listing, and there is no
+  The appends run artifact → listing, and there is no
   rollback between them: a failure part way through leaves what was already
   written orphaned rather than referenced, because a reader reaches this
   release only through the listing, which is written last.
@@ -589,7 +595,7 @@ defmodule Catenary.LogWriter do
            %{
              slug: binary,
              bytes: non_neg_integer,
-             revision: pos_integer,
+             version: binary,
              listing: {binary, non_neg_integer, pos_integer},
              code: binary
            }}
@@ -614,9 +620,10 @@ defmodule Catenary.LogWriter do
   defp append_release(slug, values, wat, wasm, socket) do
     published = DateTime.utc_now() |> DateTime.to_string()
     code = :crypto.hash(:sha256, wasm)
+    version = release_version(values)
 
     # Bytes and text in one entry: same traffic class, one thing to accept
-    # or deny, and the entry signature already covers both. The manifest
+    # or deny, and the entry signature already covers both. The listing
     # pins the bytes by hash; the WAT rides beside them under the same
     # `code`.
     append_kind(
@@ -633,29 +640,15 @@ defmodule Catenary.LogWriter do
       socket
     )
 
-    manifest =
-      %{
-        "v" => 1,
-        "type" => "manifest",
-        "slug" => slug,
-        "version" => release_version(values),
-        "abi" => "catenary_v1",
-        "features" => [],
-        "artifact" => code,
-        "published" => published
-      }
-      |> maybe_put("title", optional_text(values, "title"))
-      |> maybe_put("description", optional_text(values, "description"))
-      |> append_kind(Apps.manifest_log(), socket)
-
     listing =
       %{
         "type" => "listing",
         "family" => Apps.family(),
         "slug" => slug,
-        # The listing names the manifest revision it points at, so a
-        # re-listing and its manifest cannot come apart.
-        "v" => manifest.seqnum,
+        "version" => version,
+        "abi" => "catenary_v1",
+        "features" => [],
+        "artifact" => code,
         "published" => published
       }
       |> maybe_put("title", optional_text(values, "title"))
@@ -668,7 +661,7 @@ defmodule Catenary.LogWriter do
      %{
        slug: slug,
        bytes: byte_size(wasm),
-       revision: manifest.seqnum,
+       version: version,
        listing: {Baobab.Identity.as_base62(listing.author), listing.log_id, listing.seqnum},
        code: code
      }}

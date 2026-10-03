@@ -4,10 +4,10 @@ defmodule Catenary.Live.ListingsExplorer do
 
   Reads the `:listings` index table and shows every `(pk, slug)` the control
   log currently announces — today app listings, and anything else that lands
-  on the log once a second family is announced. Each row is a pointer: the
-  manifest and artifact behind it live in the family's kind logs and are
-  only resolved when a viewer opens the entry, so this view answers "what
-  exists" and nothing else.
+  on the log once a second family is announced. Each row carries the
+  release's words and the hash its bytes must have; the bytes themselves
+  live in the family's artifact kind log and are only fetched when a viewer
+  opens the entry, so this view answers "what exists" and nothing else.
 
   Rows belonging to a family the viewer has blocked are dropped rather than
   greyed, the way the challenge explorer keeps blocked games out of its

@@ -11,23 +11,27 @@ defmodule Catenary.IndexWorker.Listings do
 
   Scans the listings control log (`Catenary.Apps.listing_logs/0`: log 2777
   across its facets) and keeps one row per `(pk, slug)` it currently
-  announces. The manifest, artifact and source kind logs are deliberately
-  *not* scanned — the row stays a pointer and resolves to content only when
-  a viewer asks for it.
+  announces. The artifact kind log is deliberately *not* scanned — the row
+  carries the release's metadata and the hash its bytes must have, and
+  resolves to content only when a viewer asks for it.
 
   The log carries listings for every family the control log announces, not
   just apps: `family` decides which family a row belongs to, so a second
   family landing on the control log is indexed here alongside the first.
 
-  An entry is a pointer, not a document:
+  An entry is the release record folded into its announcement:
 
       %{"type" => "listing", "family" => 2, "slug" => "example-app",
-        "v" => 7, "description" => "a tiny app", "published" => iso8601}
+        "version" => "1.2.3", "abi" => "catenary_v1", "features" => [],
+        "artifact" => <<...32 bytes...>>, "description" => "a tiny app",
+        "published" => iso8601}
 
   `family` is the one field that decides which family a row belongs to; the
   signing key, the data-channel base and the kind sub-ids are all recomputed
   from `{pk, slug}` by whoever reads them, so an entry cannot smuggle in a
-  second, conflicting answer for them. `v` names the manifest entry version.
+  second, conflicting answer for them. `version` is the declared release
+  version; a listing written before the fold carried an integer `v` instead
+  (its manifest's sequence number), and a row keeps whichever it found.
 
   `description` is optional and unvalidated — the log is written by anyone —
   so it is stored as text or not at all, and a row without one still lists.
@@ -84,24 +88,37 @@ defmodule Catenary.IndexWorker.Listings do
     end
   end
 
-  defp put_entry(%{"type" => "listing", "v" => v} = data, pk, slug, family, l, seqnum, listings)
-       when is_integer(v) do
-    Map.put(listings, {pk, slug}, %{
-      pk: pk,
-      slug: slug,
-      family: family,
-      version: v,
-      description: Apps.description(data),
-      published: data["published"],
-      log_id: l,
-      seqnum: seqnum
-    })
+  defp put_entry(%{"type" => "listing"} = data, pk, slug, family, l, seqnum, listings) do
+    case version_of(data) do
+      nil ->
+        listings
+
+      version ->
+        Map.put(listings, {pk, slug}, %{
+          pk: pk,
+          slug: slug,
+          family: family,
+          version: version,
+          description: Apps.description(data),
+          published: data["published"],
+          log_id: l,
+          seqnum: seqnum
+        })
+    end
   end
 
   defp put_entry(%{"type" => "delist"}, pk, slug, _family, _l, _seqnum, listings),
     do: Map.delete(listings, {pk, slug})
 
   defp put_entry(_data, _pk, _slug, _family, _l, _seqnum, listings), do: listings
+
+  # The label a row shows: the declared release version, or — for a
+  # listing written before the fold — the integer `v` that pointed at its
+  # manifest. A listing with neither is not an announcement this index can
+  # vouch for, and is dropped with the other junk.
+  defp version_of(%{"version" => version}) when is_binary(version), do: version
+  defp version_of(%{"v" => v}) when is_integer(v), do: v
+  defp version_of(_data), do: nil
 
   # Swap the snapshot wholesale: insert the new rows, publish them as the
   # one `:display` list, then drop whatever the fold no longer vouches for.
