@@ -56,7 +56,7 @@ defmodule Catenary.Live.AppViewer do
           </p>
           <pre
             id="app-print"
-            class="hidden whitespace-pre-wrap text-xs font-mono text-slate-600 dark:text-slate-300"
+            class="h-24 shrink-0 overflow-y-auto whitespace-pre-wrap text-xs font-mono text-slate-600 dark:text-slate-300"
           ></pre>
           <div
             id="app-view"

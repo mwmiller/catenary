@@ -6,6 +6,7 @@ defmodule CatenaryWeb.Live do
   require Logger
 
   alias Catenary.{
+    Apps.DSL,
     Display,
     Games.Backgammon.Chain,
     Games.Backgammon.Game,
@@ -642,7 +643,7 @@ defmodule CatenaryWeb.Live do
   def handle_info(:playground_run, socket) do
     socket = assign(socket, trace: [], trace_at: 0)
 
-    case compile_wat(socket.assigns.source) do
+    case compile_source(socket.assigns.source) do
       {:ok, wasm} ->
         {:noreply, push_event(socket, "app-run", %{"wasm" => Base.encode64(wasm)})}
 
@@ -809,10 +810,19 @@ defmodule CatenaryWeb.Live do
   # AppPlayground component: navigating away destroys the component, and an
   # editor buffer that empties when you click ⬡ is not an editor buffer. The
   # CodeEditor hook debounces, so this is one message per burst of typing
-  # rather than one per keystroke.
+  # rather than one per keystroke. The burst's compile verdict rides back on
+  # the same wire, which is what puts the compiler's position in the gutter
+  # while the author is still typing.
   def handle_event("playground-source", %{"value" => value}, socket)
       when is_binary(value) do
-    {:noreply, assign(socket, source: String.slice(value, 0, @max_source_bytes))}
+    source = String.slice(value, 0, @max_source_bytes)
+
+    socket =
+      socket
+      |> assign(source: source)
+      |> push_event("playground-diagnostics", %{"diagnostics" => lint_diagnostics(source)})
+
+    {:noreply, socket}
   end
 
   # A drop-in starts and finishes in the pane — the LiveView never sees an
@@ -1569,15 +1579,95 @@ defmodule CatenaryWeb.Live do
 
   defp maybe_reindex_aliases(_socket, _from_caller), do: :ok
 
-  # WAT to wasm for the playground's Run. watusi raises on a buffer it cannot
-  # parse, and a buffer that does not parse is the ordinary case while it is
-  # being written rather than a crash of the LiveView process, so the raise
-  # is the error channel.
-  defp compile_wat(source) when is_binary(source) do
-    {:ok, Watusi.to_wasm(source)}
+  # Buffer to wasm for the playground's Run. The buffer is either
+  # handwritten WAT — the power-user tier, a module after any leading `;;`
+  # comments — or DSL source, the default tier, which compiles to WAT and
+  # then takes the same watusi path. watusi raises on a buffer it cannot
+  # parse, and a buffer that does not parse is the ordinary case while it
+  # is being written rather than a crash of the LiveView process, so the
+  # raise is the error channel; the DSL side returns its diagnostics as
+  # `{:error, message}` already, with positions in the message.
+  defp compile_source(source) when is_binary(source) do
+    with {:ok, wat} <- source_wat(source) do
+      {:ok, Watusi.to_wasm(wat)}
+    end
   rescue
     error -> {:error, Exception.message(error)}
   end
+
+  defp source_wat(source) do
+    if wat_module?(source) do
+      {:ok, source}
+    else
+      DSL.compile(source)
+    end
+  end
+
+  defp wat_module?(source) do
+    source
+    |> String.split("\n")
+    |> Enum.find_value(false, fn line ->
+      case String.trim_leading(line) do
+        "" -> nil
+        ";;" <> _ -> nil
+        trimmed -> String.starts_with?(trimmed, "(module")
+      end
+    end)
+  end
+
+  # The compiler's verdict in the shape the editor's lint gutter eats: a
+  # range in document coordinates, not a line and column. A JavaScript
+  # string indexes UTF-16 code units and CodeMirror measures a document the
+  # same way, so the compiler's codepoint columns are converted — the lines
+  # before it are measured in units, the column counts a prefix of the line
+  # that is itself measured in units. A WAT buffer carries no positions the
+  # editor could underline; watusi's verdict arrives on Run.
+  defp lint_diagnostics(source) do
+    if wat_module?(source) do
+      []
+    else
+      case DSL.diagnostic(source) do
+        nil -> []
+        %{line: line, col: col, message: message} -> [lint_diagnostic(source, line, col, message)]
+      end
+    end
+  end
+
+  defp lint_diagnostic(source, line, col, message) do
+    doc_len = utf16_size(source)
+    from = min(lint_offset(source, line, col), doc_len)
+    to = if from < doc_len, do: from + 1, else: from
+    %{"from" => from, "to" => to, "message" => message}
+  end
+
+  defp lint_offset(source, line, col) do
+    lines = String.split(source, "\n")
+
+    line_start =
+      lines
+      |> Enum.take(max(line - 1, 0))
+      |> Enum.map(&(&1 |> utf16_size() |> Kernel.+(1)))
+      |> Enum.sum()
+
+    within =
+      lines
+      |> Enum.at(max(line - 1, 0), "")
+      |> String.to_charlist()
+      |> Enum.take(max(col - 1, 0))
+      |> Enum.map(&utf16_units/1)
+      |> Enum.sum()
+
+    line_start + within
+  end
+
+  defp utf16_size(string) do
+    string |> String.to_charlist() |> Enum.map(&utf16_units/1) |> Enum.sum()
+  end
+
+  # A codepoint above the basic plane takes two UTF-16 units, which is one
+  # more unit than the compiler's codepoint column counted for it.
+  defp utf16_units(codepoint) when codepoint > 0xFFFF, do: 2
+  defp utf16_units(_codepoint), do: 1
 
   # Append to the run's trace, keeping the newest @trace_limit entries and
   # moving the cursor to the tail: a fresh trace is read from the end, the

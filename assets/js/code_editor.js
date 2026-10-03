@@ -11,7 +11,9 @@ import {
   basicSetup,
   EditorState,
   EditorView,
-  placeholder
+  lintGutter,
+  placeholder,
+  setDiagnostics
 } from "../vendor/codemirror.mjs"
 
 // The same stack as tailwind.config.js's mono: platform faces only, no webfont.
@@ -76,6 +78,7 @@ export const CodeEditorHook = {
           basicSetup,
           theme,
           EditorView.lineWrapping,
+          lintGutter(),
           placeholder("app source"),
           EditorView.updateListener.of((update) => {
             if (!update.docChanged) return
@@ -85,6 +88,33 @@ export const CodeEditorHook = {
         ]
       })
     })
+
+    // The server compiles each burst of typing that it already receives and
+    // answers with the compiler's verdict: ranges in document coordinates,
+    // severity and all set at once, so a fix clears as fast as a typo lands.
+    this.handleEvent("playground-diagnostics", (payload) => this.mark(payload))
+  },
+
+  // Diagnostics arrive as positions in the same coordinates CodeMirror
+  // measures with — UTF-16 code units — but they are clamped here too: the
+  // document this hook holds and the source the server compiled can drift by
+  // a keystroke between the push and its arrival, and a stale mark on the
+  // wrong character is worse than no mark at all.
+  mark(payload) {
+    if (!this.view) return
+
+    const length = this.view.state.doc.length
+    const diagnostics = (payload.diagnostics || []).map((diagnostic) => {
+      const from = Math.max(0, Math.min(diagnostic.from, length))
+      return {
+        from,
+        to: Math.max(from, Math.min(diagnostic.to, length)),
+        severity: "error",
+        message: diagnostic.message
+      }
+    })
+
+    this.view.dispatch(setDiagnostics(this.view.state, diagnostics))
   },
 
   report() {

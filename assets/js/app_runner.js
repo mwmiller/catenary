@@ -136,7 +136,10 @@ export const AppRunner = {
       print: text => {
         this._record("print", text)
         print.textContent = appendPrint(print.textContent, text)
-        print.classList.remove("hidden")
+        // The console is a fixed-height window onto the log: each line the
+        // module prints scrolls the tail into view rather than growing the
+        // pane the way a print log left to itself would.
+        print.scrollTop = print.scrollHeight
       },
       render: value => {
         // A tree that failed validation comes back with `strike`, and as
@@ -204,7 +207,6 @@ export const AppRunner = {
     const print = this.el.querySelector("#app-print")
     const view = this.el.querySelector("#app-view")
     print.textContent = ""
-    print.classList.add("hidden")
     view.textContent = ""
     view.classList.add("hidden")
 
