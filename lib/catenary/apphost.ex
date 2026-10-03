@@ -25,14 +25,14 @@ defmodule Catenary.AppHost do
       comes back from here.
   """
 
-  alias Catenary.AppKV
+  alias Catenary.{AppKV, Apps}
 
   @type app :: %{clump_id: String.t(), pk: binary, slug: String.t()}
 
   # The operation allow-list. Matching on the names themselves rather than
   # turning a wire string into an atom means an unrecognised operation
   # never creates an atom and never reaches a read.
-  @ops ~w(log_read log_head log_range refs entry_meta timeline profile storage_get
+  @ops ~w(channel log_read log_head log_range refs entry_meta timeline profile storage_get
          storage_set)
 
   # A range answers with a page, not with a log: at most this many entries
@@ -89,6 +89,7 @@ defmodule Catenary.AppHost do
   # One clause per advertised operation, so the names this host answers are
   # readable down the left margin and anything else is refused without a
   # lookup.
+  defp dispatch(app, "channel", args), do: channel(app, args)
   defp dispatch(app, "log_read", args), do: log_read(app, args)
   defp dispatch(app, "log_head", args), do: log_head(app, args)
   defp dispatch(app, "log_range", args), do: log_range(app, args)
@@ -388,6 +389,131 @@ defmodule Catenary.AppHost do
       "published" => Map.fetch!(published, entry)
     }
   end
+
+  # The channel of an application, addressed the way every installation
+  # addresses it: by `<pk>/<slug>`, never by a derived number the module
+  # would have to carry and two sides could disagree about. The base is
+  # recomputed here from the same string a `publish` was stamped with;
+  # every device of the author writes its own facet (write-conflict
+  # avoidance, §11 risk 5) and this read merges them, newest `published`
+  # first with log and sequence breaking ties — the stamp `publish` puts
+  # on every entry is what makes that order mean anything across facets.
+  # `app:` defaults to the running app's own name; naming another
+  # author's app reads their channel, under the same blocks a timeline
+  # is read under.
+  defp channel(app, args) do
+    with {:ok, {pk, slug}} <- channel_target(app, args),
+         :ok <- author_visible(pk, app.clump_id),
+         {:ok, cursor} <- arg(args, :cursor, 0),
+         {:ok, cursor} <- as_cursor(cursor),
+         {:ok, limit} <- arg(args, :limit, @default_range),
+         {:ok, limit} <- as_count(limit),
+         rows = channel_rows(app.clump_id, pk, slug),
+         sorted = Enum.sort_by(rows, fn {p, _a, l, s} -> {p, l, s} end, :desc),
+         published = Map.new(sorted, fn {p, a, l, s} -> {{a, l, s}, p} end),
+         {:ok, kept} <-
+           visible_entries(Enum.map(sorted, fn {_p, a, l, s} -> {a, l, s} end), app.clump_id) do
+      # Filtering comes before the offset, exactly as a timeline pages:
+      # a blocked entry does not take a place on the page.
+      kept
+      |> Enum.drop(cursor)
+      |> Enum.take(limit)
+      |> channel_fetch(app.clump_id, published)
+    else
+      :error -> {:error, :bad_args}
+      {:error, _} = err -> err
+    end
+  end
+
+  # What `app:` means: absent, the running app's own name — which is the
+  # shared address, since every installation derives the same base from
+  # it. Present, `<pk>/<slug>` split and checked like any other author
+  # and slug the wire sends.
+  defp channel_target(app, args) do
+    case arg(args, :app) do
+      :error ->
+        case as_author(app.pk) do
+          {:ok, pk} -> {:ok, {pk, app.slug}}
+          _ -> {:error, :bad_app}
+        end
+
+      {:ok, id} when is_binary(id) ->
+        with [pk, slug] <- String.split(id, "/", parts: 2),
+             {:ok, slug} <- Apps.validate_slug(slug),
+             {:ok, pk} <- as_author(pk) do
+          {:ok, {pk, slug}}
+        else
+          _ -> {:error, :bad_args}
+        end
+
+      {:ok, _} ->
+        {:error, :bad_args}
+    end
+  end
+
+  # The channel's rows, each carrying the stamp that orders it. An entry
+  # with no `published` (appended before the stamp existed, or by a hand
+  # that did not go through `publish`) sorts oldest rather than breaking
+  # the order.
+  defp channel_rows(clump_id, pk, slug) do
+    clump_id
+    |> Apps.channel_entries(pk, slug)
+    |> Enum.map(fn {author, log_id, entry} ->
+      {entry_published(entry.payload), author, log_id, entry.seqnum}
+    end)
+  end
+
+  defp entry_published(payload) do
+    case CBOR.decode(payload) do
+      {:ok, %{"published" => published}, ""} when is_binary(published) -> published
+      _ -> ""
+    end
+  rescue
+    _ -> ""
+  end
+
+  # The page itself: whole payloads while the byte budget has room, the
+  # first entry always taken — the same rule `log_range` pages by.
+  defp channel_fetch(rows, clump_id, published) do
+    page =
+      rows
+      |> Enum.reduce_while({0, []}, fn row, acc ->
+        channel_row(row, clump_id, published, acc)
+      end)
+      |> elem(1)
+      |> Enum.reverse()
+
+    {:ok, page}
+  end
+
+  defp channel_row({author, log_id, seq}, clump_id, published, {budget, acc}) do
+    case Baobab.log_entry(author, seq, log_id: log_id, clump_id: clump_id) do
+      %Baobab.Entry{payload: payload} ->
+        reply = %{
+          "author" => author,
+          "log_id" => log_id,
+          "seq" => seq,
+          "published" => unblank(Map.get(published, {author, log_id, seq})),
+          "payload" => %CBOR.Tag{tag: :bytes, value: payload}
+        }
+
+        budget_page(reply, byte_size(payload), budget, acc)
+
+      _ ->
+        {:cont, {budget, acc}}
+    end
+  end
+
+  defp budget_page(reply, size, budget, acc) do
+    if acc == [] or budget + size <= @max_range_bytes do
+      {:cont, {budget + size, [reply | acc]}}
+    else
+      {:halt, {budget, acc}}
+    end
+  end
+
+  defp unblank(""), do: nil
+  defp unblank(value), do: value
 
   # What a profile is made of here: the name *this* identity gave a key,
   # and what that key wrote about itself. They are separate answers because

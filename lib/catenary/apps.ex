@@ -17,7 +17,11 @@ defmodule Catenary.Apps do
 
     * **data channels** — one per `(pk, slug)`, derived from
       `SHA-256(pk <> slug)` so any peer can recompute the base and fetch the
-      channel without an announcement.
+      channel without an announcement. Every installation of the same app
+      derives the same base: each device writes its own facet and reads the
+      channel merged (`channel_entries/3`, the host's `channel` op), so
+      where messages appear is a shared answer rather than a number one
+      side would have to remember.
 
   Discovery of both rides the family's hand-allocated control log
   (`QuaggaDef.control_log(:app)`, 2777), reached through `control_log/0`
@@ -391,6 +395,42 @@ defmodule Catenary.Apps do
   def app_log_id(pk, slug, device_facet)
       when is_binary(pk) and is_binary(slug) and device_facet in 0..255 do
     QuaggaDef.facet_log(app_base(pk, slug), device_facet)
+  end
+
+  @doc """
+  Every entry an author holds in an application's data channel, across
+  whatever device facets they wrote to.
+
+  The channel is addressed by `(pk, slug)` — the same derivation every
+  installation of the app performs — and the facets are merged because a
+  message written on one device is a message every other device reads.
+  Returns `{author, log_id, entry}` rows in store order; the caller (the
+  host) decides ordering, visibility and paging.
+
+  The slug is assumed valid: callers arrive through `validate_slug/1` or
+  through the app struct the LiveView built.
+
+  ## Examples
+
+      iex> clump = Catenary.Preferences.get(:clump_id)
+      iex> Catenary.Apps.channel_entries(clump, "ExampleAuthor1", "example-app")
+      []
+
+  """
+  @spec channel_entries(binary, pk, slug) :: [{pk, non_neg_integer, Baobab.Entry.t()}]
+  def channel_entries(clump_id, pk, slug)
+      when is_binary(clump_id) and is_binary(pk) and is_binary(slug) do
+    base = app_base(pk, slug)
+
+    Baobab.stored_info(clump_id)
+    |> Enum.filter(fn {author, log_id, _seq} ->
+      same_base?(log_id, base) and Baobab.Identity.as_base62(author) == pk
+    end)
+    |> Enum.flat_map(fn {author, log_id, _seq} ->
+      author
+      |> Baobab.full_log(log_id: log_id, clump_id: clump_id)
+      |> Enum.map(fn entry -> {pk, log_id, entry} end)
+    end)
   end
 
   @doc """

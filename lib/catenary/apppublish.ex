@@ -18,7 +18,10 @@ defmodule Catenary.AppPublish do
   Two fields are stamped rather than taken: `v` and `app`. A reader
   recomputes the channel base from the `app` string and the *signed* author,
   so it is built here from the same `pk` and `slug` the log was derived from
-  rather than trusted out of CBOR the module wrote.
+  rather than trusted out of CBOR the module wrote. `published` is stamped
+  too — this host's clock at append, the same stamp every other entry type
+  carries — because it is what lets a reader order a channel across device
+  facets, where per-log sequence numbers alone say nothing about time.
 
   An entry is bounded before it is decoded (§7 risk 10) and has to carry a
   `type`, so what lands is a typed, sized data entry — not an artifact (the
@@ -159,6 +162,7 @@ defmodule Catenary.AppPublish do
       entry
       |> Map.put("v", 1)
       |> Map.put("app", pk <> "/" <> slug)
+      |> Map.put("published", DateTime.utc_now() |> DateTime.to_string())
       |> CBOR.encode()
 
     %Baobab.Entry{seqnum: seq} =

@@ -94,6 +94,37 @@ defmodule Catenary.AppHostTest do
     Map.merge(ctx, %{author: author, log_id: log_id, seq: seq})
   end
 
+  # Entries in an app's own channel, on the facets named — what two
+  # devices of the same author look like to a reader. The channel is
+  # derived from the app's name, so the fixture purges the facets these
+  # tests ever touch before writing and again on exit.
+  defp with_channel(ctx, entries) do
+    purge_channel(ctx.app, 0..7)
+    author = Catenary.id_for_key(Preferences.get(:identity))
+
+    for {facet, payload} <- entries do
+      log_id = Catenary.Apps.app_log_id(ctx.app.pk, ctx.app.slug, facet)
+      Baobab.append_log(payload, author, log_id: log_id, clump_id: ctx.clump_id)
+
+      on_exit(fn ->
+        Baobab.purge(author, log_id: log_id, clump_id: ctx.clump_id)
+      end)
+    end
+
+    ctx
+  end
+
+  defp purge_channel(app, facets) do
+    author = Catenary.id_for_key(Preferences.get(:identity))
+
+    for facet <- facets do
+      Baobab.purge(author,
+        log_id: Catenary.Apps.app_log_id(app.pk, app.slug, facet),
+        clump_id: app.clump_id
+      )
+    end
+  end
+
   # An index row written straight into the table the workers own: the host
   # reads those tables, so a test puts one there rather than waiting for a
   # log to be indexed. Workers key entries in base62, so the caller passes
@@ -643,6 +674,89 @@ defmodule Catenary.AppHostTest do
       assert {:error, :bad_args} = AppHost.handle(ctx.app, "timeline", %{cursor: -1})
       assert {:error, :bad_args} = AppHost.handle(ctx.app, "timeline", %{limit: -1})
       assert {:error, :bad_args} = AppHost.handle(ctx.app, "timeline", %{author: "nonsense"})
+    end
+  end
+
+  # The channel is the running app's own name's derivation — the address
+  # every installation of `<pk>/<slug>` computes the same way. Devices
+  # write their own facets; this read merges them, ordered by the
+  # `published` stamp `publish` puts on every entry.
+  describe "channel" do
+    test "its own channel merged across device facets, newest published first", ctx do
+      ctx =
+        with_channel(ctx, [
+          {0, CBOR.encode(%{"type" => "move", "n" => 1, "published" => "2026-10-01 00:00:00Z"})},
+          {7, CBOR.encode(%{"type" => "move", "n" => 2, "published" => "2026-10-02 00:00:00Z"})}
+        ])
+
+      assert {:ok, [newest, older]} = AppHost.handle(ctx.app, "channel", %{})
+
+      # The newer publish wins regardless of which facet it landed on.
+      assert newest["published"] == "2026-10-02 00:00:00Z"
+      assert newest["log_id"] == Catenary.Apps.app_log_id(ctx.app.pk, ctx.app.slug, 7)
+      assert newest["author"] == ctx.app.pk
+      assert {:ok, %{"n" => 2}, ""} = CBOR.decode(newest["payload"].value)
+
+      assert older["published"] == "2026-10-01 00:00:00Z"
+      assert older["log_id"] == Catenary.Apps.app_log_id(ctx.app.pk, ctx.app.slug, 0)
+    end
+
+    test "the cursor counts entries back from the newest", ctx do
+      ctx =
+        with_channel(ctx, [
+          {0, CBOR.encode(%{"n" => 1, "published" => "2026-10-01 00:00:00Z"})},
+          {7, CBOR.encode(%{"n" => 2, "published" => "2026-10-02 00:00:00Z"})}
+        ])
+
+      assert {:ok, [%{"published" => "2026-10-02 00:00:00Z"}]} =
+               AppHost.handle(ctx.app, "channel", %{limit: 1})
+
+      assert {:ok, [%{"published" => "2026-10-01 00:00:00Z"}]} =
+               AppHost.handle(ctx.app, "channel", %{cursor: 1, limit: 1})
+
+      assert {:ok, []} = AppHost.handle(ctx.app, "channel", %{cursor: 5})
+    end
+
+    test "app: names a channel by the shared address", ctx do
+      ctx =
+        with_channel(ctx, [
+          {0, CBOR.encode(%{"type" => "move", "published" => "2026-10-01 00:00:00Z"})}
+        ])
+
+      own = ctx.app.pk <> "/" <> ctx.app.slug
+      assert {:ok, [_entry]} = AppHost.handle(ctx.app, "channel", %{app: own})
+
+      # An author who has never published this slug is an empty page,
+      # not an error: the address is well-formed and the channel is quiet.
+      assert {:ok, []} =
+               AppHost.handle(ctx.app, "channel", %{
+                 app: String.duplicate("2", 43) <> "/example-app"
+               })
+
+      # A name that cannot name a channel is refused rather than guessed at.
+      assert {:error, :bad_args} = AppHost.handle(ctx.app, "channel", %{app: "noslash"})
+
+      assert {:error, :bad_args} =
+               AppHost.handle(ctx.app, "channel", %{app: ctx.app.pk <> "/Not A Slug"})
+    end
+
+    test "a channel nobody has written answers with an empty page", ctx do
+      purge_channel(ctx.other_app, 0..7)
+      assert {:ok, []} = AppHost.handle(ctx.other_app, "channel", %{})
+    end
+
+    test "an author the clump refuses is refused outright", ctx do
+      Baobab.ClumpMeta.block(@foreign_author, ctx.clump_id)
+      on_exit(fn -> Baobab.ClumpMeta.unblock(@foreign_author, ctx.clump_id) end)
+
+      assert {:error, :blocked} =
+               AppHost.handle(ctx.app, "channel", %{app: @foreign_author <> "/example-app"})
+    end
+
+    test "incomplete or malformed arguments are refused", ctx do
+      assert {:error, :bad_args} = AppHost.handle(ctx.app, "channel", %{cursor: -1})
+      assert {:error, :bad_args} = AppHost.handle(ctx.app, "channel", %{limit: -1})
+      assert {:error, :bad_args} = AppHost.handle(ctx.app, "channel", %{app: 12})
     end
   end
 

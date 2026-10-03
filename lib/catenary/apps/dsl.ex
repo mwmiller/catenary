@@ -20,6 +20,7 @@ defmodule Catenary.Apps.DSL do
   # Host operations and the arguments the host will accept: `req` must be
   # present, `opt` may be. Checked against Catenary.AppHost.dispatch/3.
   @host_ops %{
+    "channel" => %{req: [], opt: ~w(app cursor limit)},
     "log_read" => %{req: ~w(log_id seq), opt: ~w(author)},
     "log_head" => %{req: ~w(log_id), opt: ~w(author)},
     "log_range" => %{req: ~w(log_id), opt: ~w(author from count)},
@@ -63,7 +64,7 @@ defmodule Catenary.Apps.DSL do
                   print render animate want publish draw col row canvas
                   entry
                   x y lw c x1 y1 x2 y2 pts size
-                  log_id seq author from count kind cursor limit key value) ++
+                  log_id seq author from count kind cursor limit key value app) ++
                  [@default_color]
 
   # Operator spellings to their AST atoms. Explicit, because relying on
@@ -1049,7 +1050,7 @@ defmodule Catenary.Apps.DSL do
   # either is told here rather than having it silently dropped on publish.
   defp check_publish_fields(args, line, col) do
     names = Enum.map(args, &elem(&1, 0))
-    stamped = &(&1 in ["v", "app"])
+    stamped = &(&1 in ["v", "app", "published"])
 
     cond do
       names == [] ->

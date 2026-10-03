@@ -56,12 +56,15 @@ defmodule Catenary.AppPublishTest do
       assert %{"ok" => true, "seq" => seq} = reply
       assert is_integer(seq) and seq > 0
 
-      assert head(ctx) == %{
-               "type" => "note",
-               "text" => "hello",
-               "v" => 1,
-               "app" => ctx.identity <> "/" <> @slug
-             }
+      published = head(ctx)
+      assert published["type"] == "note"
+      assert published["text"] == "hello"
+      assert published["v"] == 1
+      assert published["app"] == ctx.identity <> "/" <> @slug
+      # The host's clock at append: the stamp that orders a channel across
+      # device facets, where per-log sequence numbers say nothing about
+      # time.
+      assert is_binary(published["published"])
     end
 
     test "on the facet this device writes on", ctx do
@@ -78,6 +81,7 @@ defmodule Catenary.AppPublishTest do
         "type" => "note",
         "app" => @foreign_pk <> "/elsewhere",
         "v" => 99,
+        "published" => "1999-01-01 00:00:00Z",
         "log_id" => Apps.manifest_log()
       }
 
@@ -86,7 +90,9 @@ defmodule Catenary.AppPublishTest do
       published = head(ctx)
       assert published["app"] == ctx.identity <> "/" <> @slug
       assert published["v"] == 1
-      # Fields the module chose are left alone; only provenance is taken.
+      assert published["published"] != "1999-01-01 00:00:00Z"
+      # Fields the module chose are left alone; provenance (v, app,
+      # published) is taken.
       assert published["log_id"] == Apps.manifest_log()
     end
   end

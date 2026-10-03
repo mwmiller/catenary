@@ -28,11 +28,10 @@ defmodule Catenary.Live.AppPlayground do
 
   @scratch_slug "playground"
 
-  # What a new draft starts from: a nine-turn module that batches wants,
-  # round trips through the host's storage, publishes one entry to its own
-  # channel, asks a log for its head and then puts four reads in one array —
-  # the ABI's rules in the order they bite, before the DSL compiler (step 6)
-  # gives the buffer its own language.
+  # What a new draft starts from: a module that round trips through the
+  # host's storage, publishes one entry to its own channel and reads that
+  # channel back — the ABI's rules in the order they bite, before the DSL
+  # compiler (step 6) gives the buffer its own language.
   @starter """
   # The playground's own language. Press Run: this compiles to wasm on the
   # server, right here, with no toolchain of your own.
@@ -42,17 +41,24 @@ defmodule Catenary.Live.AppPlayground do
   # draw paints on the canvas that view declared, want asks the host a
   # question whose answer arrives on the data handler that named it, and
   # publish appends a typed entry to the channel this app's own name
-  # derives — the host decides where from, never the entry.
+  # derives — the host decides where from, never the entry. channel reads
+  # that same name back: every installation derives the same base, so
+  # where messages appear is agreed by derivation, not remembered.
 
   on init:
     print("hello from the DSL")
     want "set_done" = storage_set(key: "greeting", value: 41)
     publish(type: "note", text: "the DSL starter says hello")
+    want "feed" = channel(limit: 5)
     render(col(text("widgets"), row(text("a"), text("b")), canvas(160, 96)))
 
-  # The two data handlers chain: storing reports itself by fetching, and
+  # The data handlers chain: storing reports itself by fetching, and
   # fetching stops. Every want answers on the label it named, and the
-  # handler bound to that label receives the reply as a decoded value.
+  # handler bound to that label receives the reply as a decoded value —
+  # here the page of entries the channel holds, newest published first.
+  on data("feed", r):
+    print("channel entries: " + show(len(r)))
+
   on data("set_done", r):
     print("stored: " + show(r))
     want "get_done" = storage_get(key: "greeting")

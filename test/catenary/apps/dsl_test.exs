@@ -345,6 +345,39 @@ on data("l", r):
     assert compile_error(source) == "line 4, col 3: log_head has no argument seq"
   end
 
+  # The channel is addressed by the app's own name — the address every
+  # installation derives the same way — so the DSL never asks a module to
+  # carry a derived log number.
+  test "channel addresses the app's own channel by name" do
+    wat =
+      compile_ok!(~S|on init:
+  want "feed" = channel(limit: 5)
+on data("feed", r):
+  print(show(r))
+|)
+
+    assert wat =~ "channel"
+  end
+
+  test "channel takes only its own arguments" do
+    source = ~S|on init:
+  print(1)
+on data("l", r):
+  want "l" = channel(nope: 1)
+|
+
+    assert compile_error(source) == "line 4, col 3: channel has no argument nope"
+  end
+
+  test "the host stamps published on publish like v and app" do
+    source = ~S|on init:
+  publish(published: "yesterday")
+|
+
+    assert compile_error(source) ==
+             "line 2, col 3: published is stamped by the host on publish"
+  end
+
   # ============================================================== capacity
 
   test "constant pool is capped" do
