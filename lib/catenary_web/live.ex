@@ -6,6 +6,7 @@ defmodule CatenaryWeb.Live do
   require Logger
 
   alias Catenary.{
+    Apps,
     Apps.DSL,
     Display,
     Games.Backgammon.Chain,
@@ -658,6 +659,26 @@ defmodule CatenaryWeb.Live do
 
   def handle_info(:playground_stop, socket) do
     {:noreply, push_event(socket, "app-stop", %{})}
+  end
+
+  # The publish panel's form carries the author's words; the buffer those
+  # words apply to is this LiveView's assign, so the two are joined here and
+  # the release goes to the writer. Both outcomes are trace entries rather
+  # than exceptions — a refusal is a diagnosis, not a crash (§9.7).
+  def handle_info({:playground_publish, values}, socket) do
+    values = Map.put(values, "source", socket.assigns.source)
+
+    detail =
+      case LogWriter.publish_app(values, socket) do
+        {:ok, release} ->
+          "published #{release.slug} · #{release.bytes} bytes · manifest v#{release.revision}" <>
+            " · h'" <> Base.encode16(release.code, case: :lower) <> "'"
+
+        {:error, message} ->
+          "publish refused: " <> message
+      end
+
+    {:noreply, record_trace(socket, [%{"kind" => "publish", "detail" => detail}])}
   end
 
   def handle_info(<<"toggle-", _::binary>> = event, socket), do: handle_event(event, nil, socket)
@@ -1582,40 +1603,13 @@ defmodule CatenaryWeb.Live do
 
   defp maybe_reindex_aliases(_socket, _from_caller), do: :ok
 
-  # Buffer to wasm for the playground's Run. The buffer is either
-  # handwritten WAT — the power-user tier, a module after any leading `;;`
-  # comments — or DSL source, the default tier, which compiles to WAT and
-  # then takes the same watusi path. watusi raises on a buffer it cannot
-  # parse, and a buffer that does not parse is the ordinary case while it
-  # is being written rather than a crash of the LiveView process, so the
-  # raise is the error channel; the DSL side returns its diagnostics as
-  # `{:error, message}` already, with positions in the message.
+  # Buffer to wasm for the playground's Run. The seam itself belongs to
+  # `Catenary.Apps`, where a publish builds the same module out of the same
+  # bytes — this is only the run's shape over it, `{:ok, wasm}`.
   defp compile_source(source) when is_binary(source) do
-    with {:ok, wat} <- source_wat(source) do
-      {:ok, Watusi.to_wasm(wat)}
+    with {:ok, %{wasm: wasm}} <- Apps.build_module(source) do
+      {:ok, wasm}
     end
-  rescue
-    error -> {:error, Exception.message(error)}
-  end
-
-  defp source_wat(source) do
-    if wat_module?(source) do
-      {:ok, source}
-    else
-      DSL.compile(source)
-    end
-  end
-
-  defp wat_module?(source) do
-    source
-    |> String.split("\n")
-    |> Enum.find_value(false, fn line ->
-      case String.trim_leading(line) do
-        "" -> nil
-        ";;" <> _ -> nil
-        trimmed -> String.starts_with?(trimmed, "(module")
-      end
-    end)
   end
 
   # The compiler's verdict in the shape the editor's lint gutter eats: a
@@ -1626,7 +1620,7 @@ defmodule CatenaryWeb.Live do
   # that is itself measured in units. A WAT buffer carries no positions the
   # editor could underline; watusi's verdict arrives on Run.
   defp lint_diagnostics(source) do
-    if wat_module?(source) do
+    if Apps.wat_module?(source) do
       []
     else
       case DSL.diagnostic(source) do

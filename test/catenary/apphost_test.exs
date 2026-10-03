@@ -31,11 +31,21 @@ defmodule Catenary.AppHostTest do
     }
   end
 
+  # The manifest log is shared with the publish tests, which leave their
+  # entries standing — they have no teardown that could take them back — so
+  # these fixtures begin by emptying it again. Without that, "from 1" and a
+  # reference to entry 1 only mean the test's own first entry when the test
+  # happens to run first.
+  defp start_clean(ctx, author, log_id) do
+    Baobab.purge(author, log_id: log_id, clump_id: ctx.clump_id)
+  end
+
   # Appending to the active identity's own log would outlive the test, so
   # this fixture is torn down the same way it was set up.
   defp with_entry(ctx) do
     author = Catenary.id_for_key(Preferences.get(:identity))
     log_id = Catenary.Apps.manifest_log()
+    start_clean(ctx, author, log_id)
 
     Baobab.append_log("apphost entry", author, log_id: log_id, clump_id: ctx.clump_id)
 
@@ -51,6 +61,7 @@ defmodule Catenary.AppHostTest do
   defp with_entries(ctx, payloads) do
     author = Catenary.id_for_key(Preferences.get(:identity))
     log_id = Catenary.Apps.manifest_log()
+    start_clean(ctx, author, log_id)
 
     seqs =
       for payload <- payloads do
@@ -71,6 +82,7 @@ defmodule Catenary.AppHostTest do
   defp with_payload(ctx, term) do
     author = Catenary.id_for_key(Preferences.get(:identity))
     log_id = Catenary.Apps.manifest_log()
+    start_clean(ctx, author, log_id)
 
     Baobab.append_log(CBOR.encode(term), author, log_id: log_id, clump_id: ctx.clump_id)
     seq = Baobab.max_seqnum(author, log_id: log_id, clump_id: ctx.clump_id)

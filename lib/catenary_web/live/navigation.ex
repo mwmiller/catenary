@@ -5,6 +5,11 @@ defmodule Catenary.Live.Navigation do
   use Phoenix.LiveComponent
   alias Catenary.{Display, Preferences}
 
+  # The panel box, its fields and its captions are shared with the
+  # playground's publish panel, which drops the same shape of thing into
+  # the other rail.
+  import Catenary.UI, only: [panel_cls: 0, input_cls: 0, label_cls: 0, help_cls: 0]
+
   # The compose triggers `post_button_for/2` renders. Each of them gates on
   # `Preferences.accept_log_name?/1`, so each of them can vanish while its
   # panel is open.
@@ -494,22 +499,9 @@ defmodule Catenary.Live.Navigation do
     end
   end
 
-  defp panel_cls,
-    do: "rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-3"
-
-  defp input_cls,
-    do:
-      "w-full rounded-md border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 px-2 py-1 text-sm text-slate-900 dark:text-slate-100 transition-colors focus:outline-none focus:border-amber-500 dark:focus:border-amber-400 focus:ring-1 focus:ring-amber-500/60 dark:focus:ring-amber-400/60"
-
   defp checkbox_cls,
     do:
       "h-4 w-4 rounded border-slate-300 dark:border-slate-600 text-amber-500 dark:text-amber-400 focus:ring-1 focus:ring-amber-500/60 dark:focus:ring-amber-400/60"
-
-  defp label_cls,
-    do:
-      "block text-[11px] font-medium uppercase tracking-wide text-slate-500 dark:text-slate-400 mb-1"
-
-  defp help_cls, do: "text-xs leading-snug text-slate-500 dark:text-slate-400"
 
   defp help_text(text) do
     ~s(<p class="#{help_cls()}">#{text}</p>)

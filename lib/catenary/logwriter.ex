@@ -1,6 +1,6 @@
 defmodule Catenary.LogWriter do
   require Logger
-  alias Catenary.{Indices, Preferences}
+  alias Catenary.{Apps, Indices, Preferences}
 
   @moduledoc """
   Functions for dealing with writing to the Baobab log store
@@ -551,6 +551,161 @@ defmodule Catenary.LogWriter do
     Logger.debug(fn -> inspect(assigns) end)
     {:profile, socket.assigns.identity}
   end
+
+  # What one human-mediated release may write. The artifact cap is the
+  # plan's — 5 MB, human-approved — and the source cap is the playground's
+  # own buffer cap, because sync is eager (§7.1): anything larger reaches
+  # every peer that has not blocked this author, in the tab that is about to
+  # render it.
+  @max_artifact_bytes 5 * 1024 * 1024
+  @max_source_bytes 256 * 1024
+
+  @doc """
+  Publish a playground buffer as an application: artifact, source, manifest
+  and listing, in that order, each on its own log.
+
+  `values` carries the words the author typed — `slug`, `title`,
+  `description`, `version` — plus `source`, the buffer the playground
+  holds. The module is built here rather than handed in by the caller so
+  that compile, size caps and append are one choke point: every caller
+  passes the same checks (§9.7).
+
+  The appends run artifact → source → manifest → listing, and there is no
+  rollback between them: a failure part way through leaves what was already
+  written orphaned rather than referenced, because a reader reaches this
+  release only through the listing, which is written last.
+
+  Answers `{:ok, %{...}}` naming what landed, or `{:error, message}` for
+  the trace line the panel shows.
+  """
+  @spec publish_app(map, map) ::
+          {:ok,
+           %{
+             slug: binary,
+             bytes: non_neg_integer,
+             revision: pos_integer,
+             listing: {binary, non_neg_integer, pos_integer},
+             code: binary
+           }}
+          | {:error, binary}
+  def publish_app(%{"slug" => slug, "source" => source} = values, socket) do
+    with {:ok, slug} <- Apps.validate_slug(slug),
+         :ok <- within(source, @max_source_bytes, "the buffer is over 256 KiB"),
+         {:ok, %{wat: wat, wasm: wasm}} <- Apps.build_module(source),
+         :ok <- within(wat, @max_source_bytes, "the source entry would be over 256 KiB"),
+         :ok <- within(wasm, @max_artifact_bytes, "the artifact is over 5 MB") do
+      append_release(slug, values, wat, wasm, socket)
+    else
+      {:error, :invalid_slug} -> {:error, "a slug is [a-z0-9-], up to 64 characters"}
+      {:error, message} when is_binary(message) -> {:error, message}
+    end
+  rescue
+    error -> {:error, "the log refused the release: " <> Exception.message(error)}
+  end
+
+  def publish_app(_values, _socket), do: {:error, "a publish needs a slug and a source"}
+
+  defp append_release(slug, values, wat, wasm, socket) do
+    published = DateTime.utc_now() |> DateTime.to_string()
+    code = :crypto.hash(:sha256, wasm)
+
+    %Baobab.Entry{} =
+      append_kind(
+        %{
+          "v" => 1,
+          "type" => "artifact",
+          "slug" => slug,
+          "code" => code,
+          "bytes" => wasm,
+          "published" => published
+        },
+        Apps.artifact_log(),
+        socket
+      )
+
+    source_entry =
+      append_kind(
+        %{
+          "v" => 1,
+          "type" => "source",
+          "slug" => slug,
+          "code" => code,
+          "text" => wat,
+          "published" => published
+        },
+        Apps.source_log(),
+        socket
+      )
+
+    manifest =
+      %{
+        "v" => 1,
+        "type" => "manifest",
+        "slug" => slug,
+        "version" => release_version(values),
+        "abi" => "catenary_v1",
+        "features" => [],
+        "artifact" => code,
+        "source" => [source_entry.log_id, source_entry.seqnum],
+        "published" => published
+      }
+      |> maybe_put("title", optional_text(values, "title"))
+      |> maybe_put("description", optional_text(values, "description"))
+      |> append_kind(Apps.manifest_log(), socket)
+
+    listing =
+      %{
+        "type" => "listing",
+        "family" => Apps.family(),
+        "slug" => slug,
+        # The listing names the manifest revision it points at, so a
+        # re-listing and its manifest cannot come apart.
+        "v" => manifest.seqnum,
+        "published" => published
+      }
+      |> maybe_put("title", optional_text(values, "title"))
+      |> maybe_put("description", optional_text(values, "description"))
+      |> append_kind(Apps.control_log(), socket)
+
+    Indices.update(:listings)
+
+    {:ok,
+     %{
+       slug: slug,
+       bytes: byte_size(wasm),
+       revision: manifest.seqnum,
+       listing: {Baobab.Identity.as_base62(listing.author), listing.log_id, listing.seqnum},
+       code: code
+     }}
+  end
+
+  defp append_kind(payload, base_log, socket) do
+    payload
+    |> CBOR.encode()
+    |> append_log_for_socket(base_log, socket)
+  end
+
+  defp within(bytes, cap, message) when is_binary(bytes) do
+    if byte_size(bytes) > cap, do: {:error, message}, else: :ok
+  end
+
+  # An unpublished-looking blank line from a form is left out of the entry
+  # altogether: a viewer falls back to its own placeholder for a missing
+  # title, but renders `untitled` for an empty one.
+  defp optional_text(values, key) do
+    case Map.get(values, key) do
+      text when is_binary(text) and text != "" -> text
+      _ -> nil
+    end
+  end
+
+  defp maybe_put(map, _key, nil), do: map
+  defp maybe_put(map, key, value), do: Map.put(map, key, value)
+
+  defp release_version(%{"version" => version}) when is_binary(version) and version != "",
+    do: version
+
+  defp release_version(_values), do: "0.1.0"
 
   defp maybe_tag(entry, %{"tag0" => "", "tag1" => ""}, _), do: entry
 

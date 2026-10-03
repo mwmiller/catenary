@@ -24,6 +24,10 @@ defmodule Catenary.Apps do
   so two authors can both publish `example-app` without colliding.
   """
 
+  # The buffer→WAT seam below is the compiler's, reached through its own
+  # module rather than re-implemented here.
+  alias Catenary.Apps.DSL
+
   @family QuaggaDef.family_tag(:app)
   @manifest QuaggaDef.derived_log_base(1, @family)
   @artifact QuaggaDef.derived_log_base(2, @family)
@@ -169,6 +173,99 @@ defmodule Catenary.Apps do
   @spec validate_slug(term) :: {:ok, slug} | {:error, :invalid_slug}
   def validate_slug(slug) do
     if valid_slug?(slug), do: {:ok, slug}, else: {:error, :invalid_slug}
+  end
+
+  # The buffer a playground holds is either handwritten WAT — the
+  # power-user tier, a module after any leading `;;` comments — or DSL
+  # source, the default tier, which compiles to WAT and then takes the
+  # same watusi path. One seam for both, so a run and a publish build the
+  # same module out of the same bytes: watusi is the only thing that ever
+  # turns either tier into an artifact.
+
+  @doc """
+  The WAT a playground buffer stands for, whether it was written as WAT or
+  as DSL.
+
+  A buffer whose first real line is a `(module` is taken as WAT and handed
+  back unchanged; anything else is DSL and goes through the compiler, which
+  answers with its own positioned message when it does not compile.
+
+  ## Examples
+
+      iex> Catenary.Apps.source_wat("(module")
+      {:ok, "(module"}
+
+      iex> {:error, message} = Catenary.Apps.source_wat("on frob(x):\\n  print(1)\\n")
+      iex> is_binary(message)
+      true
+
+  """
+  @spec source_wat(binary) :: {:ok, binary} | {:error, binary}
+  def source_wat(source) when is_binary(source) do
+    if wat_module?(source), do: {:ok, source}, else: DSL.compile(source)
+  end
+
+  @doc """
+  Whether a buffer is handwritten WAT rather than DSL.
+
+  Only the shape of the first line that is neither blank nor a `;;` comment
+  decides: a module has to say so in the first place it speaks.
+
+  ## Examples
+
+      iex> Catenary.Apps.wat_module?(";; a comment\\n(module")
+      true
+
+      iex> Catenary.Apps.wat_module?("on init:\\n  print(1)")
+      false
+
+  """
+  @spec wat_module?(term) :: boolean
+  def wat_module?(source) when is_binary(source) do
+    source
+    |> String.split("\n")
+    |> Enum.find_value(false, fn line ->
+      case String.trim_leading(line) do
+        "" -> nil
+        ";;" <> _ -> nil
+        trimmed -> String.starts_with?(trimmed, "(module")
+      end
+    end)
+  end
+
+  def wat_module?(_source), do: false
+
+  @doc """
+  Build the module a buffer compiles to: the WAT that produced it and the
+  artifact bytes watusi made from that WAT.
+
+  Both are returned together because the publish path stores them
+  side by side — the source entry holds the exact WAT, never the DSL (§5,
+  decision #17) — while a run only wants the bytes.
+
+  A buffer that does not compile answers `{:error, message}`: the DSL
+  reports its own diagnostics, and watusi raises on WAT it cannot parse,
+  which is caught here rather than taking the caller down. A buffer that
+  does not parse is the ordinary case while it is being written.
+
+  ## Examples
+
+      iex> {:ok, %{wat: wat, wasm: wasm}} = Catenary.Apps.build_module("on init:\\n  print(1)\\n")
+      iex> is_binary(wat) and is_binary(wasm) and byte_size(wasm) > 0
+      true
+
+      iex> {:error, message} = Catenary.Apps.build_module("on init:\\n  print(")
+      iex> is_binary(message)
+      true
+
+  """
+  @spec build_module(binary) :: {:ok, %{wat: binary, wasm: binary}} | {:error, binary}
+  def build_module(source) when is_binary(source) do
+    with {:ok, wat} <- source_wat(source) do
+      {:ok, %{wat: wat, wasm: Watusi.to_wasm(wat)}}
+    end
+  rescue
+    error -> {:error, Exception.message(error)}
   end
 
   @doc """
@@ -422,4 +519,153 @@ defmodule Catenary.Apps do
         {:error, reason}
     end
   end
+
+  # ================================================================
+  # Reading a release back out: manifest → artifact, by hash.
+  #
+  # The write side above is `Catenary.LogWriter.publish_app/2`; this is
+  # what a viewer and the release route ask for. Nothing here trusts the
+  # listing that led to a release — the listing is discovery, the manifest
+  # is the authority — and nothing here trusts the manifest about its own
+  # bytes: the artifact is found by hashing candidates until one matches
+  # the hash the manifest names.
+  # ================================================================
+
+  @doc """
+  The newest manifest an author has published for a slug, if any.
+
+  A writer's device facet is not knowable from the outside, so all 256
+  facets of the manifest base are considered — but only the ones the store
+  actually holds, because `Baobab.stored_info/1` decides which logs get
+  read at all. Newest means the newest `published` stamp, with the entry's
+  own sequence number breaking a tie.
+
+  ## Examples
+
+      iex> clump = Catenary.Preferences.get(:clump_id)
+      iex> Catenary.Apps.manifest(clump, "ExampleAuthor1", "example-app")
+      {:error, :not_released}
+
+      iex> Catenary.Apps.manifest("Dev", "ExampleAuthor1", "Not A Slug")
+      {:error, :invalid_slug}
+
+  """
+  @spec manifest(binary, pk, slug) :: {:ok, map} | {:error, :not_released | :invalid_slug}
+  def manifest(clump_id, pk, slug) when is_binary(clump_id) and is_binary(pk) do
+    with {:ok, slug} <- validate_slug(slug) do
+      clump_id
+      |> kind_entries(pk, @manifest)
+      |> Enum.filter(fn {_entry, data} -> data["type"] == "manifest" and data["slug"] == slug end)
+      |> Enum.max_by(fn {entry, data} -> {data["published"] || "", entry.seqnum} end, fn ->
+        nil
+      end)
+      |> case do
+        {_entry, data} -> {:ok, data}
+        nil -> {:error, :not_released}
+      end
+    end
+  end
+
+  @doc """
+  Whether an author has a manifest published for a slug.
+
+  This is what the viewer asks before it points a pane at the release
+  route: a slug nobody has released gets the pane's own words instead of a
+  fetch that would only 404.
+
+  ## Examples
+
+      iex> Catenary.Apps.released?(
+      ...>   Catenary.Preferences.get(:clump_id),
+      ...>   "ExampleAuthor1",
+      ...>   "example-app"
+      ...> )
+      false
+
+  """
+  @spec released?(binary, pk, slug) :: boolean
+  def released?(clump_id, pk, slug) do
+    match?({:ok, _manifest}, manifest(clump_id, pk, slug))
+  end
+
+  @doc """
+  A release resolved to the bytes it runs on: its newest manifest, and the
+  artifact that manifest names.
+
+  The bytes are found by hash — `artifact` in the manifest is a SHA-256 of
+  them — so an entry that does not hash to what the manifest names is not
+  this release's artifact, whatever it claims to be. The manifest's `abi`
+  is checked too: this host runs `catenary_v1` modules and answers for
+  nothing else.
+
+  ## Examples
+
+      iex> Catenary.Apps.release(
+      ...>   Catenary.Preferences.get(:clump_id),
+      ...>   "ExampleAuthor1",
+      ...>   "example-app"
+      ...> )
+      {:error, :not_released}
+
+  """
+  @spec release(binary, pk, slug) ::
+          {:ok, %{manifest: map, bytes: binary}}
+          | {:error, :not_released | :invalid_slug | :unsupported_abi | :no_artifact}
+  def release(clump_id, pk, slug) do
+    with {:ok, manifest} <- manifest(clump_id, pk, slug),
+         :ok <- supported_abi(manifest),
+         {:ok, bytes} <- artifact_bytes(clump_id, pk, slug, manifest) do
+      {:ok, %{manifest: manifest, bytes: bytes}}
+    end
+  end
+
+  defp supported_abi(%{"abi" => "catenary_v1"}), do: :ok
+  defp supported_abi(_manifest), do: {:error, :unsupported_abi}
+
+  defp artifact_bytes(clump_id, pk, slug, %{"artifact" => wanted}) when is_binary(wanted) do
+    clump_id
+    |> kind_entries(pk, @artifact)
+    |> Enum.find(fn {_entry, data} ->
+      data["type"] == "artifact" and data["slug"] == slug and is_binary(data["bytes"]) and
+        :crypto.hash(:sha256, data["bytes"]) == wanted
+    end)
+    |> case do
+      {_entry, data} -> {:ok, data["bytes"]}
+      nil -> {:error, :no_artifact}
+    end
+  end
+
+  defp artifact_bytes(_clump_id, _pk, _slug, _manifest), do: {:error, :no_artifact}
+
+  # Every decodable entry an author holds on one kind base, across whatever
+  # device facets they wrote to. The store's own log list decides which
+  # logs are read, so an author who has never released reads as nothing
+  # rather than as 256 misses.
+  defp kind_entries(clump_id, pk, base) do
+    Baobab.stored_info(clump_id)
+    |> Enum.filter(fn {author, log_id, _seq} ->
+      same_base?(log_id, base) and Baobab.Identity.as_base62(author) == pk
+    end)
+    |> Enum.flat_map(fn {author, log_id, _seq} ->
+      author
+      |> Baobab.full_log(log_id: log_id, clump_id: clump_id)
+      |> Enum.flat_map(&decode_entry/1)
+    end)
+  end
+
+  defp decode_entry(%Baobab.Entry{payload: payload} = entry) do
+    case CBOR.decode(payload) do
+      {:ok, data, ""} when is_map(data) -> [{entry, data}]
+      _ -> []
+    end
+  end
+
+  # Whether a stored log id is one of the 256 device facets of a kind base:
+  # the facet lives in the top byte, so the low 56 bits *are* the base.
+  @base_mask 0x00FFFFFFFFFFFFFF
+
+  defp same_base?(log_id, base) when is_integer(log_id),
+    do: Bitwise.band(log_id, @base_mask) == base
+
+  defp same_base?(_log_id, _base), do: false
 end

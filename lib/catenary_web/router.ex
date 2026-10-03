@@ -14,6 +14,12 @@ defmodule CatenaryWeb.Router do
     plug :accepts, ["json"]
   end
 
+  # A pane fetching its module asks for bytes, not a document: wasm for
+  # the fetch, html if the route is opened directly.
+  pipeline :module do
+    plug :accepts, ["wasm", "html"]
+  end
+
   scope "/", CatenaryWeb do
     pipe_through :browser
 
@@ -25,6 +31,12 @@ defmodule CatenaryWeb.Router do
     get "/export", ExportController, :create
     get "/export/clumps", ExportController, :clumps
     post "/import", ImportController, :create
+  end
+
+  scope "/", CatenaryWeb do
+    pipe_through :module
+
+    get "/apps/:pk/:slug/module", AppController, :module
   end
 
   # Other scopes may use custom stacks.

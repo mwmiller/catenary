@@ -22,10 +22,27 @@ defmodule Catenary.Live.PlaygroundNav do
   stand-in for a tool that does not exist yet: a button that cannot be pressed
   would be a lie about the state of the build.
 
-  None of these controls publishes, so none is amber — amber is reserved for
-  actions that actually write to a log.
+  The publish trigger only opens the panel, so it is not amber; the panel's
+  own submit is, because that is the button that writes. Amber is reserved
+  for actions that actually write to a log. What gets written is the buffer
+  as it stands — compile, artifact, source, manifest, listing — decided here
+  only in the sense that this is where the words are typed: the run, the
+  caps and the appends all belong to the LiveView that holds the draft and
+  to `Catenary.LogWriter`, the one place every write to a log goes through.
+  The gate a run is judged by (`_gate`, `_gateVerdict`) is the pane's
+  business and is not consulted to publish: §5 decision #21 keeps that
+  decision with whoever is watching the app, not with the editor.
   """
   use Phoenix.LiveComponent
+
+  import Catenary.UI, only: [panel_cls: 0, input_cls: 0, label_cls: 0, help_cls: 0]
+
+  @impl true
+  def update(assigns, socket) do
+    # The open/closed state is this component's own — the parent is told
+    # what to publish, never which panel is showing.
+    {:ok, socket |> assign(assigns) |> assign_new(:publish, fn -> false end)}
+  end
 
   @impl true
   def render(assigns) do
@@ -67,6 +84,91 @@ defmodule Catenary.Live.PlaygroundNav do
             class="sr-only"
           />
         </label>
+        <button
+          type="button"
+          phx-click="toggle-publish"
+          phx-target={@myself}
+          aria-expanded={to_string(@publish)}
+          aria-controls="publish-panel"
+          title="Publish"
+          aria-label="Publish — open the panel that writes this buffer to the logs"
+          class="btn-icon"
+        >⇪</button>
+      </div>
+      <div :if={@publish} class="w-full flex justify-end px-2">
+        <button
+          type="button"
+          phx-click="toggle-publish"
+          phx-target={@myself}
+          title="Close panel"
+          aria-label="Close panel"
+          class="btn-ghost"
+        >⍟</button>
+      </div>
+      <div :if={@publish} id="publish-panel" class="w-full flex justify-center px-2 mt-1">
+        <form
+          id="publish-form"
+          phx-submit="publish-app"
+          phx-target={@myself}
+          class={panel_cls() <> " w-full"}
+        >
+          <div class="mb-2">
+            <label for="publish-slug" class={label_cls()}>Slug</label>
+            <input
+              id="publish-slug"
+              name="slug"
+              type="text"
+              required
+              autocomplete="off"
+              spellcheck="false"
+              placeholder="hello-app"
+              class={input_cls()}
+            />
+          </div>
+          <div class="mb-2">
+            <label for="publish-title" class={label_cls()}>Title</label>
+            <input
+              id="publish-title"
+              name="title"
+              type="text"
+              autocomplete="off"
+              spellcheck="false"
+              placeholder="optional"
+              class={input_cls()}
+            />
+          </div>
+          <div class="mb-2">
+            <label for="publish-description" class={label_cls()}>Description</label>
+            <textarea
+              id="publish-description"
+              name="description"
+              rows="2"
+              placeholder="optional"
+              class={input_cls()}
+            ></textarea>
+          </div>
+          <div class="mb-2">
+            <label for="publish-version" class={label_cls()}>Version</label>
+            <input
+              id="publish-version"
+              name="version"
+              type="text"
+              autocomplete="off"
+              spellcheck="false"
+              value="0.1.0"
+              class={input_cls()}
+            />
+          </div>
+          <p class={help_cls()}>
+            Compiles the buffer as it stands, then writes the artifact, its
+            source, a manifest and a listing to your logs.
+          </p>
+          <button
+            type="submit"
+            class="btn-primary w-full mt-2"
+            aria-label="Publish — writes a listing to the log"
+          >Publish</button>
+        </form>
       </div>
     </div>
     """
@@ -85,5 +187,16 @@ defmodule Catenary.Live.PlaygroundNav do
   def handle_event("playground-stop", _params, socket) do
     send(self(), :playground_stop)
     {:noreply, socket}
+  end
+
+  def handle_event("toggle-publish", _params, socket) do
+    {:noreply, assign(socket, publish: not socket.assigns.publish)}
+  end
+
+  # The form's own words, plus nothing: the buffer the words apply to is the
+  # LiveView's assign, which merges it in and hands the lot to the writer.
+  def handle_event("publish-app", params, socket) do
+    send(self(), {:playground_publish, params})
+    {:noreply, assign(socket, publish: false)}
   end
 end

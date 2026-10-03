@@ -3,7 +3,7 @@ defmodule CatenaryWeb.AppViewerTest do
 
   import Phoenix.LiveViewTest
 
-  alias Catenary.{AppHost, AppKV, Apps, AppWire, Preferences}
+  alias Catenary.{AppHost, AppKV, Apps, AppWire, LogWriter, Preferences}
   alias Catenary.Live.{AppViewer, ListingsExplorer}
 
   # A key that is not this device's, standing in for the publisher of an
@@ -141,6 +141,37 @@ defmodule CatenaryWeb.AppViewerTest do
     {pos, _} = :binary.match(html, "app-pane")
     pane = String.slice(html, pos, 400)
     assert pane =~ ~r/phx-target="\d+"/
+  end
+
+  # A release replaces the dev config: a slug with a manifest behind it has
+  # its pane pointed at the route that serves those bytes (§9.7 phase 2b).
+  test "a released slug points its pane at the release route", ctx do
+    announce("released-app")
+
+    {:ok, _result} =
+      LogWriter.publish_app(
+        %{
+          "slug" => "released-app",
+          "title" => "Released",
+          "source" => ~S|on init:
+  print(1)
+|
+        },
+        %{
+          assigns: %{
+            identity: Preferences.get(:identity),
+            facet_id: Preferences.get(:facet_id),
+            clump_id: Preferences.get(:clump_id)
+          }
+        }
+      )
+
+    {:ok, view, _html} = live(build_conn(), "/")
+    view |> element("button[title=Listings]") |> render_click()
+    view |> element("button[phx-value-slug=\"released-app\"]") |> render_click()
+
+    html = render(view)
+    assert html =~ ~s(data-wasm-src="/apps/#{ctx.identity}/released-app/module")
   end
 
   test "app-want is answered against the component's own context", ctx do

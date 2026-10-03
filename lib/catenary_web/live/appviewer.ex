@@ -18,7 +18,7 @@ defmodule Catenary.Live.AppViewer do
   """
   use CatenaryWeb, :live_component
 
-  alias Catenary.{AppHost, AppPublish, AppWire, Display}
+  alias Catenary.{AppHost, AppPublish, Apps, AppWire, Display}
 
   @impl true
   def update(
@@ -33,7 +33,13 @@ defmodule Catenary.Live.AppViewer do
       ) do
     app = AppHost.app(clump_id, pk, slug)
     scope = %{app: app, identity: identity, facet_id: facet_id}
-    {:ok, assign(socket, assigns |> Map.put(:app, app) |> Map.put(:scope, scope))}
+
+    socket =
+      socket
+      |> assign(assigns |> Map.put(:app, app) |> Map.put(:scope, scope))
+      |> assign_wasm_src()
+
+    {:ok, socket}
   end
 
   @impl true
@@ -61,7 +67,7 @@ defmodule Catenary.Live.AppViewer do
           phx-update="ignore"
           phx-target={@myself}
           data-worker-src={~p"/assets/app_worker.js"}
-          data-wasm-src={wasm_src(@slug)}
+          data-wasm-src={@wasm_src}
           class="rounded-lg border border-slate-200 dark:border-slate-700 p-3 flex flex-col gap-2"
         >
           <p id="app-status" class="text-sm text-slate-400 dark:text-slate-600">
@@ -113,10 +119,32 @@ defmodule Catenary.Live.AppViewer do
   # first app's leftovers.
   defp pane_id(pk, slug), do: "app-pane-#{pk}-#{slug}"
 
-  # Where the module comes from. A listing's manifest will name its own
-  # artifact; until it does, a slug can be pointed at a module in the dev
-  # config so the harness has something to run.
-  defp wasm_src(slug) do
+  # Where the module comes from. A published app's pane points at the
+  # release route, which serves whatever release resolves for this author
+  # and slug; while a fixture is still only in the dev config, its pane
+  # points at that file instead; and when neither says anything, the pane
+  # gets no source at all and keeps its "No module loaded." line.
+  #
+  # Resolved once per app rather than per render: the parent re-renders on
+  # every trace line and index bump, and resolving reads the store.
+  defp assign_wasm_src(socket) do
+    %{clump_id: clump, pk: pk, slug: slug} = socket.assigns
+
+    if socket.assigns[:wasm_src_for] == {clump, pk, slug} do
+      socket
+    else
+      src =
+        if Apps.released?(clump, pk, slug) do
+          ~p"/apps/#{pk}/#{slug}/module"
+        else
+          seam_module(slug)
+        end
+
+      assign(socket, wasm_src: src, wasm_src_for: {clump, pk, slug})
+    end
+  end
+
+  defp seam_module(slug) do
     :catenary
     |> Application.get_env(:app_wasm, %{})
     |> Map.get(slug)

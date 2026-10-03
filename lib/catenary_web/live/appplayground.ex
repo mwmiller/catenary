@@ -122,13 +122,16 @@ defmodule Catenary.Live.AppPlayground do
           </div>
         </div>
         <p class="text-sm text-slate-600 dark:text-slate-400">
-          The publish panel and the store fixture picker are not built. Run compiles the buffer —
-          DSL by default, WAT when the buffer opens with a module — and starts it; a buffer that
-          does not compile reports its diagnostic on the status line and in the trace. A run that
-          publishes (the starter does) appends to this identity's own playground channel, and the
-          trace on the left reads back where each entry landed. ⇥ on the right rail — or a file
-          dropped on the pane — runs a .wasm instead, gated on it instantiating here. Both traces
-          land on the left.
+          The store fixture picker is not built. Run compiles the buffer — DSL by default, WAT
+          when the buffer opens with a module — and starts it; a buffer that does not compile
+          reports its diagnostic on the status line and in the trace. A run that publishes (the
+          starter does) appends to this identity's own playground channel. ⇪ opens the publish
+          panel, which compiles the buffer as it stands and writes the artifact, its source, a
+          manifest and a listing to this identity's own app logs — the trace line names the
+          manifest revision and the artifact's hash. ⇥ on the right rail — or a file dropped on
+          the pane — runs a .wasm instead, gated on it instantiating here. Everything that
+          happens lands on the left, in one trace: where each entry went, and what the host
+          refused and why.
         </p>
       </div>
     </div>
