@@ -7,7 +7,10 @@ defmodule Catenary.AppHost do
   decides whether to answer, applying the same visibility rules the
   viewer's own UI applies. An operation added anywhere else would reach
   local data without those rules, so there is deliberately only this one
-  door.
+  door. The door is also metered: every call spends a token from
+  `Catenary.AppRate`'s per-app budget before it dispatches (§11 risk 6),
+  so a runaway loop meets `rate_limited` like any other answer and
+  strikes itself out.
 
   Two things belong to the caller rather than to this module:
 
@@ -25,7 +28,7 @@ defmodule Catenary.AppHost do
       comes back from here.
   """
 
-  alias Catenary.{AppKV, Apps}
+  alias Catenary.{AppKV, AppRate, Apps}
 
   @type app :: %{clump_id: String.t(), pk: binary, slug: String.t()}
 
@@ -37,8 +40,10 @@ defmodule Catenary.AppHost do
 
   # A range answers with a page, not with a log: at most this many entries
   # and at most this much payload, whichever comes first. The first visible
-  # entry is always taken whole, so one oversized entry still arrives rather
-  # than the page coming back empty.
+  # entry is taken whole while it fits the single-answer ceiling
+  # (@max_read_bytes), so a merely-oversized first entry still arrives
+  # rather than the page coming back empty; above that ceiling an entry is
+  # not an answer at all and reads as a gap.
   @max_range 64
   @max_range_bytes 256 * 1024
   @default_range 8
@@ -47,6 +52,14 @@ defmodule Catenary.AppHost do
   # thousand times still answers with what fits, rather than with a reply as
   # large as the store is.
   @max_relations 256
+
+  # The hard ceiling on any single answer that carries a payload: nothing
+  # an app reads may come back bigger than this, whatever page rule it got
+  # there through. It sits above the largest legitimate entry — a journal
+  # post is capped at 256 KiB of text — and below the entries an app has
+  # no business pulling through the host: an artifact (up to 5 MB) is
+  # served by the release route, not by an op.
+  @max_read_bytes 512 * 1024
 
   @doc """
   Every operation this host answers to. Anything else is refused without
@@ -75,7 +88,13 @@ defmodule Catenary.AppHost do
   def handle(app, op, args) when is_binary(op) and is_map(args) do
     case app do
       %{clump_id: c, pk: p, slug: s} when is_binary(c) and is_binary(p) and is_binary(s) ->
-        dispatch(app, op, args)
+        # The budget is spent before the dispatch, so an op this host
+        # refuses still counts: a loop hammering unsupported operations
+        # burns the same tokens as one reading pages.
+        case AppRate.take(app) do
+          :ok -> dispatch(app, op, args)
+          {:error, _} = refused -> refused
+        end
 
       _ ->
         {:error, :bad_app}
@@ -119,7 +138,8 @@ defmodule Catenary.AppHost do
          {:ok, log_id} <- as_log_id(log_id),
          {:ok, seq} <- as_seq(seq),
          :ok <- visible(author, log_id, seq, clump_id),
-         {:ok, payload} <- fetch(author, log_id, seq, clump_id) do
+         {:ok, payload} <- fetch(author, log_id, seq, clump_id),
+         :ok <- within_budget(payload) do
       {:ok, payload}
     else
       :error -> {:error, :bad_args}
@@ -198,19 +218,33 @@ defmodule Catenary.AppHost do
         reply = %{"seq" => seq, "payload" => %CBOR.Tag{tag: :bytes, value: payload}}
         size = byte_size(payload)
 
-        # Always take the first one whole, then whole entries while the page
-        # has room: half an entry would not decode and a refused first entry
-        # would answer with nothing.
-        if acc == [] or budget + size <= @max_range_bytes do
-          fetch_page(author, log_id, clump_id, rest, budget + size, [reply | acc])
-        else
-          Enum.reverse(acc)
+        cond do
+          # Bigger than any one answer may be: not truncated (half a CBOR
+          # value would not decode) and not taken whole — it reads as a
+          # gap, the same absence a sequence the store does not hold does.
+          size > @max_read_bytes ->
+            fetch_page(author, log_id, clump_id, rest, budget, acc)
+
+          # Take the first one whole, then whole entries while the page has
+          # room: half an entry would not decode and a refused first entry
+          # would answer with nothing.
+          acc == [] or budget + size <= @max_range_bytes ->
+            fetch_page(author, log_id, clump_id, rest, budget + size, [reply | acc])
+
+          true ->
+            Enum.reverse(acc)
         end
 
       _ ->
         fetch_page(author, log_id, clump_id, rest, budget, acc)
     end
   end
+
+  # One read, one ceiling: a payload larger than a single answer may carry
+  # is refused whole rather than cut. This is the only place the ceiling
+  # bites for `log_read` — pages already step over entries above it.
+  defp within_budget(%CBOR.Tag{value: value}) when byte_size(value) <= @max_read_bytes, do: :ok
+  defp within_budget(%CBOR.Tag{}), do: {:error, :too_large}
 
   # An entry read for what it is rather than for what it says: the same
   # three arguments as `log_read`, the same visibility check, and the

@@ -308,6 +308,14 @@ defmodule Catenary.AppHostTest do
       assert {:ok, "mine"} =
                AppHost.handle(ctx.app, "log_read", %{log_id: ctx.log_id, seq: seq}) |> payload()
     end
+
+    test "a payload above the single-answer ceiling is refused whole", ctx do
+      ctx = with_entries(ctx, [String.duplicate("a", 600 * 1024)])
+      [seq] = ctx.seqs
+
+      assert {:error, :too_large} =
+               AppHost.handle(ctx.app, "log_read", %{log_id: ctx.log_id, seq: seq})
+    end
   end
 
   describe "log_head" do
@@ -419,6 +427,14 @@ defmodule Catenary.AppHostTest do
                  "from" => first,
                  "count" => 4
                })
+    end
+
+    test "an entry above the single-answer ceiling reads as a gap", ctx do
+      ctx = with_entries(ctx, ["first", String.duplicate("b", 600 * 1024), "last"])
+      [first, _huge, last] = ctx.seqs
+
+      assert {:ok, entries} = range(ctx, %{from: 1, count: 64})
+      assert Enum.map(entries, & &1["seq"]) == [first, last]
     end
 
     test "incomplete or malformed arguments are refused", ctx do

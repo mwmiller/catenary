@@ -61,7 +61,9 @@ defmodule Catenary.Application do
       Catenary.State,
       # Owns the table behind app-scoped local storage, so it outlives the
       # LiveView processes that write to it.
-      Catenary.AppKV
+      Catenary.AppKV,
+      # Owns the per-app host-call budget, for the same reason.
+      Catenary.AppRate
     ]
 
     opts = [strategy: :one_for_one, name: Catenary.Supervisor]
