@@ -561,8 +561,14 @@ defmodule Catenary.LogWriter do
   @max_source_bytes 256 * 1024
 
   @doc """
-  Publish a playground buffer as an application: artifact, source, manifest
-  and listing, in that order, each on its own log.
+  Publish a playground buffer as an application: artifact, manifest and
+  listing — three entries, in that order.
+
+  The artifact entry carries the release payload as one unit: the wasm
+  bytes and the exact WAT they were built from together. They are the same
+  traffic class — a reader accepts or denies a release's bulk bytes as a
+  whole — so splitting them across logs would buy scan time nothing needs
+  and cost the source a pointer of its own.
 
   `values` carries the words the author typed — `slug`, `title`,
   `description`, `version` — plus `source`, the buffer the playground
@@ -570,7 +576,7 @@ defmodule Catenary.LogWriter do
   that compile, size caps and append are one choke point: every caller
   passes the same checks (§9.7).
 
-  The appends run artifact → source → manifest → listing, and there is no
+  The appends run artifact → manifest → listing, and there is no
   rollback between them: a failure part way through leaves what was already
   written orphaned rather than referenced, because a reader reaches this
   release only through the listing, which is written last.
@@ -592,7 +598,7 @@ defmodule Catenary.LogWriter do
     with {:ok, slug} <- Apps.validate_slug(slug),
          :ok <- within(source, @max_source_bytes, "the buffer is over 256 KiB"),
          {:ok, %{wat: wat, wasm: wasm}} <- Apps.build_module(source),
-         :ok <- within(wat, @max_source_bytes, "the source entry would be over 256 KiB"),
+         :ok <- within(wat, @max_source_bytes, "the source text would be over 256 KiB"),
          :ok <- within(wasm, @max_artifact_bytes, "the artifact is over 5 MB") do
       append_release(slug, values, wat, wasm, socket)
     else
@@ -609,33 +615,23 @@ defmodule Catenary.LogWriter do
     published = DateTime.utc_now() |> DateTime.to_string()
     code = :crypto.hash(:sha256, wasm)
 
-    %Baobab.Entry{} =
-      append_kind(
-        %{
-          "v" => 1,
-          "type" => "artifact",
-          "slug" => slug,
-          "code" => code,
-          "bytes" => wasm,
-          "published" => published
-        },
-        Apps.artifact_log(),
-        socket
-      )
-
-    source_entry =
-      append_kind(
-        %{
-          "v" => 1,
-          "type" => "source",
-          "slug" => slug,
-          "code" => code,
-          "text" => wat,
-          "published" => published
-        },
-        Apps.source_log(),
-        socket
-      )
+    # Bytes and text in one entry: same traffic class, one thing to accept
+    # or deny, and the entry signature already covers both. The manifest
+    # pins the bytes by hash; the WAT rides beside them under the same
+    # `code`.
+    append_kind(
+      %{
+        "v" => 1,
+        "type" => "artifact",
+        "slug" => slug,
+        "code" => code,
+        "bytes" => wasm,
+        "text" => wat,
+        "published" => published
+      },
+      Apps.artifact_log(),
+      socket
+    )
 
     manifest =
       %{
@@ -646,7 +642,6 @@ defmodule Catenary.LogWriter do
         "abi" => "catenary_v1",
         "features" => [],
         "artifact" => code,
-        "source" => [source_entry.log_id, source_entry.seqnum],
         "published" => published
       }
       |> maybe_put("title", optional_text(values, "title"))

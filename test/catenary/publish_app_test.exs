@@ -75,6 +75,15 @@ defmodule Catenary.PublishAppTest do
     end
   end
 
+  # The retired source kind base: no new entry may land there, but older
+  # stores still hold some — so the check is before/after, not "is empty".
+  defp retired_source_seqnum do
+    Baobab.max_seqnum(Catenary.id_for_key(Preferences.get(:identity)),
+      log_id: facet_log(Apps.source_log()),
+      clump_id: Preferences.get(:clump_id)
+    )
+  end
+
   # A listing is what makes a release visible, so it is the half that has to
   # be taken back down; `GenServer.call` rather than the cast an index update
   # is, so the row is really gone before the next test opens the explorer.
@@ -92,9 +101,10 @@ defmodule Catenary.PublishAppTest do
     end)
   end
 
-  test "a release lands as artifact, source, manifest and listing" do
+  test "a release lands as artifact, manifest and listing" do
     slug = "publish-app"
     delist_on_exit(slug)
+    source_before = retired_source_seqnum()
 
     assert {:ok, result} =
              publish(%{
@@ -109,19 +119,29 @@ defmodule Catenary.PublishAppTest do
     assert result.bytes > 0
     assert byte_size(result.code) == 32
 
+    # The artifact entry is the whole release payload: the bytes and the
+    # exact WAT they were built from together, under one `code` (one
+    # traffic class — never the DSL that asked for it, decision #17).
     assert {_artifact_entry, artifact} = last(Apps.artifact_log(), slug)
-    assert %{"type" => "artifact", "slug" => ^slug, "bytes" => bytes, "code" => code} = artifact
+
+    assert %{
+             "type" => "artifact",
+             "slug" => ^slug,
+             "bytes" => bytes,
+             "code" => code,
+             "text" => wat
+           } = artifact
+
     assert artifact["v"] == 1
     assert code == result.code
     assert :crypto.hash(:sha256, bytes) == code
     assert byte_size(bytes) == result.bytes
-
-    assert {_source_entry, source} = last(Apps.source_log(), slug)
-    assert %{"type" => "source", "slug" => ^slug, "text" => wat, "code" => ^code} = source
-    # The source entry carries the WAT that was built, never the DSL that
-    # asked for it (decision #17).
     assert String.starts_with?(wat, "(module")
     assert wat != @source
+
+    # The retired source sub-id stays untouched: the WAT rides the artifact
+    # entry, and nothing else is written where source entries used to land.
+    assert retired_source_seqnum() == source_before
 
     assert {manifest_entry, manifest} = last(Apps.manifest_log(), slug)
 
@@ -132,15 +152,12 @@ defmodule Catenary.PublishAppTest do
              "abi" => "catenary_v1",
              "features" => [],
              "artifact" => ^code,
-             "source" => [source_log_id, source_seqnum],
              "title" => "Publish",
              "description" => "a test release"
            } = manifest
 
     assert manifest["v"] == 1
     assert manifest_entry.seqnum == result.revision
-    assert source_log_id == facet_log(Apps.source_log())
-    assert source_seqnum > 0
 
     # The listing is what the explorer reads, and it names the manifest
     # revision it points at so the two cannot come apart.
@@ -164,7 +181,7 @@ defmodule Catenary.PublishAppTest do
     assert {:ok, result} = publish(%{"slug" => slug, "source" => @wat})
 
     assert result.bytes > 0
-    assert {_source_entry, %{"text" => text}} = last(Apps.source_log(), slug)
+    assert {_artifact_entry, %{"text" => text}} = last(Apps.artifact_log(), slug)
     assert text == @wat
 
     assert {_manifest_entry, manifest} = last(Apps.manifest_log(), slug)
@@ -293,12 +310,16 @@ defmodule Catenary.PublishAppTest do
     # Another author holding nothing of this slug is not a release of it.
     refute Apps.released?(clump, String.duplicate("1", 43), slug)
 
-    assert {:ok, %{manifest: manifest, bytes: bytes}} = Apps.release(clump, pk, slug)
+    assert {:ok, %{manifest: manifest, bytes: bytes, text: text}} = Apps.release(clump, pk, slug)
     assert manifest["slug"] == slug
     assert manifest["title"] == "Resolve"
     assert :crypto.hash(:sha256, bytes) == manifest["artifact"]
     assert manifest["artifact"] == result.code
     assert byte_size(bytes) == result.bytes
+    # The release answers with the bytes and the WAT they were built from —
+    # one artifact entry, both halves.
+    assert {:ok, %{wat: expected}} = Apps.build_module(@source)
+    assert text == expected
   end
 
   test "an artifact that does not hash to what the newest manifest names is not the release" do

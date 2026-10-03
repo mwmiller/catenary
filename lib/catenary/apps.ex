@@ -6,11 +6,14 @@ defmodule Catenary.Apps do
   Applications live in derived-log family `0x2` (`QuaggaDef.family_tag/1`).
   Two shapes of log exist inside it:
 
-    * **kind logs** — three fixed sub-ids every author carries: the manifest,
-      the artifact and the optional source entry. Fixed sub-ids give an index
-      worker a static scan list; the values are reserved so a hash-derived
-      channel base can never land on one (`kind_log?/1` is the publish-path
-      check that makes the p ~= 3/2^48 collision harmless).
+    * **kind logs** — three fixed sub-ids every author carries: the manifest
+      and the artifact, which holds the wasm bytes and the exact WAT they
+      were built from together (one release payload, one traffic class), plus
+      a third sub-id retired with the separate source entry but kept
+      reserved. Fixed sub-ids give an index worker a static scan list; the
+      values are reserved so a hash-derived channel base can never land on
+      one (`kind_log?/1` is the publish-path check that makes the
+      p ~= 3/2^48 collision harmless).
 
     * **data channels** — one per `(pk, slug)`, derived from
       `SHA-256(pk <> slug)` so any peer can recompute the base and fetch the
@@ -61,7 +64,11 @@ defmodule Catenary.Apps do
   @spec artifact_log() :: base
   def artifact_log, do: @artifact
 
-  @doc "The source kind base: optional auditable text, hash-linked from the manifest."
+  @doc """
+  The retired source kind base: source text now rides the artifact entry
+  beside the bytes it built, but the sub-id stays reserved so nothing can
+  ever derive onto it.
+  """
   @spec source_log() :: base
   def source_log, do: @source
 
@@ -240,8 +247,9 @@ defmodule Catenary.Apps do
   artifact bytes watusi made from that WAT.
 
   Both are returned together because the publish path stores them
-  side by side — the source entry holds the exact WAT, never the DSL (§5,
-  decision #17) — while a run only wants the bytes.
+  side by side in one artifact entry — the exact WAT beside the bytes it
+  built, never the DSL (§5, decision #17) — while a run only wants the
+  bytes.
 
   A buffer that does not compile answers `{:error, message}`: the DSL
   reports its own diagnostics, and watusi raises on WAT it cannot parse,
@@ -598,6 +606,10 @@ defmodule Catenary.Apps do
   is checked too: this host runs `catenary_v1` modules and answers for
   nothing else.
 
+  The artifact entry carries the source text beside the bytes, so the
+  release answers with both: `text` is the exact WAT the bytes were built
+  from, or `nil` for a release written before the two were merged.
+
   ## Examples
 
       iex> Catenary.Apps.release(
@@ -609,33 +621,37 @@ defmodule Catenary.Apps do
 
   """
   @spec release(binary, pk, slug) ::
-          {:ok, %{manifest: map, bytes: binary}}
+          {:ok, %{manifest: map, bytes: binary, text: binary | nil}}
           | {:error, :not_released | :invalid_slug | :unsupported_abi | :no_artifact}
   def release(clump_id, pk, slug) do
     with {:ok, manifest} <- manifest(clump_id, pk, slug),
          :ok <- supported_abi(manifest),
-         {:ok, bytes} <- artifact_bytes(clump_id, pk, slug, manifest) do
-      {:ok, %{manifest: manifest, bytes: bytes}}
+         {:ok, data} <- artifact_data(clump_id, pk, slug, manifest) do
+      {:ok, %{manifest: manifest, bytes: data["bytes"], text: data["text"]}}
     end
   end
 
   defp supported_abi(%{"abi" => "catenary_v1"}), do: :ok
   defp supported_abi(_manifest), do: {:error, :unsupported_abi}
 
-  defp artifact_bytes(clump_id, pk, slug, %{"artifact" => wanted}) when is_binary(wanted) do
+  defp artifact_data(clump_id, pk, slug, %{"artifact" => wanted}) when is_binary(wanted) do
     clump_id
     |> kind_entries(pk, @artifact)
-    |> Enum.find(fn {_entry, data} ->
+    |> Enum.filter(fn {_entry, data} ->
       data["type"] == "artifact" and data["slug"] == slug and is_binary(data["bytes"]) and
         :crypto.hash(:sha256, data["bytes"]) == wanted
     end)
+    # The newest match: the same bytes may have been released before (a
+    # republish is byte-identical, and stores written before the source
+    # merged in hold an older copy without the text).
+    |> List.last()
     |> case do
-      {_entry, data} -> {:ok, data["bytes"]}
+      {_entry, data} -> {:ok, data}
       nil -> {:error, :no_artifact}
     end
   end
 
-  defp artifact_bytes(_clump_id, _pk, _slug, _manifest), do: {:error, :no_artifact}
+  defp artifact_data(_clump_id, _pk, _slug, _manifest), do: {:error, :no_artifact}
 
   # Every decodable entry an author holds on one kind base, across whatever
   # device facets they wrote to. The store's own log list decides which

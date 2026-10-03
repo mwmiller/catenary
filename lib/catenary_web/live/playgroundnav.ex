@@ -25,7 +25,8 @@ defmodule Catenary.Live.PlaygroundNav do
   The publish trigger only opens the panel, so it is not amber; the panel's
   own submit is, because that is the button that writes. Amber is reserved
   for actions that actually write to a log. What gets written is the buffer
-  as it stands — compile, artifact, source, manifest, listing — decided here
+  as it stands — compile, artifact (bytes and WAT together), manifest,
+  listing — decided here
   only in the sense that this is where the words are typed: the run, the
   caps and the appends all belong to the LiveView that holds the draft and
   to `Catenary.LogWriter`, the one place every write to a log goes through.
