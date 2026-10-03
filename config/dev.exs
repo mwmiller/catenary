@@ -65,13 +65,3 @@ config :phoenix, :stacktrace_depth, 20
 config :phoenix_live_view,
   debug_heex_annotations: true,
   debug_attributes: true
-
-# Modules a listing slug may run, fetched by the app view. A listing's own
-# manifest will name its artifact once it can be fetched (§5); until then a
-# slug can be pointed at a local build so the harness has something to run.
-# Build the fixture with: mix run --no-start scripts/make-app-fixture.exs
-config :catenary,
-  app_wasm: %{
-    "hello-app" => "/assets/app-fixture.wasm",
-    "refuse-app" => "/assets/refuse-fixture.wasm"
-  }

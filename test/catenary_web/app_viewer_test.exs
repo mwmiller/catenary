@@ -84,10 +84,14 @@ defmodule CatenaryWeb.AppViewerTest do
     # Named after the app so that a second app replaces the pane rather than
     # inheriting the first one's print log.
     assert html =~ "app-pane-#{ctx.identity}-viewer-app"
-    # No module is configured for this slug, so the hook starts idle.
+    # No release stands behind this slug, so the hook starts idle.
     refute html =~ "data-wasm-src"
     assert html =~ "No module loaded."
     assert html =~ "viewer-app"
+    # The pane talks back to its own component.
+    {pos, _} = :binary.match(html, "app-pane")
+    pane = String.slice(html, pos, 400)
+    assert pane =~ ~r/phx-target="\d+"/
   end
 
   test "a saved app entry with no listing behind it still renders" do
@@ -117,34 +121,10 @@ defmodule CatenaryWeb.AppViewerTest do
     assert_received %{view: :app, entry: {:app, {^pk, "viewer-app"}}}
   end
 
-  test "a slug with a module configured points the hook at it" do
-    previous = Application.get_env(:catenary, :app_wasm)
-    Application.put_env(:catenary, :app_wasm, %{"viewer-app" => "/assets/fixture.wasm"})
-
-    on_exit(fn ->
-      if previous do
-        Application.put_env(:catenary, :app_wasm, previous)
-      else
-        Application.delete_env(:catenary, :app_wasm)
-      end
-    end)
-
-    announce("viewer-app")
-
-    {:ok, view, _html} = live(build_conn(), "/")
-    view |> element("button[title=Listings]") |> render_click()
-    view |> element("button[phx-value-slug=\"viewer-app\"]") |> render_click()
-
-    html = render(view)
-    assert html =~ ~s(data-wasm-src="/assets/fixture.wasm")
-    assert html =~ ~s(data-worker-src="/assets/app_worker.js")
-    {pos, _} = :binary.match(html, "app-pane")
-    pane = String.slice(html, pos, 400)
-    assert pane =~ ~r/phx-target="\d+"/
-  end
-
-  # A release replaces the dev config: a slug with a manifest behind it has
-  # its pane pointed at the route that serves those bytes (§9.7 phase 2b).
+  # A release replaces any other answer for a slug: a manifest behind it
+  # has the pane pointed at the route that serves those bytes (§9.7 phase
+  # 2b). There is no dev-config fallback to fall back to — a slug with no
+  # manifest is left with the pane's own words.
   test "a released slug points its pane at the release route", ctx do
     announce("released-app")
 

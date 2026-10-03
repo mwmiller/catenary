@@ -94,7 +94,14 @@ defmodule Catenary.AppFixture do
   Compile the fixture. Returns the raw WASM binary.
   """
   @spec wasm() :: binary
-  def wasm, do: build(first_effects(), reply_effects())
+  def wasm, do: wat(first_effects(), reply_effects()) |> Watusi.to_wasm()
+
+  @doc """
+  The WAT the fixture compiles from — what a publish would record as the
+  module's source.
+  """
+  @spec wat() :: binary
+  def wat, do: wat(first_effects(), reply_effects())
 
   @doc """
   Compile a two-state module: `first` on the first call, `reply` on every
@@ -102,7 +109,13 @@ defmodule Catenary.AppFixture do
   lives here rather than being written out twice.
   """
   @spec build([map()], [map()]) :: binary
-  def build(first, reply) do
+  def build(first, reply), do: wat(first, reply) |> Watusi.to_wasm()
+
+  @doc """
+  The WAT text `build/2` compiles: the same two-state module, as source.
+  """
+  @spec wat([map()], [map()]) :: binary
+  def wat(first, reply) do
     first = CBOR.encode(first)
     reply = CBOR.encode(reply)
 
@@ -122,7 +135,6 @@ defmodule Catenary.AppFixture do
             (i32.store (i32.const #{@length_slot}) (i32.const #{byte_size(reply)}))
             (i32.const #{@reply_result})))))
     """
-    |> Watusi.to_wasm()
   end
 
   # WAT strings take byte escapes as two hex digits, which keeps arbitrary
@@ -180,4 +192,10 @@ defmodule Catenary.AppFixture.Refuser do
   """
   @spec wasm() :: binary
   def wasm, do: AppFixture.build(first_effects(), reply_effects())
+
+  @doc """
+  The WAT the refusing fixture compiles from.
+  """
+  @spec wat() :: binary
+  def wat, do: AppFixture.wat(first_effects(), reply_effects())
 end

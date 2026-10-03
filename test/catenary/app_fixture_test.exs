@@ -24,6 +24,14 @@ defmodule Catenary.AppFixtureTest do
     assert_effects(wasm, AppFixture.reply_effects())
   end
 
+  test "the source a publish records is what the module compiles from" do
+    # The fixtures are releases like every other app now: their source
+    # entry carries this WAT, and their artifact is exactly it compiled —
+    # the same bytes the drop-in file on disk holds.
+    assert Watusi.to_wasm(AppFixture.wat()) == AppFixture.wasm()
+    assert Watusi.to_wasm(Refuser.wat()) == Refuser.wasm()
+  end
+
   test "the second state is distinguishable from the first" do
     # If both states emitted the same effects there would be nothing to see
     # once a reply arrived, and a harness that never delivered one would

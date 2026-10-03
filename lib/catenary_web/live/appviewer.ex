@@ -119,11 +119,11 @@ defmodule Catenary.Live.AppViewer do
   # first app's leftovers.
   defp pane_id(pk, slug), do: "app-pane-#{pk}-#{slug}"
 
-  # Where the module comes from. A published app's pane points at the
-  # release route, which serves whatever release resolves for this author
-  # and slug; while a fixture is still only in the dev config, its pane
-  # points at that file instead; and when neither says anything, the pane
-  # gets no source at all and keeps its "No module loaded." line.
+  # Where the module comes from: the route that serves this author's
+  # release of the slug, once the store holds a manifest for it — and no
+  # source at all before that, which the pane keeps as its "No module
+  # loaded." line. The dev fixtures are releases like anything else now;
+  # there is no second answer for them to fall back on.
   #
   # Resolved once per app rather than per render: the parent re-renders on
   # every trace line and index bump, and resolving reads the store.
@@ -133,20 +133,9 @@ defmodule Catenary.Live.AppViewer do
     if socket.assigns[:wasm_src_for] == {clump, pk, slug} do
       socket
     else
-      src =
-        if Apps.released?(clump, pk, slug) do
-          ~p"/apps/#{pk}/#{slug}/module"
-        else
-          seam_module(slug)
-        end
+      src = if Apps.released?(clump, pk, slug), do: ~p"/apps/#{pk}/#{slug}/module"
 
       assign(socket, wasm_src: src, wasm_src_for: {clump, pk, slug})
     end
-  end
-
-  defp seam_module(slug) do
-    :catenary
-    |> Application.get_env(:app_wasm, %{})
-    |> Map.get(slug)
   end
 end

@@ -1,6 +1,6 @@
-# Build the dev app fixtures into priv/static so the browser has modules to
-# load. The fixtures themselves live under test/support because they are
-# scaffolding; this is only how they get a URL.
+# Build the dev app fixtures into priv/static so they can be dropped into
+# the playground. The fixtures themselves live under test/support because
+# they are scaffolding; this is only how they get a file to drop.
 #
 #   mix run --no-start scripts/make-app-fixture.exs
 
