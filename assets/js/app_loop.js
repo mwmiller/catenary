@@ -8,6 +8,9 @@
 //   * effects are acted on in the order they were produced;
 //   * a `want` is answered before the next one starts, so replies come back
 //     in the order the module asked for them;
+//   * a `publish` is applied in that same order — it waits for the host the
+//     way a `want` does, so a publish followed by a read of what it wrote
+//     is one sequence rather than two;
 //   * a `want` that cannot be answered is answered with the ABI's `err`
 //     message instead of being dropped, so the module is never left waiting
 //     on a reply that will not come, and can observe the refusal;
@@ -87,7 +90,10 @@ export class AppLoop {
       return this.strike("the module produced effects that are not a list")
     }
 
-    const wants = []
+    // Wants and publishes both wait on the host, so both are collected and
+    // applied after the array — in the order they were produced, which is
+    // what makes a publish and the read that follows it one sequence.
+    const deferred = []
     for (const effect of effects) {
       if (this.stopped) return
       if (effect === null || typeof effect !== "object" || Array.isArray(effect)) {
@@ -118,15 +124,17 @@ export class AppLoop {
           break
         }
         case "want":
-          wants.push(effect)
+        case "publish":
+          deferred.push(effect)
           break
         default:
           this.strike(`unsupported effect: ${asText(effect.do)}`)
       }
     }
 
-    for (const want of wants) {
-      await this.#fulfill(want)
+    for (const effect of deferred) {
+      if (effect.do === "want") await this.#fulfill(effect)
+      else await this.#publish(effect)
       if (this.stopped) return
     }
   }
@@ -169,6 +177,30 @@ export class AppLoop {
       await this.sinks.deliver({msg: "data", ref, ok: fromBase64(reply.data)})
     } catch (error) {
       this.stop(`the reply could not be delivered (${error.message})`)
+    }
+  }
+
+  // A `publish` carries no `ref`, so there is no message to hand back: a
+  // refusal the module could have been told about arrives as a strike,
+  // which is how anything without a ref to answer on is reported. What the
+  // entry is *for* — which log it lands on, who signs it — is the host's to
+  // decide from the app it is running (§6), which is why the entry is all
+  // this sends.
+  async #publish(effect) {
+    const entry = effect.entry
+    if (!isMap(entry)) return this.strike("a publish did not carry a map entry")
+
+    let reply
+    try {
+      reply = await this.sinks.publish(entry)
+    } catch (error) {
+      return this.strike(`the host could not be reached (${error.message})`)
+    }
+
+    if (this.stopped) return
+    if (!reply || reply.ok !== true) {
+      const text = (reply && reply.error) || "no reason given"
+      return this.strike(`the host refused publish: ${text}`)
     }
   }
 

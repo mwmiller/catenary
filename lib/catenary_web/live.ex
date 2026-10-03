@@ -305,6 +305,8 @@ defmodule CatenaryWeb.Live do
         pk={@pk}
         slug={@slug}
         clump_id={@clump_id}
+        identity={@identity}
+        facet_id={@facet_id}
         aliases={@aliases}
         entry={@entry}
       />
@@ -339,6 +341,7 @@ defmodule CatenaryWeb.Live do
         source={@source}
         clump_id={@clump_id}
         identity={@identity}
+        facet_id={@facet_id}
       />
     </.three_column_layout>
     """

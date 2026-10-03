@@ -18,30 +18,36 @@ defmodule Catenary.Live.AppPlayground do
   current clump, the current identity, and a slug that means "not a real
   app" — because a draft has no listing to belong to. That keeps
   `storage_get`/`storage_set` working while the author iterates, and keeps
-  the keys out of any published app's space.
+  the keys out of any published app's space. The same scope is what a
+  `publish` derives its channel from (§6), which is why the facet this
+  device writes on comes in with the rest of it.
   """
   use CatenaryWeb, :live_component
 
-  alias Catenary.{AppHost, AppWire}
+  alias Catenary.{AppHost, AppPublish, AppWire}
 
   @scratch_slug "playground"
 
   # What a new draft starts from: a nine-turn module that batches wants,
-  # round trips through the host's storage, asks a log for its head and then
-  # puts four reads in one array — the ABI's rules in the order they bite,
-  # before the DSL compiler (step 6) gives the buffer its own language.
+  # round trips through the host's storage, publishes one entry to its own
+  # channel, asks a log for its head and then puts four reads in one array —
+  # the ABI's rules in the order they bite, before the DSL compiler (step 6)
+  # gives the buffer its own language.
   @starter """
   # The playground's own language. Press Run: this compiles to wasm on the
   # server, right here, with no toolchain of your own.
   #
   # Handlers are the messages a host can deliver. Everything else is data:
   # print pushes a line to the trace, render hands the pane a widget tree,
-  # draw paints on the canvas that view declared, and want asks the host a
-  # question whose answer arrives on the data handler that named it.
+  # draw paints on the canvas that view declared, want asks the host a
+  # question whose answer arrives on the data handler that named it, and
+  # publish appends a typed entry to the channel this app's own name
+  # derives — the host decides where from, never the entry.
 
   on init:
     print("hello from the DSL")
     want "set_done" = storage_set(key: "greeting", value: 41)
+    publish(type: "note", text: "the DSL starter says hello")
     render(col(text("widgets"), row(text("a"), text("b")), canvas(160, 96)))
 
   # The two data handlers chain: storing reports itself by fetching, and
@@ -70,9 +76,13 @@ defmodule Catenary.Live.AppPlayground do
   def starter_source, do: @starter
 
   @impl true
-  def update(%{clump_id: clump_id, identity: identity} = assigns, socket) do
+  def update(
+        %{clump_id: clump_id, identity: identity, facet_id: facet_id} = assigns,
+        socket
+      ) do
     app = AppHost.app(clump_id, identity, @scratch_slug)
-    {:ok, assign(socket, Map.put(assigns, :app, app))}
+    scope = %{app: app, identity: identity, facet_id: facet_id}
+    {:ok, assign(socket, assigns |> Map.put(:app, app) |> Map.put(:scope, scope))}
   end
 
   @impl true
@@ -114,9 +124,11 @@ defmodule Catenary.Live.AppPlayground do
         <p class="text-sm text-slate-600 dark:text-slate-400">
           The publish panel and the store fixture picker are not built. Run compiles the buffer —
           DSL by default, WAT when the buffer opens with a module — and starts it; a buffer that
-          does not compile reports its diagnostic on the status line and in the trace. ⇥ on the
-          right rail — or a file dropped on the pane — runs a .wasm instead, gated on it
-          instantiating here. Both traces land on the left.
+          does not compile reports its diagnostic on the status line and in the trace. A run that
+          publishes (the starter does) appends to this identity's own playground channel, and the
+          trace on the left reads back where each entry landed. ⇥ on the right rail — or a file
+          dropped on the pane — runs a .wasm instead, gated on it instantiating here. Both traces
+          land on the left.
         </p>
       </div>
     </div>
@@ -132,5 +144,17 @@ defmodule Catenary.Live.AppPlayground do
 
   def handle_event("app-want", _params, socket) do
     {:reply, AppWire.request(socket.assigns.app, nil, nil), socket}
+  end
+
+  # A publish is the same round trip with nothing to answer back on: the
+  # entry goes up wrapped the way a want's arguments are, and the scope it
+  # is judged against is this component's, so a draft can only ever append
+  # to the channel its own (identity, "playground") derives (§6).
+  def handle_event("app-publish", %{"entry" => entry}, socket) do
+    {:reply, AppPublish.publish(socket.assigns.scope, entry), socket}
+  end
+
+  def handle_event("app-publish", _params, socket) do
+    {:reply, %{"ok" => false, "error" => "bad_args"}, socket}
   end
 end

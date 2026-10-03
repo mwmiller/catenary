@@ -2,11 +2,14 @@ defmodule Catenary.Live.AppViewer do
   @moduledoc """
   LiveComponent hosting a single running app.
 
-  The component owns exactly two things: which listing is running, and the
-  host operations that listing asks for. The app context — clump, publisher
-  and slug — is assembled here from the entry the parent navigated to, so a
-  worker can never name a different scope for itself: every `app-want` is
-  answered against this fixed context, built server-side.
+  The component owns exactly three things: which listing is running, the
+  host operations that listing asks for, and the scope a `publish` is
+  judged against. The app context — clump, publisher and slug — is
+  assembled here from the entry the parent navigated to, so a worker can
+  never name a different scope for itself: every `app-want` is answered
+  against this fixed context, built server-side, and every `publish` lands
+  on the channel that context derives and is signed with the identity the
+  parent said is signed in (§6).
 
   Drawing the app is the `AppRunner` hook's job, mounted on the pane and
   left alone by `phx-update="ignore"` so LiveView's patches do not overwrite
@@ -15,12 +18,22 @@ defmodule Catenary.Live.AppViewer do
   """
   use CatenaryWeb, :live_component
 
-  alias Catenary.{AppHost, AppWire, Display}
+  alias Catenary.{AppHost, AppPublish, AppWire, Display}
 
   @impl true
-  def update(%{clump_id: clump_id, pk: pk, slug: slug} = assigns, socket) do
+  def update(
+        %{
+          clump_id: clump_id,
+          pk: pk,
+          slug: slug,
+          identity: identity,
+          facet_id: facet_id
+        } = assigns,
+        socket
+      ) do
     app = AppHost.app(clump_id, pk, slug)
-    {:ok, assign(socket, Map.put(assigns, :app, app))}
+    scope = %{app: app, identity: identity, facet_id: facet_id}
+    {:ok, assign(socket, assigns |> Map.put(:app, app) |> Map.put(:scope, scope))}
   end
 
   @impl true
@@ -78,6 +91,20 @@ defmodule Catenary.Live.AppViewer do
 
   def handle_event("app-want", _params, socket) do
     {:reply, AppWire.request(socket.assigns.app, nil, nil), socket}
+  end
+
+  # A publish is the same round trip with nothing to answer back on: the
+  # entry goes up wrapped the way a want's arguments are, and the scope it
+  # is judged against is this component's — the listing that is open and
+  # the identity signed in. Somebody else's app running here has no key in
+  # this scope that could sign what its channel would accept (§6), so the
+  # refusal arrives as the reason the loop strikes on.
+  def handle_event("app-publish", %{"entry" => entry}, socket) do
+    {:reply, AppPublish.publish(socket.assigns.scope, entry), socket}
+  end
+
+  def handle_event("app-publish", _params, socket) do
+    {:reply, %{"ok" => false, "error" => "bad_args"}, socket}
   end
 
   # The pane is ignored by LiveView, so it is never patched — only replaced.

@@ -181,6 +181,9 @@ export const AppRunner = {
         this._record("want", op)
         return this._want(op, args)
       },
+      publish: entry => {
+        return this._publish(entry)
+      },
       deliver: message => {
         this._record("reply", replyShape(message))
         return this._deliver(message)
@@ -375,6 +378,37 @@ export const AppRunner = {
     return first.value.reply
   },
 
+  // One publish, one round trip. The entry goes up as base64(CBOR(entry))
+  // for the same reason a want's arguments do — LiveView carries JSON, and
+  // neither bytes nor arbitrary terms survive it — and the reply is handed
+  // straight back to the loop, which turns a refusal into a strike.
+  //
+  // The deadline armed here covers a component that never answers. Unlike a
+  // `want`, a publish has no reply to deliver to the module afterwards, so
+  // it is disarmed on the way out: nothing is in flight once the host has
+  // answered, and a timer left running would stop an idle run rather than a
+  // late one.
+  async _publish(entry) {
+    if (this._loop.stopped || !this._worker) {
+      throw new Error("no module is running")
+    }
+    this._arm()
+    try {
+      const results = await this.pushEventTo(this.el, "app-publish", {
+        entry: toBase64(encode(entry))
+      })
+      const first = results && results[0]
+      if (!first || first.status !== "fulfilled" || !first.value) {
+        throw new Error("the app view did not answer")
+      }
+      const reply = first.value.reply
+      this._record("publish", publishShape(reply))
+      return reply
+    } finally {
+      this._disarm()
+    }
+  },
+
   // One entry of the run's own history. Batching keeps a module that prints
   // in a loop from turning into one socket message per line: the trace is a
   // list to read back, not a log tail that has to be live. Only panes that
@@ -519,6 +553,15 @@ function replyShape(message) {
   if (!message) return "nothing"
   if (message.msg === "err") return `err ${message.error}`
   return `data #${message.ref}`
+}
+
+// One publish reads in the trace as what it wrote and where: the seqnum the
+// store gave it, or the reason the host would not.
+function publishShape(reply) {
+  if (!reply || reply.ok !== true) {
+    return `refused (${(reply && reply.error) || "no reason given"})`
+  }
+  return typeof reply.seq === "number" ? `ok, seq ${reply.seq}` : "ok"
 }
 
 function toBase64(bytes) {

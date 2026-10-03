@@ -51,7 +51,7 @@ defmodule Catenary.Apps.DSL do
 
   # Words a program may not take as its own: syntax, builtins, draw ops.
   @reserved ~w(on init data err tick ui let if else match when want
-                print render draw animate true false null and or
+                print render draw publish animate true false null and or
                 text col row canvas show len floor min max
                 fill_rect stroke_rect line stroke_path fill_path
                 translate scale)
@@ -60,7 +60,8 @@ defmodule Catenary.Apps.DSL do
   # the program's own strings so the pool is order-deterministic.
   @abi_strings ~w(msg init data tick ui err t event ref ok error do text
                   view ops on op args s kids w h
-                  print render animate want draw col row canvas
+                  print render animate want publish draw col row canvas
+                  entry
                   x y lw c x1 y1 x2 y2 pts size
                   log_id seq author from count kind cursor limit key value) ++
                  [@default_color]
@@ -438,6 +439,19 @@ defmodule Catenary.Apps.DSL do
 
   defp parse_stmt([{:ident, "want", _, line} | _], _rest, _),
     do: err(line, 1, ~s|want expects: want "label" = op(name: value, …)|)
+
+  # `publish` takes the same named arguments a host call does, because what
+  # it builds is the same thing: a map for the wire. There is no label — a
+  # publish has no reply to bind a handler to (§3).
+  defp parse_stmt([{:ident, "publish", l, c}, {:sym, "(", _, _} | tokens], rest, _) do
+    with {:ok, args, tokens} <- parse_named_args(tokens, l, c),
+         {:ok, []} <- expect_end(tokens) do
+      {:ok, {:publish, args, l, c}, rest}
+    end
+  end
+
+  defp parse_stmt([{:ident, "publish", line, col} | _], _rest, _),
+    do: err(line, col, "publish expects: publish(name: value, …)")
 
   defp parse_stmt([{:ident, name, line, col} | _], _rest, _),
     do: err(line, col, "not a statement (saw #{name})")
@@ -989,6 +1003,19 @@ defmodule Catenary.Apps.DSL do
     end
   end
 
+  defp check_stmt({:publish, args, line, col}, scope, state) do
+    with :ok <- check_publish_fields(args, line, col) do
+      # Field names are the program's own, so they are interned here the way
+      # a literal's text is: emit reads them out of the pool by name.
+      state = Enum.reduce(args, state, fn {name, _}, st -> intern(st, name) end)
+
+      case check_expr_list(args, scope, state) do
+        {:ok, args, state} -> {:ok, {:publish, args, line, col}, scope, 1, state}
+        {:error, _} = error -> error
+      end
+    end
+  end
+
   defp check_stmt({:want, label, op, args, line, col}, scope, state) do
     with :ok <- check_want_label(label, line, col, state),
          :ok <- check_want_op(op, args, line, col) do
@@ -1013,6 +1040,32 @@ defmodule Catenary.Apps.DSL do
     with {:ok, subject, state} <- check_expr(subject, scope, state),
          {:ok, arms, eff, state, scopes} <- check_arms(arms, scope, state) do
       check_match_tail(subject, arms, eff, scopes, else_arm, scope, state)
+    end
+  end
+
+  # An entry says what kind of thing it is (§6), and the two fields a
+  # reader derives its provenance from are not the module's to write: the
+  # host stamps `v` and `app` over whatever arrives, so a program that sets
+  # either is told here rather than having it silently dropped on publish.
+  defp check_publish_fields(args, line, col) do
+    names = Enum.map(args, &elem(&1, 0))
+    stamped = &(&1 in ["v", "app"])
+
+    cond do
+      names == [] ->
+        err(line, col, "publish expects: publish(name: value, …)")
+
+      Enum.uniq(names) != names ->
+        err(line, col, "publish has a duplicate argument")
+
+      Enum.any?(names, stamped) ->
+        err(line, col, "#{Enum.find(names, stamped)} is stamped by the host on publish")
+
+      "type" not in names ->
+        err(line, col, ~s|publish needs a type (publish(type: "note", …))|)
+
+      true ->
+        :ok
     end
   end
 
@@ -1261,6 +1314,12 @@ defmodule Catenary.Apps.DSL do
           {:ok, {:call, name, args, at}, state}
         end
 
+      # `publish` parses like a call because that is what it looks like, but
+      # it has meaning only as a statement: it has no reply to answer on.
+      name == "publish" ->
+        {line, col} = at
+        err(line, col, "publish is a statement, not a value")
+
       Map.has_key?(@host_ops, name) ->
         {line, col} = at
         err(line, col, "#{name} is used inside want \"label\" = #{name}(…)")
@@ -1504,25 +1563,7 @@ defmodule Catenary.Apps.DSL do
   end
 
   defp emit_stmt({:want, label, op, args, _, _}, ctx) do
-    {t_args, ctx} = fresh(ctx)
-
-    {arg_pres, arg_sets, ctx} =
-      args
-      |> Enum.with_index()
-      |> Enum.reduce({[], [], ctx}, fn {{name, expr}, slot}, {pres, sets, ctx} ->
-        {pre, res, ctx} = emit_expr(expr, ctx)
-
-        sets = [
-          "#{indent(ctx)}(call $map_set (local.get #{t_args}) (i32.const #{slot}) #{pool(ctx, name)} #{res})"
-          | sets
-        ]
-
-        {pres ++ pre, sets, ctx}
-      end)
-
-    setup_args = [
-      "#{indent(ctx)}(local.set #{t_args} (call $map_new (i32.const #{length(args)})))"
-    ]
+    {map_lines, map_expr, ctx} = emit_arg_map(args, ctx)
 
     ref = Map.fetch!(ctx.plan.refs, label)
 
@@ -1532,12 +1573,24 @@ defmodule Catenary.Apps.DSL do
           {pool(ctx, "do"), pool(ctx, "want")},
           {pool(ctx, "ref"), "(call $make_num (f64.const #{ref}))"},
           {pool(ctx, "op"), pool(ctx, op)},
-          {pool(ctx, "args"), "(local.get #{t_args})"}
+          {pool(ctx, "args"), map_expr}
         ],
         ctx
       )
 
-    {arg_pres ++ setup_args ++ Enum.reverse(arg_sets) ++ lines, ctx}
+    {map_lines ++ lines, ctx}
+  end
+
+  defp emit_stmt({:publish, args, _, _}, ctx) do
+    {map_lines, map_expr, ctx} = emit_arg_map(args, ctx)
+
+    {lines, ctx} =
+      emit_effect(
+        [{pool(ctx, "do"), pool(ctx, "publish")}, {pool(ctx, "entry"), map_expr}],
+        ctx
+      )
+
+    {map_lines ++ lines, ctx}
   end
 
   defp emit_stmt({:if, cond_expr, then_body, else_body}, ctx) do
@@ -1566,6 +1619,36 @@ defmodule Catenary.Apps.DSL do
     park = ["#{indent(ctx)}(local.set #{t} #{res})"]
     {lines, ctx} = emit_match_arms(Enum.reverse(arms), else_arm, t, ctx)
     {pre ++ park ++ lines, ctx}
+  end
+
+  # The named-argument map both `want` and `publish` hand the wire: one
+  # fresh map, one `map_set` per argument in program order, with the
+  # argument expressions evaluated before the map is built — so an
+  # expression that takes effect lines of its own never lands between the
+  # `map_new` and the `map_set` it feeds.
+  defp emit_arg_map(args, ctx) do
+    {t, ctx} = fresh(ctx)
+
+    {pres, sets, ctx} =
+      args
+      |> Enum.with_index()
+      |> Enum.reduce({[], [], ctx}, fn {{name, expr}, slot}, {pres, sets, ctx} ->
+        {pre, res, ctx} = emit_expr(expr, ctx)
+
+        sets = [
+          "#{indent(ctx)}(call $map_set (local.get #{t}) (i32.const #{slot}) #{pool(ctx, name)} #{res})"
+          | sets
+        ]
+
+        {pres ++ pre, sets, ctx}
+      end)
+
+    lines =
+      pres ++
+        ["#{indent(ctx)}(local.set #{t} (call $map_new (i32.const #{length(args)})))"] ++
+        Enum.reverse(sets)
+
+    {lines, "(local.get #{t})", ctx}
   end
 
   defp emit_draw_item({:call, name, {:named, args}, _at}, index, ops, ctx) do

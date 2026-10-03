@@ -3,8 +3,12 @@ defmodule CatenaryWeb.AppViewerTest do
 
   import Phoenix.LiveViewTest
 
-  alias Catenary.{AppHost, AppKV, AppWire, Preferences}
+  alias Catenary.{AppHost, AppKV, Apps, AppWire, Preferences}
   alias Catenary.Live.{AppViewer, ListingsExplorer}
+
+  # A key that is not this device's, standing in for the publisher of an
+  # app somebody else published.
+  @foreign_pk String.duplicate("1", 43)
 
   setup do
     # Navigation writes view and entry straight back to the preference store,
@@ -34,6 +38,23 @@ defmodule CatenaryWeb.AppViewerTest do
   end
 
   defp reindex, do: GenServer.call(:listings, :update)
+
+  # The component's context as the parent passes it: the listing that was
+  # opened, plus the two assigns a publish is judged against — who is signed
+  # in and which facet this device writes on (§6).
+  defp viewer_socket(ctx, slug) do
+    AppViewer.update(
+      %{
+        clump_id: ctx.clump_id,
+        pk: ctx.identity,
+        slug: slug,
+        identity: ctx.identity,
+        facet_id: Preferences.get(:facet_id)
+      },
+      %Phoenix.LiveView.Socket{}
+    )
+    |> elem(1)
+  end
 
   # The control log persists across runs, so whatever is announced here has
   # to be withdrawn again or the next test to render the explorer sees it.
@@ -123,12 +144,7 @@ defmodule CatenaryWeb.AppViewerTest do
   end
 
   test "app-want is answered against the component's own context", ctx do
-    socket =
-      AppViewer.update(
-        %{clump_id: ctx.clump_id, pk: ctx.identity, slug: "viewer-app"},
-        %Phoenix.LiveView.Socket{}
-      )
-      |> elem(1)
+    socket = viewer_socket(ctx, "viewer-app")
 
     {:reply, reply, _socket} =
       AppViewer.handle_event(
@@ -150,12 +166,7 @@ defmodule CatenaryWeb.AppViewerTest do
 
     # The context comes from the entry the parent navigated to, so a second
     # app opened through the same component sees an empty store of its own.
-    other =
-      AppViewer.update(
-        %{clump_id: ctx.clump_id, pk: ctx.identity, slug: "other-app"},
-        %Phoenix.LiveView.Socket{}
-      )
-      |> elem(1)
+    other = viewer_socket(ctx, "other-app")
 
     {:reply, reply, _socket} =
       AppViewer.handle_event(
@@ -168,17 +179,54 @@ defmodule CatenaryWeb.AppViewerTest do
   end
 
   test "a message missing part of the wire is answered, not raised on", ctx do
-    socket =
-      AppViewer.update(
-        %{clump_id: ctx.clump_id, pk: ctx.identity, slug: "viewer-app"},
-        %Phoenix.LiveView.Socket{}
-      )
-      |> elem(1)
+    socket = viewer_socket(ctx, "viewer-app")
 
     assert {:reply, %{"ok" => false, "error" => "bad_args"}, _socket} =
              AppViewer.handle_event("app-want", %{"op" => "storage_get"}, socket)
 
     assert {:reply, %{"ok" => false, "error" => "bad_args"}, _socket} =
              AppViewer.handle_event("app-want", %{"args" => AppWire.encode_args(%{})}, socket)
+  end
+
+  test "app-publish lands on the channel of the app that is open", ctx do
+    socket = viewer_socket(ctx, "viewer-app")
+    facet_id = Preferences.get(:facet_id)
+    log_id = Apps.app_log_id(ctx.identity, "viewer-app", facet_id)
+
+    on_exit(fn ->
+      Baobab.purge(Catenary.id_for_key(ctx.identity), log_id: log_id, clump_id: ctx.clump_id)
+    end)
+
+    entry = %{"type" => "note", "text" => "from the viewer"} |> CBOR.encode() |> Base.encode64()
+
+    assert {:reply, %{"ok" => true, "seq" => seq}, _socket} =
+             AppViewer.handle_event("app-publish", %{"entry" => entry}, socket)
+
+    assert seq > 0
+
+    # The component answers a message missing its payload rather than
+    # raising on it, the way `app-want` does.
+    assert {:reply, %{"ok" => false, "error" => "bad_args"}, _socket} =
+             AppViewer.handle_event("app-publish", %{}, socket)
+  end
+
+  test "somebody else's app running here cannot publish into its channel", ctx do
+    socket =
+      AppViewer.update(
+        %{
+          clump_id: ctx.clump_id,
+          pk: @foreign_pk,
+          slug: "viewer-app",
+          identity: ctx.identity,
+          facet_id: Preferences.get(:facet_id)
+        },
+        %Phoenix.LiveView.Socket{}
+      )
+      |> elem(1)
+
+    entry = %{"type" => "note"} |> CBOR.encode() |> Base.encode64()
+
+    assert {:reply, %{"ok" => false, "error" => "not_the_publisher"}, _socket} =
+             AppViewer.handle_event("app-publish", %{"entry" => entry}, socket)
   end
 end
