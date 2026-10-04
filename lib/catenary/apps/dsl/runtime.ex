@@ -324,6 +324,70 @@ defmodule Catenary.Apps.DSL.Runtime do
                   (else (i32.const 8))))
               (else (i32.const 8))))))
 
+      ;; push — a fresh array holding the old one's elements with one more
+      ;; at the end, so the array it came from still reads as it did. The
+      ;; copy is the arena's usual bargain: born here, dead with the turn.
+      ;; Anything that is not an array pushes nothing and answers null, the
+      ;; way a miss in v_index and v_field answers.
+      (func $v_push (param $a i32) (param $v i32) (result i32)
+        (local $n i32)
+        (local $out i32)
+        (if (result i32) (i32.ne (call $v_tag (local.get $a)) (i32.const 6))
+          (then (i32.const 8))
+          (else
+            (local.set $n (i32.load offset=4 (local.get $a)))
+            (local.set $out (call $arr_new (i32.add (local.get $n) (i32.const 1))))
+            (memory.copy
+              (i32.add (local.get $out) (i32.const 8))
+              (i32.add (local.get $a) (i32.const 8))
+              (i32.mul (local.get $n) (i32.const 4)))
+            (call $arr_set (local.get $out) (local.get $n) (local.get $v))
+            (local.get $out))))
+
+      ;; get — the two lookups a program needs under one name: an array by
+      ;; number, a map by key, and null for anything else (a wrong-shaped
+      ;; value, a key the wrong type for it, a position past the end).
+      (func $v_get (param $v i32) (param $k i32) (result i32)
+        (if (result i32) (i32.eq (call $v_tag (local.get $v)) (i32.const 6))
+          (then
+            (if (result i32) (i32.eq (call $v_tag (local.get $k)) (i32.const 3))
+              (then (call $v_index (local.get $v) (local.get $k)))
+              (else (i32.const 8))))
+          (else
+            (if (result i32) (i32.eq (call $v_tag (local.get $v)) (i32.const 7))
+              (then (call $v_field (local.get $v) (local.get $k)))
+              (else (i32.const 8))))))
+
+      ;; decode — one CBOR value out of a bytes box, through the same
+      ;; decoder the ABI input uses. The turn's cursor and error flag are
+      ;; borrowed for the call and handed back whole: a payload that will
+      ;; not decode reads as null and costs the turn nothing, because the
+      ;; bytes came from the store, not from the host's own encoder, and a
+      ;; bad entry must not refuse a good message.
+      (func $v_decode (param $b i32) (result i32)
+        (local $val i32)
+        (local $bad i32)
+        (local $dp0 i32)
+        (local $de0 i32)
+        (local $err0 i32)
+        (if (result i32) (i32.ne (call $v_tag (local.get $b)) (i32.const 5))
+          (then (i32.const 8))
+          (else
+            (local.set $dp0 (global.get $dp))
+            (local.set $de0 (global.get $de))
+            (local.set $err0 (global.get $err))
+            (global.set $dp (i32.add (local.get $b) (i32.const 8)))
+            (global.set $de (i32.add (global.get $dp) (i32.load offset=4 (local.get $b))))
+            (global.set $err (i32.const 0))
+            (local.set $val (call $cbor_val (i32.const 0)))
+            (local.set $bad (global.get $err))
+            (global.set $dp (local.get $dp0))
+            (global.set $de (local.get $de0))
+            (global.set $err (local.get $err0))
+            (if (result i32) (local.get $bad)
+              (then (i32.const 8))
+              (else (local.get $val))))))
+
       ;; Structural equality. A value was already depth-capped when it was
       ;; decoded, so recursion bottoms out on data, not on stack.
       (func $v_eq (param $a i32) (param $b i32) (result i32)
@@ -496,6 +560,81 @@ defmodule Catenary.Apps.DSL.Runtime do
             (i32.or (i32.eq (local.get $tag) (i32.const 6)) (i32.eq (local.get $tag) (i32.const 7))))
           (then (call $make_num (f64.convert_i32_u (i32.load offset=4 (local.get $v)))))
           (else (call $make_num (f64.const nan)))))
+
+      ;; ----------------------------------------------------------------
+      ;; trigonometry — the instructions WebAssembly never had. sin folds
+      ;; x onto the nearest multiple of a half-turn (so the leftover |p|
+      ;; ≤ π/4) and evaluates the Taylor series there: seven terms are
+      ;; within 1e-15 of the truth on that range, a hundred orders of
+      ;; magnitude below a pixel. cos is sin a quarter turn along, which
+      ;; is all it has ever been. Reduction costs precision as x grows —
+      ;; by 1e6 radians it is still well under a thousandth of a radian —
+      ;; and absurd input yields absurd output rather than a trap.
+      ;; ----------------------------------------------------------------
+
+      ;; sin on [−π/4, π/4]: t·(1 + t²·(−1/6 + t²·(1/120 + t²·(−1/5040 +
+      ;; t²·(1/9! + t²·(−1/11! + t²/13!))))))
+      (func $sinp (param $t f64) (result f64)
+        (local $t2 f64)
+        (local.set $t2 (f64.mul (local.get $t) (local.get $t)))
+        (f64.mul (local.get $t)
+          (f64.add (f64.const 1)
+            (f64.mul (local.get $t2)
+              (f64.add (f64.const -0.16666666666666666)
+                (f64.mul (local.get $t2)
+                  (f64.add (f64.const 0.008333333333333333)
+                    (f64.mul (local.get $t2)
+                      (f64.add (f64.const -1.984126984126984e-4)
+                        (f64.mul (local.get $t2)
+                          (f64.add (f64.const 2.7557319223985893e-6)
+                            (f64.mul (local.get $t2)
+                              (f64.add (f64.const -2.505210838544172e-8)
+                                (f64.mul (local.get $t2)
+                                  (f64.const 1.6059043836821613e-10)))))))))))))))
+
+      ;; cos on the same range: 1 + t²·(−1/2 + t²·(1/24 + t²·(−1/720 +
+      ;; t²·(1/8! + t²·(−1/10! + t²/12!)))))
+      (func $cosp (param $t f64) (result f64)
+        (local $t2 f64)
+        (local.set $t2 (f64.mul (local.get $t) (local.get $t)))
+        (f64.add (f64.const 1)
+          (f64.mul (local.get $t2)
+            (f64.add (f64.const -0.5)
+              (f64.mul (local.get $t2)
+                (f64.add (f64.const 0.041666666666666664)
+                  (f64.mul (local.get $t2)
+                    (f64.add (f64.const -0.001388888888888889)
+                      (f64.mul (local.get $t2)
+                        (f64.add (f64.const 2.48015873015873e-5)
+                          (f64.mul (local.get $t2)
+                            (f64.add (f64.const -2.755731922398589e-7)
+                              (f64.mul (local.get $t2)
+                                (f64.const 2.08767569878681e-9))))))))))))))
+
+      (func $sin_f (param $x f64) (result f64)
+        (local $k f64)
+        (local $p f64)
+        (local $q i32)
+        (local.set $k
+          (f64.floor
+            (f64.add (f64.mul (local.get $x) (f64.const 0.6366197723675814)) (f64.const 0.5))))
+        (local.set $p
+          (f64.sub (local.get $x) (f64.mul (local.get $k) (f64.const 1.5707963267948966))))
+        (local.set $q (i32.rem_s (i32.trunc_sat_f64_s (local.get $k)) (i32.const 4)))
+        (if (i32.lt_s (local.get $q) (i32.const 0))
+          (then (local.set $q (i32.add (local.get $q) (i32.const 4)))))
+        (if (result f64) (i32.eq (local.get $q) (i32.const 0))
+          (then (call $sinp (local.get $p)))
+          (else
+            (if (result f64) (i32.eq (local.get $q) (i32.const 1))
+              (then (call $cosp (local.get $p)))
+              (else
+                (if (result f64) (i32.eq (local.get $q) (i32.const 2))
+                  (then (f64.neg (call $sinp (local.get $p))))
+                  (else (f64.neg (call $cosp (local.get $p))))))))))
+
+      (func $cos_f (param $x f64) (result f64)
+        (call $sin_f (f64.add (local.get $x) (f64.const 1.5707963267948966))))
 
       ;; ----------------------------------------------------------------
       ;; show — text passes through, everything else walks into a bounded

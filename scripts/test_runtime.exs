@@ -35,6 +35,11 @@ module = """
   (func (export "t_len") (param $v i32) (result i32) (call $v_len (local.get $v)))
   (func (export "t_field") (param $m i32) (param $k i32) (result i32) (call $v_field (local.get $m) (local.get $k)))
   (func (export "t_index") (param $a i32) (param $i i32) (result i32) (call $v_index (local.get $a) (local.get $i)))
+  (func (export "t_push") (param $a i32) (param $v i32) (result i32) (call $v_push (local.get $a) (local.get $v)))
+  (func (export "t_get") (param $v i32) (param $k i32) (result i32) (call $v_get (local.get $v) (local.get $k)))
+  (func (export "t_decode") (param $b i32) (result i32) (call $v_decode (local.get $b)))
+  (func (export "t_sin") (param $x f64) (result f64) (call $sin_f (local.get $x)))
+  (func (export "t_cos") (param $x f64) (result f64) (call $cos_f (local.get $x)))
 )
 """
 

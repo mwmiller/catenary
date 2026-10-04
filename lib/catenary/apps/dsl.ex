@@ -8,9 +8,11 @@ defmodule Catenary.Apps.DSL do
   lint gutter wants it. Neither raises on user input.
 
   The language is deliberately fixed (decision #16): numbered handlers,
-  flat per-handler scope, no loops, no closures. The compiler owns all ABI
-  ceremony — dispatch, the effect list, the constant pool, the handle
-  prologue — and a well-typed program can only emit well-formed effects.
+  flat per-handler scope, no closures, and one loop — `repeat N times(i):`,
+  whose count must be a literal, so the compiler still knows exactly how
+  many effects one turn can push. The compiler owns all ABI ceremony —
+  dispatch, the effect list, the constant pool, the handle prologue — and
+  a well-typed program can only emit well-formed effects.
   """
 
   alias Catenary.Apps.DSL.Runtime
@@ -48,13 +50,28 @@ defmodule Catenary.Apps.DSL do
 
   @view_builds ~w(text col row canvas)
   @view_arity %{"text" => 1, "canvas" => 2}
-  @builtin_arity %{"show" => 1, "len" => 1, "floor" => 1, "min" => 2, "max" => 2}
+
+  @builtin_arity %{
+    "show" => 1,
+    "len" => 1,
+    "floor" => 1,
+    "min" => 2,
+    "max" => 2,
+    "sin" => 1,
+    "cos" => 1,
+    "pi" => 0,
+    "push" => 2,
+    "get" => 2,
+    "decode" => 1
+  }
+
   @default_color "#64748b"
 
   # Words a program may not take as its own: syntax, builtins, draw ops.
   @reserved ~w(on init data err tick ui entry let if else match when want
                 print render draw publish animate true false null and or
-                text col row canvas show len floor min max
+                text col row canvas show len floor min max sin cos pi
+                push get decode repeat times
                 fill_rect stroke_rect line stroke_path fill_path
                 translate scale)
 
@@ -243,17 +260,31 @@ defmodule Catenary.Apps.DSL do
 
   # Tokens become logical lines. Whitespace is already gone, so a line's
   # indent is the column of its first token minus one. Blank and
-  # comment-only lines produced no tokens at all.
-  defp to_lines(tokens), do: split_lines(tokens, [], [])
+  # comment-only lines produced no tokens at all. A line whose brackets
+  # still reach past the newline — a draw list or a call that wraps —
+  # swallows that newline and continues as one logical line, so a long
+  # list of ops can be read a piece at a time. An unbalanced closer
+  # clamps the depth, leaving the parser to name the problem itself.
+  defp to_lines(tokens), do: split_lines(tokens, [], [], 0)
 
-  defp split_lines([], [], acc), do: {:ok, Enum.reverse(acc)}
-  defp split_lines([], cur, acc), do: {:ok, Enum.reverse([finish_line(cur) | acc])}
-  defp split_lines([{:nl, _, _, _} | rest], [], acc), do: split_lines(rest, [], acc)
+  defp split_lines([], [], acc, _depth), do: {:ok, Enum.reverse(acc)}
+  defp split_lines([], cur, acc, _depth), do: {:ok, Enum.reverse([finish_line(cur) | acc])}
 
-  defp split_lines([{:nl, _, _, _} | rest], cur, acc),
-    do: split_lines(rest, [], [finish_line(cur) | acc])
+  defp split_lines([{:nl, _, _, _} | rest], cur, acc, depth) when depth > 0,
+    do: split_lines(rest, cur, acc, depth)
 
-  defp split_lines([token | rest], cur, acc), do: split_lines(rest, [token | cur], acc)
+  defp split_lines([{:nl, _, _, _} | rest], [], acc, depth),
+    do: split_lines(rest, [], acc, depth)
+
+  defp split_lines([{:nl, _, _, _} | rest], cur, acc, depth),
+    do: split_lines(rest, [], [finish_line(cur) | acc], depth)
+
+  defp split_lines([token | rest], cur, acc, depth),
+    do: split_lines(rest, [token | cur], acc, step_depth(token, depth))
+
+  defp step_depth({:sym, s, _, _}, depth) when s in ["[", "("], do: depth + 1
+  defp step_depth({:sym, s, _, _}, depth) when s in ["]", ")"], do: max(depth - 1, 0)
+  defp step_depth(_token, depth), do: depth
 
   defp finish_line(rev_cur) do
     tokens = Enum.reverse(rev_cur)
@@ -411,6 +442,9 @@ defmodule Catenary.Apps.DSL do
   defp parse_stmt([{:ident, "when", _, line} | _], _rest, _indent),
     do: err(line, 1, "when outside a match")
 
+  defp parse_stmt([{:ident, "repeat", _, _} | tokens], rest, indent),
+    do: parse_repeat(tokens, rest, indent)
+
   defp parse_stmt(
          [{:ident, "let", l, c}, {:ident, name, _, _}, {:sym, "=", _, _} | tokens],
          rest,
@@ -488,6 +522,8 @@ defmodule Catenary.Apps.DSL do
   defp parse_stmt([], _, _), do: err(1, 1, "expected a statement")
 
   defp parse_draw_items([{:sym, "]", _, _} | rest], _l, _c), do: {:ok, [], rest}
+
+  defp parse_draw_items([], l, c), do: err(l, c, "unterminated draw list (expected ])")
 
   defp parse_draw_items(tokens, l, c) do
     with {:ok, item, tokens} <- parse_primary(tokens),
@@ -587,6 +623,55 @@ defmodule Catenary.Apps.DSL do
 
   defp parse_if_tail(_indent, cond_expr, then_body, after_then),
     do: {:ok, {:if, cond_expr, then_body, nil}, after_then}
+
+  # `repeat` counts a literal: the count is the syntax the effect budget
+  # rests on — a loop the checker cannot unroll is a loop whose pushes it
+  # cannot number — so it is verified here, where its position is still
+  # the author's. The variable joins the body's scope, declared like any
+  # other local, readable through the body, gone after the loop.
+  defp parse_repeat([{_, _, line, col} | _] = tokens, rest, indent) do
+    with {:ok, count, tokens} <- parse_expr(tokens) do
+      parse_repeat_times(count, tokens, rest, indent, line, col)
+    end
+  end
+
+  defp parse_repeat([], _rest, _indent),
+    do: err(1, 1, "repeat takes a count and a variable: repeat N times(i):")
+
+  defp parse_repeat_times(
+         count,
+         [
+           {:ident, "times", _, _},
+           {:sym, "(", _, _},
+           {:ident, var, vline, vcol},
+           {:sym, ")", _, _},
+           {:sym, ":", _, _} | tail
+         ],
+         rest,
+         indent,
+         line,
+         col
+       ) do
+    with {:ok, []} <- expect_end(tail),
+         {:ok, block, after_block} <- child_block(rest, indent),
+         {:ok, body, []} <- parse_block(block, hd_block_indent(block)),
+         {:ok, count} <- repeat_count(count, line, col) do
+      {:ok, {:repeat, count, var, body, vline, vcol}, after_block}
+    end
+  end
+
+  defp parse_repeat_times(_count, [{_, _, tline, tcol} | _], _rest, _indent, _line, _col),
+    do: err(tline, tcol, "repeat takes a count and a variable: repeat N times(i):")
+
+  defp parse_repeat_times(_count, [], _rest, _indent, line, col),
+    do: err(line, col, "repeat takes a count and a variable: repeat N times(i):")
+
+  defp repeat_count({:num, n}, _line, _col)
+       when is_number(n) and n >= 0 and n <= 10_000 and n == round(n),
+       do: {:ok, {:num, n}}
+
+  defp repeat_count(_count, line, col),
+    do: err(line, col, "repeat takes a literal whole number from 0 to 10000")
 
   defp parse_match(tokens, rest, indent, l, c) do
     with {:ok, subject, tokens} <- parse_expr(tokens),
@@ -1066,6 +1151,35 @@ defmodule Catenary.Apps.DSL do
     with {:ok, subject, state} <- check_expr(subject, scope, state),
          {:ok, arms, eff, state, scopes} <- check_arms(arms, scope, state) do
       check_match_tail(subject, arms, eff, scopes, else_arm, scope, state)
+    end
+  end
+
+  # The counter is a binding like any other — reserved words refused,
+  # one name per handler — but it exists only for the body: absorbed for
+  # declaration, not for scope, so nothing reads it after the loop. The
+  # body's effects are multiplied by the count right here, because the
+  # budget finish_sizes checks has to be the worst this handler can push.
+  defp check_stmt({:repeat, count, var, body, line, col}, scope, state) do
+    cond do
+      var in @reserved ->
+        err(line, col, "#{var} is a reserved word")
+
+      MapSet.member?(scope.vars, var) ->
+        err(line, col, "#{var} is already defined")
+
+      true ->
+        counter = %{
+          scope
+          | vars: MapSet.put(scope.vars, var),
+            local_order: scope.local_order ++ [var]
+        }
+
+        with {:ok, body, body_scope, eff, state} <- check_stmts(body, counter, state, 0) do
+          {:num, n} = count
+
+          {:ok, {:repeat, count, var, body, line, col}, absorb(scope, body_scope), trunc(n) * eff,
+           state}
+        end
     end
   end
 
@@ -1647,6 +1761,34 @@ defmodule Catenary.Apps.DSL do
     {pre ++ park ++ lines, ctx}
   end
 
+  # The loop counts in its own temp — never a body's, since fresh temps
+  # are numbered upward and the counter has to outlive every statement
+  # inside. The variable is handed a number box each pass, so it reads as
+  # 0, 1, 2 … through the body whatever the body does with it. Counts are
+  # literals (parse made sure), so the bound is a constant here.
+  defp emit_stmt({:repeat, count, var, body, _, _}, ctx) do
+    {:num, n} = count
+    idx = ctx.temp
+    {cnt, ctx} = fresh(ctx)
+
+    head = [
+      "#{indent(ctx)}(local.set #{cnt} (i32.const 0))",
+      "#{indent(ctx)}(block $rep#{idx}",
+      "#{indent(ctx)}  (loop $rep#{idx}n",
+      "#{indent(ctx)}    (br_if $rep#{idx} (i32.ge_u (local.get #{cnt}) (i32.const #{trunc(n)})))",
+      "#{indent(ctx)}    (local.set $L_#{var} (call $make_num (f64.convert_i32_u (local.get #{cnt}))))"
+    ]
+
+    {body_lines, ctx} = emit_stmts(body, %{ctx | ind: ctx.ind + 4})
+
+    tail = [
+      "#{indent(ctx)}    (local.set #{cnt} (i32.add (local.get #{cnt}) (i32.const 1)))",
+      "#{indent(ctx)}    (br $rep#{idx}n)))"
+    ]
+
+    {head ++ List.flatten(body_lines) ++ tail, ctx}
+  end
+
   # The named-argument map both `want` and `publish` hand the wire: one
   # fresh map, one `map_set` per argument in program order, with the
   # argument expressions evaluated before the map is built — so an
@@ -1809,7 +1951,8 @@ defmodule Catenary.Apps.DSL do
     emit_view_call(name, args, ctx)
   end
 
-  defp emit_expr({:call, name, {:pos, [arg]}, _at}, ctx) when name in ["show", "len", "floor"] do
+  defp emit_expr({:call, name, {:pos, [arg]}, _at}, ctx)
+       when name in ["show", "len", "floor", "sin", "cos", "decode"] do
     {pre, res, ctx} = emit_expr(arg, ctx)
 
     body =
@@ -1817,9 +1960,19 @@ defmodule Catenary.Apps.DSL do
         "show" -> "(call $v_show #{res})"
         "len" -> "(call $v_len #{res})"
         "floor" -> "(call $make_num (f64.floor (call $v_num #{res})))"
+        "sin" -> "(call $make_num (call $sin_f (call $v_num #{res})))"
+        "cos" -> "(call $make_num (call $cos_f (call $v_num #{res})))"
+        "decode" -> "(call $v_decode #{res})"
       end
 
     {pre, body, ctx}
+  end
+
+  # pi is a constant wearing a call's clothes: no arguments, the same
+  # number box a literal would build, spelled the way every other
+  # builtin is spelled so the call form is uniform.
+  defp emit_expr({:call, "pi", {:pos, []}, _at}, ctx) do
+    {[], num_box(:math.pi()), ctx}
   end
 
   defp emit_expr({:call, name, {:pos, [a, b]}, _at}, ctx) when name in ["min", "max"] do
@@ -1829,6 +1982,13 @@ defmodule Catenary.Apps.DSL do
 
     {pre_a ++ pre_b, "(call $make_num (#{op} (call $v_num #{res_a}) (call $v_num #{res_b})))",
      ctx}
+  end
+
+  defp emit_expr({:call, name, {:pos, [a, b]}, _at}, ctx) when name in ["push", "get"] do
+    {pre_a, res_a, ctx} = emit_expr(a, ctx)
+    {pre_b, res_b, ctx} = emit_expr(b, ctx)
+    fun = if name == "push", do: "v_push", else: "v_get"
+    {pre_a ++ pre_b, "(call $#{fun} #{res_a} #{res_b})", ctx}
   end
 
   defp emit_view_call("text", [arg], ctx) do

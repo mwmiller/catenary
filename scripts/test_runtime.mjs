@@ -347,5 +347,91 @@ mem().set(garbage, INPUT)
 E.t_dec(INPUT, garbage.length)
 ok("garbage decodes without trapping", true)
 
+// --- push ----------------------------------------------------------------
+
+function pushCase(arr, v, expected) {
+  E.t_reset()
+  const got = encOf(E.t_push(box(arr), box(v)))
+  ok(`push ${show0(arr)} + ${show0(v)}`, deq(got, expected), { want: expected, got })
+}
+pushCase([], 1, [1])
+pushCase([1], 2, [1, 2])
+pushCase([1, 2, 3], null, [1, 2, 3, null])
+pushCase([[1, 2]], [3, 4], [[1, 2], [3, 4]])
+pushCase({ a: 1 }, 2, null)
+pushCase("ab", 2, null)
+pushCase(null, 1, null)
+pushCase(new Uint8Array([1]), 2, null)
+
+E.t_reset()
+const pushSrc = box([1, 2])
+const pushOut = E.t_push(pushSrc, box(3))
+ok("push grows a copy, not the source", deq(encOf(pushSrc), [1, 2]))
+ok("push appends once", deq(encOf(pushOut), [1, 2, 3]))
+
+// --- get -----------------------------------------------------------------
+
+function getCase(v, k, expected) {
+  E.t_reset()
+  const got = encOf(E.t_get(box(v), box(k)))
+  ok(`get ${show0(v)} <${show0(k)}>`, deq(got, expected), { want: expected, got })
+}
+getCase([10, 20], 1, 20)
+getCase([10, 20], 0, 10)
+getCase([10, 20], 2, null)
+getCase([10, 20], 1.5, null)
+getCase([10, 20], "x", null)
+getCase([], 0, null)
+getCase({ a: 1 }, "a", 1)
+getCase({ a: 1 }, "b", null)
+getCase({ a: null }, "a", null)
+getCase({ a: 1 }, 1, null)
+getCase({ a: 1 }, [1], null)
+getCase("abc", 0, null)
+getCase(null, "a", null)
+getCase(true, "a", null)
+getCase(7, "a", null)
+
+// --- decode --------------------------------------------------------------
+
+function decodeCase(desc, payload, expected) {
+  E.t_reset()
+  const got = encOf(E.t_decode(box(payload)))
+  ok(`decode ${desc}`, deq(got, expected), { want: expected, got })
+}
+decodeCase("map", encode({ type: "spiro", R: 60, on: true }), { type: "spiro", R: 60, on: true })
+decodeCase("array", encode([1, [2, 3], "x"]), [1, [2, 3], "x"])
+decodeCase("text", encode("plain"), "plain")
+decodeCase("null", encode(null), null)
+decodeCase("garbage", new Uint8Array([0xff, 0xff, 0xff]), null)
+decodeCase("truncated map", new Uint8Array([0xa2, 0x61, 0x61]), null)
+decodeCase("empty bytes", new Uint8Array([]), null)
+
+E.t_reset()
+const notBytes = box(5)
+ok("decode of a non-bytes value is null", encOf(E.t_decode(notBytes)) === null)
+
+// A payload that will not decode must leave the decoder able to take the
+// next one — the turn's cursor and error flag go back the way they were.
+E.t_reset()
+const good = encode({ ok: 1 })
+E.t_decode(box(new Uint8Array([0xff, 0xff])))
+ok("decode recovers after a bad payload", deq(encOf(E.t_decode(box(good))), { ok: 1 }))
+
+// --- sin / cos -----------------------------------------------------------
+
+let trigErr = 0
+for (let x = -20; x <= 20; x += 0.1) {
+  trigErr = Math.max(trigErr, Math.abs(E.t_sin(x) - Math.sin(x)))
+  trigErr = Math.max(trigErr, Math.abs(E.t_cos(x) - Math.cos(x)))
+}
+ok(`sin/cos sweep within 1e-12 (worst ${trigErr})`, trigErr < 1e-12)
+ok("sin(pi/2) = 1", Math.abs(E.t_sin(Math.PI / 2) - 1) < 1e-15)
+ok("cos(pi) = -1", Math.abs(E.t_cos(Math.PI) + 1) < 1e-15)
+ok("sin(-x) = -sin(x)", Math.abs(E.t_sin(-1.25) + E.t_sin(1.25)) < 1e-15)
+ok("sin(1e6) stays finite", Number.isFinite(E.t_sin(1e6)))
+ok("sin(NaN) is NaN", Number.isNaN(E.t_sin(NaN)))
+ok("cos(1e300) does not trap", typeof E.t_cos(1e300) === "number")
+
 console.log(`${passes} passed, ${fails} failed`)
 process.exit(fails ? 1 : 0)

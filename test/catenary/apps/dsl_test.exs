@@ -85,6 +85,30 @@ on entry(a):
 |) == "line 3, col 2: unexpected indent (handlers start at the top level)"
   end
 
+  # Brackets that reach past the newline keep the line open, so a long
+  # draw list reads a piece at a time instead of one wall of ops.
+  test "a statement wraps while its brackets are open" do
+    wat =
+      compile_ok!(~S|on init:
+  render(canvas(24, 24))
+  draw[
+    fill_rect(x: 0, y: 0, w: 4, h: 4, c: "#fff"),
+    text(s: "hi", x: 1, y: 8, size: 8)
+  ]
+  print(
+    "wrapped"
+  )
+|)
+
+    assert wat =~ "wrapped"
+    assert is_binary(Watusi.to_wasm(wat))
+  end
+
+  test "a bracket left open reports itself, not a mystery" do
+    assert compile_error("on init:\n  draw[\n") ==
+             "line 2, col 3: unterminated draw list (expected ])"
+  end
+
   test "else without a matching if" do
     source = ~S|on init:
   else:
@@ -597,6 +621,124 @@ on err(m):
     assert wat =~ "(call $v_text_eq"
     assert wat =~ "(f64.neg"
     assert wat =~ "(f64.const 3.5)"
+  end
+
+  # ================================================================ loops
+
+  # The loop count must be a literal the compiler folds into the effect
+  # budget: a variable count would let one turn do unknown work against
+  # the same cap a flat program faces (see the cap tests above).
+  test "repeat takes a literal whole-number count" do
+    source = ~S|on init:
+  let n = 3
+  repeat n times(i):
+    print("x")
+|
+
+    assert compile_error(source) ==
+             "line 3, col 10: repeat takes a literal whole number from 0 to 10000"
+
+    for count <- ["-1", "2.5", "10001"] do
+      source = "on init:\n  repeat #{count} times(i):\n    print(\"x\")\n"
+
+      assert compile_error(source) ==
+               "line 2, col 10: repeat takes a literal whole number from 0 to 10000"
+    end
+  end
+
+  test "repeat spells out its shape" do
+    assert compile_error("on init:\n  repeat 3(i):\n    print(\"x\")\n") ==
+             "line 2, col 11: repeat takes a count and a variable: repeat N times(i):"
+
+    assert compile_error("on init:\n  repeat times(i):\n    print(\"x\")\n") ==
+             "line 2, col 18: repeat takes a count and a variable: repeat N times(i):"
+  end
+
+  test "repeat must be followed by an indented block" do
+    source = ~S|on init:
+  repeat 3 times(i): print("x")
+|
+
+    assert compile_error(source) == "line 2, col 22: unexpected print after the statement"
+  end
+
+  test "the loop variable is declared by repeat, not borrowed or shared" do
+    assert compile_error("on init:\n  repeat 3 times(print):\n    print(\"x\")\n") ==
+             "line 2, col 18: print is a reserved word"
+
+    source = ~S|on init:
+  let i = 1
+  repeat 3 times(i):
+    print("x")
+|
+
+    assert compile_error(source) == "line 3, col 18: i is already defined"
+  end
+
+  test "repeat multiplies its body into the effect budget" do
+    assert compile_error("on init:\n  repeat 5000 times(i):\n    print(\"x\")\n") ==
+             "line 1, col 1: too many effects for one turn"
+
+    # The count boundaries are legal: an empty body at 10000 effects or
+    # not, and a single effect multiplied by zero.
+    assert {:ok, _} = DSL.compile("on init:\n  repeat 0 times(i):\n    print(\"x\")\n")
+    assert {:ok, _} = DSL.compile("on init:\n  repeat 10000 times(i):\n    let a = i\n")
+  end
+
+  # ================================================ math, lists, payloads
+
+  test "the math and list builtins check arity with a position" do
+    assert compile_error("on init:\n  print(show(pi(1)))\n") ==
+             "line 2, col 14: pi takes 0 argument(s), got 1"
+
+    assert compile_error("on init:\n  print(show(sin(1, 2)))\n") ==
+             "line 2, col 14: sin takes 1 argument(s), got 2"
+
+    assert compile_error("on init:\n  print(show(push(1)))\n") ==
+             "line 2, col 14: push takes 2 argument(s), got 1"
+
+    assert compile_error("on init:\n  print(show(get(1)))\n") ==
+             "line 2, col 14: get takes 2 argument(s), got 1"
+
+    assert compile_error("on init:\n  print(show(decode(1, 2)))\n") ==
+             "line 2, col 14: decode takes 1 argument(s), got 2"
+  end
+
+  test "the new builtins are reserved words" do
+    for name <- ~w(sin cos pi push get decode repeat times) do
+      assert compile_error("on init:\n  let #{name} = 1\n") ==
+               "line 2, col 3: #{name} is a reserved word"
+    end
+  end
+
+  test "repeat lowers to a counted block and the new calls reach the runtime" do
+    wat =
+      compile_ok!(~S|on init:
+  let pts = [0.0]
+  repeat 3 times(i):
+    let a = i * (pi() / 6)
+    pts = push(pts, [cos(a), sin(a)])
+  print(show(len(pts)) + " " + show(get(pts, 0)))
+  let raw = decode([1, 2])
+|)
+
+    # The counter stays an i32 in a fresh temp; each pass boxes it into
+    # the loop variable so the body sees a number like any other.
+    assert wat =~ ~r/\(block \$rep\d+\b/
+    assert wat =~ ~r/\(loop \$rep\d+n\b/
+    assert wat =~ ~r/\(br_if \$rep\d+ \(i32\.ge_u \(local\.get \$t\d+\) \(i32\.const 3\)\)/
+    assert wat =~ "(call $make_num (f64.convert_i32_u (local.get $t"
+
+    # WebAssembly has no trig instructions and no array append either:
+    # everything lowers into calls the hand-written runtime provides.
+    assert wat =~ "(call $sin_f"
+    assert wat =~ "(call $cos_f"
+    assert wat =~ "(call $v_push"
+    assert wat =~ "(call $v_get"
+    assert wat =~ "(call $v_decode"
+    assert wat =~ "(call $make_num (f64.const 3.141592653589793)"
+
+    assert is_binary(Watusi.to_wasm(wat))
   end
 
   test "render lowers to view nodes" do
