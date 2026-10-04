@@ -59,7 +59,18 @@ on frob(x):
 |
 
     assert compile_error(source) ==
-             ~s|line 3, col 4: unknown handler; expected init, data("label", name), err(name), tick(name) or ui(name)|
+             ~s|line 3, col 4: unknown handler; expected init, data("label", name), err(name), tick(name), ui(name) or entry(author, log_id, seq)|
+  end
+
+  test "entry header with the wrong number of parameters" do
+    source = ~S|on init:
+  print(1)
+on entry(a):
+  print(1)
+|
+
+    assert compile_error(source) ==
+             "line 3, col 4: entry takes three parameters: on entry(author, log_id, seq):"
   end
 
   test "unexpected indent inside a block" do
@@ -131,6 +142,19 @@ on frob(x):
              "line 2, col 3: text is a reserved word"
   end
 
+  test "entry is a reserved word, as a name and as a parameter" do
+    assert compile_error("on init:\n  let entry = 1\n") ==
+             "line 2, col 3: entry is a reserved word"
+
+    source = ~S|on init:
+  print(1)
+on entry(entry, log_id, seq):
+  print(1)
+|
+
+    assert compile_error(source) == "line 3, col 10: entry is a reserved word"
+  end
+
   test "reserved word as a handler parameter" do
     source = ~S|on init:
   print(1)
@@ -192,6 +216,18 @@ on tick(t):
 |
 
     assert compile_error(source) == "line 1, col 1: duplicate tick handler"
+  end
+
+  test "entry may appear only once" do
+    source = ~S|on init:
+  print(1)
+on entry(a, b, c):
+  print(1)
+on entry(d, e, f):
+  print(2)
+|
+
+    assert compile_error(source) == "line 1, col 1: duplicate entry handler"
   end
 
   test "data labels are unique" do
@@ -345,6 +381,26 @@ on data("l", r):
     assert compile_error(source) == "line 4, col 3: log_head has no argument seq"
   end
 
+  test "watch is missing its required log_id" do
+    source = ~S|on init:
+  print(1)
+on data("l", r):
+  want "l" = watch()
+|
+
+    assert compile_error(source) == "line 4, col 3: watch is missing log_id"
+  end
+
+  test "watch takes only its own arguments" do
+    source = ~S|on init:
+  print(1)
+on data("l", r):
+  want "l" = watch(log_id: 1, seq: 2)
+|
+
+    assert compile_error(source) == "line 4, col 3: watch has no argument seq"
+  end
+
   # The channel is addressed by the app's own name — the address every
   # installation derives the same way — so the DSL never asks a module to
   # carry a derived log number.
@@ -394,6 +450,67 @@ on data("l", r):
     source = Enum.join(source, "\n") <> "\n"
 
     assert compile_error(source) == "line 1, col 1: too many effects for one turn"
+  end
+
+  # ============================================================== entry
+
+  # The pool is interned ahead of the program's own strings, so a pool
+  # index can be read back to the string it holds: that is how the
+  # dispatch below is checked against the order the handler declared.
+  defp pool_string(wat, index) do
+    assert [_, data] = Regex.run(~r/\(data \(i32\.const #{index}\) "([^"]*)"\)/, wat)
+
+    bytes =
+      Regex.replace(~r/\\([0-9a-fA-F]{2})/, data, fn _, hex ->
+        <<String.to_integer(hex, 16)>>
+      end)
+
+    <<_tag::binary-size(4), len::little-integer-size(32), rest::binary>> = bytes
+    binary_part(rest, 0, len)
+  end
+
+  test "an entry handler is wired into dispatch with its coordinates in order" do
+    wat =
+      compile_ok!(~S|on init:
+  print("i")
+on entry(who, log_id, n):
+  print("entry " + show(n))
+|)
+
+    assert wat =~ "(func $h_entry"
+    assert wat =~ "(then (call $h_entry"
+
+    assert [_, who, at, where] =
+             Regex.run(
+               ~r/\(then \(call \$h_entry\s+\(call \$v_field \(local\.get \$dm\) \(i32\.const (\d+)\)\)\s+\(call \$v_field \(local\.get \$dm\) \(i32\.const (\d+)\)\)\s+\(call \$v_field \(local\.get \$dm\) \(i32\.const (\d+)\)\)/,
+               wat
+             )
+
+    # The message's fields, handed over in the declared order: whose
+    # log, which one, where in it.
+    assert pool_string(wat, who) == "author"
+    assert pool_string(wat, at) == "log_id"
+    assert pool_string(wat, where) == "seq"
+
+    assert is_binary(Watusi.to_wasm(wat))
+  end
+
+  test "a module may watch a log and answer the entries that arrive on it" do
+    wat =
+      compile_ok!(~S|on init:
+  want "w" = watch(log_id: 1)
+on data("w", r):
+  print(show(r))
+on entry(who, log_id, n):
+  print("entry")
+|)
+
+    # The op the module asks for, and the handler the host will call
+    # back with what it finds there.
+    assert wat =~ ~S|\04\00\00\00\05\00\00\00watch|
+    assert wat =~ "(func $h_entry"
+
+    assert is_binary(Watusi.to_wasm(wat))
   end
 
   # =============================================================== smoke

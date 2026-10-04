@@ -561,8 +561,14 @@ defmodule Catenary.LogWriter do
   @max_source_bytes 256 * 1024
 
   @doc """
-  Publish a playground buffer as an application: artifact and listing —
-  two entries, in that order.
+  Release a playground buffer as an application: one release, written as
+  two entries — artifact, then listing.
+
+  To the author this is a single act and a single event: the panel's
+  submit compiles, makes the buffer runnable and announces it, and the
+  trace line reports the release. The two entries are the act's
+  implementation, split only because they are read by different audiences
+  at different sizes.
 
   The artifact entry carries the release payload as one unit: the wasm
   bytes and the exact WAT they were built from together. They are the same
@@ -571,10 +577,14 @@ defmodule Catenary.LogWriter do
   and cost the source a pointer of its own.
 
   The listing is the release record as well as the announcement: slug,
-  title, description, declared version, ABI and the SHA-256 the artifact
-  must hash to. Discovery and metadata are the same small entry, so a
-  peer that accepts announcements already holds everything needed to
-  understand the release — and there is no second write to keep in step.
+  title, description, declared version, ABI, the SHA-256 the artifact must
+  hash to, and — so a reader never has to reconstruct an opaque derived
+  number from a recipe — the address the artifact landed at
+  (`artifact_log`/`artifact_seq`) and the app's data-channel base
+  (`channel`). Discovery and metadata are the same small entry: a peer
+  that accepts announcements already holds everything needed to find and
+  understand the release, and the derivations (hash, `pk <> slug` fold)
+  remain what *verifies* those claims rather than what supplies them.
 
   `values` carries the words the author typed — `slug`, `title`,
   `description`, `version` — plus `source`, the buffer the playground
@@ -624,21 +634,22 @@ defmodule Catenary.LogWriter do
 
     # Bytes and text in one entry: same traffic class, one thing to accept
     # or deny, and the entry signature already covers both. The listing
-    # pins the bytes by hash; the WAT rides beside them under the same
-    # `code`.
-    append_kind(
-      %{
-        "v" => 1,
-        "type" => "artifact",
-        "slug" => slug,
-        "code" => code,
-        "bytes" => wasm,
-        "text" => wat,
-        "published" => published
-      },
-      Apps.artifact_log(),
-      socket
-    )
+    # pins the bytes by hash and now names where they landed; the WAT
+    # rides beside them under the same `code`.
+    artifact =
+      append_kind(
+        %{
+          "v" => 1,
+          "type" => "artifact",
+          "slug" => slug,
+          "code" => code,
+          "bytes" => wasm,
+          "text" => wat,
+          "published" => published
+        },
+        Apps.artifact_log(),
+        socket
+      )
 
     listing =
       %{
@@ -646,9 +657,11 @@ defmodule Catenary.LogWriter do
         "family" => Apps.family(),
         "slug" => slug,
         "version" => version,
-        "abi" => "catenary_v1",
         "features" => [],
         "artifact" => code,
+        "artifact_log" => artifact.log_id,
+        "artifact_seq" => artifact.seqnum,
+        "channel" => Apps.app_base(socket.assigns.identity, slug),
         "published" => published
       }
       |> maybe_put("title", optional_text(values, "title"))

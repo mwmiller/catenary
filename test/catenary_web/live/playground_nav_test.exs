@@ -61,7 +61,7 @@ defmodule CatenaryWeb.Live.PlaygroundNavTest do
     # The trigger only opens the panel; the submit is the button that
     # writes, so it is the amber one.
     assert html =~ "btn-primary"
-    assert html =~ "Publish</button>"
+    assert html =~ "Release</button>"
   end
 
   test "the fixture panel opens on its trigger and shuts again" do

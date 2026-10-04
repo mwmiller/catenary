@@ -126,7 +126,7 @@ defmodule Catenary.PublishAppTest do
     # The artifact entry is the whole release payload: the bytes and the
     # exact WAT they were built from together, under one `code` (one
     # traffic class — never the DSL that asked for it, decision #17).
-    assert {_artifact_entry, artifact} = last(Apps.artifact_log(), slug)
+    assert {artifact_entry, artifact} = last(Apps.artifact_log(), slug)
 
     assert %{
              "type" => "artifact",
@@ -148,8 +148,10 @@ defmodule Catenary.PublishAppTest do
     assert retired_kind_seqnums() == retired
 
     # The listing is both the announcement and the release record: the
-    # explorer reads it, and a reader resolves the bytes from the hash it
-    # carries. There is no second metadata entry to keep in step.
+    # explorer reads it, and a reader resolves the bytes from the address
+    # and hash it carries. There is no second metadata entry to keep in
+    # step, and no compatibility claim describing the module — slug,
+    # version and hash are the whole of it (decision #28).
     GenServer.call(:listings, :update)
     {_key, row} = List.first(:ets.lookup(:listings, {my_pk(), slug}))
     assert row.version == "1.2.3"
@@ -163,7 +165,6 @@ defmodule Catenary.PublishAppTest do
              "type" => "listing",
              "slug" => ^slug,
              "version" => "1.2.3",
-             "abi" => "catenary_v1",
              "features" => [],
              "artifact" => ^code,
              "title" => "Publish",
@@ -172,8 +173,18 @@ defmodule Catenary.PublishAppTest do
 
     assert listing["family"] == Apps.family()
     refute Map.has_key?(listing, "v")
+    refute Map.has_key?(listing, "abi")
     assert listing["published"] == artifact["published"]
     assert listing_entry.seqnum == elem(result.listing, 2)
+
+    # The record names where the artifact landed and what channel the app
+    # speaks on, so a reader never reconstructs an opaque derived number
+    # from a recipe: the address is data, and the derivation is what
+    # verifies it (decision #28).
+    assert listing["artifact_log"] == artifact_entry.log_id
+    assert listing["artifact_log"] == facet_log(Apps.artifact_log())
+    assert listing["artifact_seq"] == artifact_entry.seqnum
+    assert listing["channel"] == Apps.app_base(my_pk(), slug)
   end
 
   test "a WAT buffer is stored verbatim and built as it stands" do
@@ -262,9 +273,9 @@ defmodule Catenary.PublishAppTest do
     assert {:noreply, socket} =
              Live.handle_info({:playground_publish, words}, live_socket(@source))
 
-    assert [%{"kind" => "publish", "detail" => detail}] = socket.assigns.trace
-    assert detail =~ "published #{slug}"
-    assert detail =~ "release v2.0.0"
+    assert [%{"kind" => "release", "detail" => detail}] = socket.assigns.trace
+    assert detail =~ "released #{slug}"
+    assert detail =~ "v2.0.0"
     assert detail =~ "h'"
     assert detail =~ "bytes"
 
@@ -281,8 +292,8 @@ defmodule Catenary.PublishAppTest do
     assert {:noreply, socket} =
              Live.handle_info({:playground_publish, words}, live_socket(@broken))
 
-    assert [%{"kind" => "publish", "detail" => detail}] = socket.assigns.trace
-    assert detail =~ "publish refused: line 1, col 4"
+    assert [%{"kind" => "release", "detail" => detail}] = socket.assigns.trace
+    assert detail =~ "release refused: line 1, col 4"
   end
 
   # Reading a release back out of the store (§9.7 phase 2b): the viewer and
@@ -361,7 +372,6 @@ defmodule Catenary.PublishAppTest do
       "family" => Apps.family(),
       "slug" => slug,
       "version" => "9.9.9",
-      "abi" => "catenary_v1",
       "features" => [],
       "artifact" => :crypto.hash(:sha256, "never written")
     })
@@ -373,24 +383,66 @@ defmodule Catenary.PublishAppTest do
     assert {:error, :no_artifact} = Apps.release(clump, my_pk(), slug)
   end
 
-  test "a listing for an ABI this host does not run is refused" do
-    slug = "resolve-abi-app"
+  test "a poisoned pointer falls back to the hash scan" do
+    slug = "resolve-pointer-app"
     delist_on_exit(slug)
 
-    assert {:ok, _result} = publish(%{"slug" => slug, "source" => @source})
+    assert {:ok, result} = publish(%{"slug" => slug, "source" => @source})
+
+    # A later artifact entry on the same slug — bogus bytes — and then the
+    # newest listing pointing straight at that entry while naming the real
+    # release's hash. The pointer is a hint: it is taken to the entry, the
+    # entry fails the hash check, and the scan below finds the real bytes.
+    bogus = <<9, 9, 9, 9>>
+
+    bogus_entry =
+      append_kind(Apps.artifact_log(), %{
+        "v" => 1,
+        "type" => "artifact",
+        "slug" => slug,
+        "code" => :crypto.hash(:sha256, bogus),
+        "bytes" => bogus
+      })
 
     append_kind(Apps.control_log(), %{
       "type" => "listing",
       "family" => Apps.family(),
       "slug" => slug,
-      "version" => "1.0.0",
-      "abi" => "catenary_v2",
+      "version" => "4.0.0",
       "features" => [],
-      "artifact" => :crypto.hash(:sha256, "any bytes")
+      "artifact" => result.code,
+      "artifact_log" => bogus_entry.log_id,
+      "artifact_seq" => bogus_entry.seqnum
     })
 
     clump = Preferences.get(:clump_id)
-    assert {:error, :unsupported_abi} = Apps.release(clump, my_pk(), slug)
+    assert {:ok, %{bytes: bytes}} = Apps.release(clump, my_pk(), slug)
+    refute bytes == bogus
+    assert :crypto.hash(:sha256, bytes) == result.code
+  end
+
+  test "a pointer at an entry the store does not hold falls back to the scan" do
+    slug = "resolve-pointer-missing-app"
+    delist_on_exit(slug)
+
+    assert {:ok, result} = publish(%{"slug" => slug, "source" => @source})
+
+    # A pointer into a log this store never wrote: the read misses, and
+    # the scan answers from what is held.
+    append_kind(Apps.control_log(), %{
+      "type" => "listing",
+      "family" => Apps.family(),
+      "slug" => slug,
+      "version" => "4.1.0",
+      "features" => [],
+      "artifact" => result.code,
+      "artifact_log" => facet_log(Apps.control_log()),
+      "artifact_seq" => 99_999
+    })
+
+    clump = Preferences.get(:clump_id)
+    assert {:ok, %{bytes: bytes}} = Apps.release(clump, my_pk(), slug)
+    assert :crypto.hash(:sha256, bytes) == result.code
   end
 
   test "a listing from before the fold resolves through its manifest" do
@@ -417,7 +469,6 @@ defmodule Catenary.PublishAppTest do
       "type" => "manifest",
       "slug" => slug,
       "version" => "3.0.0",
-      "abi" => "catenary_v1",
       "features" => [],
       "artifact" => code
     })

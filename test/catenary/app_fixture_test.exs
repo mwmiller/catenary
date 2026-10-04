@@ -62,7 +62,7 @@ defmodule Catenary.AppFixtureTest do
     first = Refuser.first_effects()
     reply = Refuser.reply_effects()
 
-    assert Enum.any?(first, &(&1["do"] == "want" and &1["op"] == "watch"))
+    assert Enum.any?(first, &(&1["do"] == "want" and &1["op"] == "stats"))
     refute Enum.any?(first, &(&1["do"] == "render"))
     assert Enum.any?(reply, &(&1["do"] == "render"))
     refute first == reply

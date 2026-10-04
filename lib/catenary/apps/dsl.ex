@@ -29,7 +29,8 @@ defmodule Catenary.Apps.DSL do
     "timeline" => %{req: [], opt: ~w(author kind cursor limit)},
     "profile" => %{req: [], opt: ~w(author)},
     "storage_get" => %{req: ~w(key), opt: []},
-    "storage_set" => %{req: ~w(key value), opt: []}
+    "storage_set" => %{req: ~w(key value), opt: []},
+    "watch" => %{req: ~w(log_id), opt: ~w(author)}
   }
 
   # Draw ops and their wire fields. `req` must be given, `opt` may be;
@@ -51,7 +52,7 @@ defmodule Catenary.Apps.DSL do
   @default_color "#64748b"
 
   # Words a program may not take as its own: syntax, builtins, draw ops.
-  @reserved ~w(on init data err tick ui let if else match when want
+  @reserved ~w(on init data err tick ui entry let if else match when want
                 print render draw publish animate true false null and or
                 text col row canvas show len floor min max
                 fill_rect stroke_rect line stroke_path fill_path
@@ -290,7 +291,7 @@ defmodule Catenary.Apps.DSL do
       err(
         line,
         col,
-        "expected a handler: on init: / on data(\"label\", name): / on tick(name): / on ui(name): / on err(name):"
+        "expected a handler: on init: / on data(\"label\", name): / on tick(name): / on ui(name): / on err(name): / on entry(author, log_id, seq):"
       )
 
   defp parse_on([], _), do: err(1, 1, "on init: is required")
@@ -323,16 +324,40 @@ defmodule Catenary.Apps.DSL do
          {:ok, Map.fetch!(%{"err" => :err, "tick" => :tick, "ui" => :ui}, kind),
           [{:param, name, line, col}], rest}
 
+  # The coordinates of an entry that arrived on a watched log: whose log,
+  # which one, and where in it. They are parameters like any other handler's
+  # — the message carries all three and the dispatch hands them over in
+  # order.
+  defp on_kind([
+         {:ident, "entry", _, _},
+         {:sym, "(", _, _},
+         {:ident, author, aline, acol},
+         {:sym, ",", _, _},
+         {:ident, log_id, lline, lcol},
+         {:sym, ",", _, _},
+         {:ident, seq, sline, scol},
+         {:sym, ")", _, _}
+         | rest
+       ]),
+       do:
+         {:ok, :entry,
+          [
+            {:param, author, aline, acol},
+            {:param, log_id, lline, lcol},
+            {:param, seq, sline, scol}
+          ], rest}
+
   # Right name, wrong shape: show that header's form instead of the
   # generic list.
   defp on_kind([{:ident, name, line, col} | _])
-       when name in ["init", "data", "err", "tick", "ui"] do
+       when name in ["init", "data", "err", "tick", "ui", "entry"] do
     case name do
       "init" -> err(line, col, "init takes no parameters: on init:")
       "data" -> err(line, col, ~s|data needs a label and a name: on data("label", name):|)
       "err" -> err(line, col, "err takes one parameter: on err(name):")
       "tick" -> err(line, col, "tick takes one parameter: on tick(name):")
       "ui" -> err(line, col, "ui takes one parameter: on ui(name):")
+      "entry" -> err(line, col, "entry takes three parameters: on entry(author, log_id, seq):")
     end
   end
 
@@ -341,7 +366,7 @@ defmodule Catenary.Apps.DSL do
       err(
         line,
         col,
-        "unknown handler; expected init, data(\"label\", name), err(name), tick(name) or ui(name)"
+        "unknown handler; expected init, data(\"label\", name), err(name), tick(name), ui(name) or entry(author, log_id, seq)"
       )
 
   defp on_kind([]), do: err(1, 1, "incomplete handler header")
@@ -922,7 +947,7 @@ defmodule Catenary.Apps.DSL do
   # Labels and their refs were claimed up front; nothing left to record.
   defp check_handler_kind(:data, _params, state), do: {:ok, state}
 
-  defp check_handler_kind(kind, _, state) when kind in [:init, :err, :tick, :ui] do
+  defp check_handler_kind(kind, _, state) when kind in [:init, :err, :tick, :ui, :entry] do
     if MapSet.member?(state.kinds, kind) do
       err(1, 1, "duplicate #{kind} handler")
     else
@@ -1961,6 +1986,19 @@ defmodule Catenary.Apps.DSL do
     [
       "    (if (call $v_text_eq (local.get $dmt) #{pool(plan, "err")})",
       "      (then (call $h_err (call $v_field (local.get $dm) #{pool(plan, "error")}))))"
+    ]
+  end
+
+  # An entry that arrived on a watched log: the message carries its
+  # coordinates as ordinary fields, and all three are handed to the handler
+  # in the order it declared them.
+  defp dispatch_line(%{kind: :entry}, plan) do
+    [
+      "    (if (call $v_text_eq (local.get $dmt) #{pool(plan, "entry")})",
+      "      (then (call $h_entry",
+      "        (call $v_field (local.get $dm) #{pool(plan, "author")})",
+      "        (call $v_field (local.get $dm) #{pool(plan, "log_id")})",
+      "        (call $v_field (local.get $dm) #{pool(plan, "seq")}))))"
     ]
   end
 

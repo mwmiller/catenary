@@ -26,6 +26,10 @@ defmodule Catenary.Live.AppPlayground do
   picker pointed the run at — which moves only whose data an *unnamed*
   read answers as. The scope above is untouched by it: publishes still
   derive from this identity and the scratch slug (§6).
+
+  The pane's watch set comes in the same way, on every render: the parent
+  LiveView owns the baselines `watch` registrations start from, so this
+  component still keeps no state of its own (§11 risk 9).
   """
   use CatenaryWeb, :live_component
 
@@ -98,7 +102,14 @@ defmodule Catenary.Live.AppPlayground do
         %{clump_id: clump_id, identity: identity, facet_id: facet_id} = assigns,
         socket
       ) do
-    app = AppHost.app(clump_id, identity, @scratch_slug, fixture_author(assigns[:fixture]))
+    # The watch set rides the context rather than being held here: the
+    # parent owns it and re-renders this component when it moves, so the
+    # cap a `watch` is judged against reads every baseline the pane
+    # registered since the last render (§11 risk 9).
+    app =
+      AppHost.app(clump_id, identity, @scratch_slug, fixture_author(assigns[:fixture]))
+      |> Map.put(:watches, assigns[:pane_watches] || %{})
+
     scope = %{app: app, identity: identity, facet_id: facet_id}
     {:ok, assign(socket, assigns |> Map.put(:app, app) |> Map.put(:scope, scope))}
   end
@@ -151,10 +162,10 @@ defmodule Catenary.Live.AppPlayground do
           publishes (the starter does) appends to this identity's own playground channel
           either way. Run compiles the buffer — DSL by default, WAT
           when the buffer opens with a module — and starts it; a buffer that does not compile
-          reports its diagnostic on the status line and in the trace. ⇪ opens the publish
-          panel, which compiles the buffer as it stands and writes the artifact — source beside
-          the bytes — and a listing to this identity's own app logs — the trace line names the
-          release version and the artifact's hash. ⇥ on the right rail — or a file dropped on
+          reports its diagnostic on the status line and in the trace. ⇪ opens the release
+          panel: one release publishes the buffer as it stands — runnable and
+          discoverable — and the trace line names the release version and the
+          artifact's hash. ⇥ on the right rail — or a file dropped on
           the pane — runs a .wasm instead, gated on it instantiating here. Everything that
           happens lands on the left, in one trace: where each entry went, and what the host
           refused and why.
@@ -168,7 +179,9 @@ defmodule Catenary.Live.AppPlayground do
   # one promise resolution: the worker never has to correlate an id by hand.
   @impl true
   def handle_event("app-want", %{"op" => op, "args" => args}, socket) do
-    {:reply, AppWire.request(socket.assigns.app, op, args), socket}
+    reply = AppWire.request(socket.assigns.app, op, args)
+    note_watch(reply, op)
+    {:reply, reply, socket}
   end
 
   def handle_event("app-want", _params, socket) do
@@ -195,4 +208,19 @@ defmodule Catenary.Live.AppPlayground do
   def handle_event("app-publish", _params, socket) do
     {:reply, %{"ok" => false, "error" => "bad_args"}, socket}
   end
+
+  # A watch answers with the head its baseline starts from, so the parent
+  # that polls the log needs the answer as well as the hook that asked —
+  # the reply still goes back over the wire untouched. A LiveComponent runs
+  # in its parent's process, so `self()` here is the LiveView itself.
+  defp note_watch(%{"ok" => true} = reply, "watch") do
+    with {:ok, %{"author" => author, "log_id" => log_id, "seq" => seq}} <-
+           AppWire.decode_data(reply) do
+      send(self(), {:app_watch, author, log_id, seq})
+    end
+
+    :ok
+  end
+
+  defp note_watch(_reply, _op), do: :ok
 end

@@ -34,6 +34,7 @@ defmodule Catenary.AppHost do
 
   @type app :: %{
           optional(:author) => binary,
+          optional(:watches) => %{optional({binary, non_neg_integer}) => non_neg_integer},
           clump_id: String.t(),
           pk: binary,
           slug: String.t()
@@ -43,7 +44,7 @@ defmodule Catenary.AppHost do
   # turning a wire string into an atom means an unrecognised operation
   # never creates an atom and never reaches a read.
   @ops ~w(channel log_read log_head log_range refs entry_meta timeline profile storage_get
-         storage_set)
+         storage_set watch)
 
   # A range answers with a page, not with a log: at most this many entries
   # and at most this much payload, whichever comes first. The first visible
@@ -68,6 +69,14 @@ defmodule Catenary.AppHost do
   # served by the release route, not by an op.
   @max_read_bytes 512 * 1024
 
+  # The number of distinct {author, log_id} pairs a single run may watch at
+  # once. Watching is the one op that keeps state behind the reply — the
+  # LiveView holds a polling baseline for every pair — so a module that
+  # named every log it could think of would ask the LiveView to do work
+  # nobody asked its own UI to do. Re-watching a pair already in the set is
+  # not a new slot; the cap is on interest, not on calls.
+  @max_watches 32
+
   @doc """
   Every operation this host answers to. Anything else is refused without
   a lookup, which is what makes `handle/3` a boundary rather than a
@@ -75,6 +84,15 @@ defmodule Catenary.AppHost do
   """
   @spec ops() :: [String.t()]
   def ops, do: @ops
+
+  @doc """
+  How many distinct logs a single run may watch (§11 risk 9).
+
+  The caller sizes its own watch set against this number, so the cap is
+  stated once here rather than in two places that could drift apart.
+  """
+  @spec max_watches() :: pos_integer
+  def max_watches, do: @max_watches
 
   @doc """
   Build the app context from server-side state.
@@ -142,6 +160,7 @@ defmodule Catenary.AppHost do
   defp dispatch(app, "profile", args), do: profile(app, args)
   defp dispatch(app, "storage_get", args), do: storage_get(app, args)
   defp dispatch(app, "storage_set", args), do: storage_set(app, args)
+  defp dispatch(app, "watch", args), do: watch(app, args)
   defp dispatch(_app, _op, _args), do: {:error, :unsupported_op}
 
   # The author an app means when it does not name one: itself. A draft runs
@@ -200,6 +219,46 @@ defmodule Catenary.AppHost do
     case Baobab.max_seqnum(author, log_id: log_id, clump_id: clump_id) do
       0 -> {:error, :missing}
       seq -> {:ok, seq}
+    end
+  end
+
+  # A log the module may see new entries on. The answer is the head the
+  # store holds *now* — 0 when the log does not exist yet, which is the
+  # point: a module watches its own channel before anything has been
+  # written to it, and the LiveView takes that 0 as its baseline rather
+  # than as a failure. The head is checked through the same classifier as
+  # a read, so watching a log whose newest entry is blocked refuses just
+  # as reading it would.
+  defp watch(app, args) do
+    with {:ok, author} <- resolve_author(app, args),
+         {:ok, log_id} <- arg(args, :log_id),
+         {:ok, log_id} <- as_log_id(log_id),
+         :ok <- author_visible(author, app.clump_id),
+         :ok <- room_to_watch(app, {author, log_id}),
+         seq = Baobab.max_seqnum(author, log_id: log_id, clump_id: app.clump_id),
+         :ok <- watch_visible(author, log_id, seq, app.clump_id) do
+      {:ok, %{"author" => author, "log_id" => log_id, "seq" => seq}}
+    else
+      :error -> {:error, :bad_args}
+      {:error, _} = err -> err
+    end
+  end
+
+  # A missing log has no entry to block, so it is visible by not being
+  # there; an existing one goes through the classifier every read does.
+  defp watch_visible(_author, _log_id, 0, _clump_id), do: :ok
+  defp watch_visible(author, log_id, seq, clump_id), do: visible(author, log_id, seq, clump_id)
+
+  # Whether this run still has room to watch one more log. A pair already
+  # watched answers `:ok` so the op is idempotent — a module may watch the
+  # same log on every tick without spending a slot each time.
+  defp room_to_watch(app, entry) do
+    watches = Map.get(app, :watches, %{})
+
+    cond do
+      Map.has_key?(watches, entry) -> :ok
+      map_size(watches) < @max_watches -> :ok
+      true -> {:error, :watch_full}
     end
   end
 
@@ -696,7 +755,15 @@ defmodule Catenary.AppHost do
   # blocks `Catenary.BlockLog.block_family/2` writes. It is the same
   # classifier the rest of the app filters a list of entries with, which is
   # what keeps an app from seeing something the viewer would hide.
-  defp visible(author, log_id, seq, clump_id) do
+  @doc """
+  Whether one {author, log_id, seq} may be shown, as a single check.
+
+  Public because the LiveView's watch poll re-checks every entry it pushes
+  with this same function: the push path is a read like any other and gets
+  the reader's classifier rather than one of its own (§11 risk 9).
+  """
+  @spec visible(binary, non_neg_integer, pos_integer, String.t()) :: :ok | {:error, term}
+  def visible(author, log_id, seq, clump_id) do
     case Baobab.ClumpMeta.filter_blocked([{author, log_id, seq}], clump_id) do
       [_entry] -> :ok
       [] -> {:error, :blocked}

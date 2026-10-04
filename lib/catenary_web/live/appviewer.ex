@@ -9,10 +9,13 @@ defmodule Catenary.Live.AppViewer do
   never name a different scope for itself: every `app-want` is answered
   against this fixed context, built server-side, and every `publish` lands
   on the channel that context derives and is signed with the identity the
-  parent said is signed in (§6). Beneath the pane the component mounts the
-  channel browser (`Catenary.Live.ChannelList`) — the viewer is one of the
-  two surfaces a channel is reachable through (§11 risk 2) — and a publish
-  from the pane moves a counter so the list reads the store again.
+  parent said is signed in (§6). The watch set a `watch` is capped by
+  arrives the same way — handed in by the parent on every render, which is
+  what keeps the component holding nothing of its own (§11 risk 9).
+  Beneath the pane the component mounts the channel browser
+  (`Catenary.Live.ChannelList`) — the viewer is one of the two surfaces a
+  channel is reachable through (§11 risk 2) — and a publish from the pane
+  moves a counter so the list reads the store again.
 
   Drawing the app is the `AppRunner` hook's job, mounted on the pane and
   left alone by `phx-update="ignore"` so LiveView's patches do not overwrite
@@ -34,7 +37,11 @@ defmodule Catenary.Live.AppViewer do
         } = assigns,
         socket
       ) do
-    app = AppHost.app(clump_id, pk, slug)
+    # The watch set rides the context rather than being held here: the
+    # parent owns it and re-renders this component when it moves, so the
+    # cap a `watch` is judged against reads every baseline the pane
+    # registered since the last render (§11 risk 9).
+    app = AppHost.app(clump_id, pk, slug) |> Map.put(:watches, assigns[:pane_watches] || %{})
     scope = %{app: app, identity: identity, facet_id: facet_id}
 
     socket =
@@ -106,7 +113,9 @@ defmodule Catenary.Live.AppViewer do
   # one promise resolution: the worker never has to correlate an id by hand.
   @impl true
   def handle_event("app-want", %{"op" => op, "args" => args}, socket) do
-    {:reply, AppWire.request(socket.assigns.app, op, args), socket}
+    reply = AppWire.request(socket.assigns.app, op, args)
+    note_watch(reply, op)
+    {:reply, reply, socket}
   end
 
   def handle_event("app-want", _params, socket) do
@@ -129,6 +138,21 @@ defmodule Catenary.Live.AppViewer do
   def handle_event("app-publish", _params, socket) do
     {:reply, %{"ok" => false, "error" => "bad_args"}, socket}
   end
+
+  # A watch answers with the head its baseline starts from, so the parent
+  # that polls the log needs the answer as well as the hook that asked —
+  # the reply still goes back over the wire untouched. A LiveComponent runs
+  # in its parent's process, so `self()` here is the LiveView itself.
+  defp note_watch(%{"ok" => true} = reply, "watch") do
+    with {:ok, %{"author" => author, "log_id" => log_id, "seq" => seq}} <-
+           AppWire.decode_data(reply) do
+      send(self(), {:app_watch, author, log_id, seq})
+    end
+
+    :ok
+  end
+
+  defp note_watch(_reply, _op), do: :ok
 
   defp bump_channel(socket, %{"ok" => true}),
     do: assign(socket, channel_bump: socket.assigns.channel_bump + 1)

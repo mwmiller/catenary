@@ -1,8 +1,11 @@
 defmodule CatenaryWeb.PlaygroundRunTest do
   use ExUnit.Case, async: true
 
+  alias Catenary.AppHost
+  alias Catenary.Apps
   alias Catenary.Apps.DSL
   alias Catenary.Live.AppPlayground
+  alias Catenary.Preferences
   alias CatenaryWeb.Live
 
   # The nine-turn WAT draft the playground shipped with before the DSL
@@ -392,5 +395,140 @@ defmodule CatenaryWeb.PlaygroundRunTest do
     assert [event, %{"error" => message}] = List.first(pushed(socket))
     assert event == "app-run"
     assert is_binary(message)
+  end
+
+  # ================================================================ watch
+
+  # The watch set lives in the pane's parent: a component hands up the
+  # baseline its reply names, one poll timer walks the whole set, and a
+  # fresh run or a stopped pane takes the set back (§9.4, §11 risk 9).
+
+  defp watched_socket(ctx, watches \\ %{}) do
+    socket(clump_id: ctx.clump_id, pane_watches: watches, watch_timer: nil)
+  end
+
+  defp watch(ctx) do
+    {:noreply, socket} =
+      Live.handle_info({:app_watch, ctx.author, ctx.log_id, 0}, watched_socket(ctx))
+
+    socket
+  end
+
+  defp append_entry(ctx) do
+    Baobab.append_log("an entry", Catenary.id_for_key(ctx.identity),
+      log_id: ctx.log_id,
+      clump_id: ctx.clump_id
+    )
+  end
+
+  # `push_event/3` prepends, so the list reads newest first.
+  defp entry_seqs(pushed) do
+    for ["app-entry", %{seq: seq}] <- pushed, do: seq
+  end
+
+  describe "the pane's watch set" do
+    setup do
+      clump_id = Preferences.get(:clump_id)
+      identity = Preferences.get(:identity)
+      author = Baobab.Identity.as_base62(identity)
+      log_id = Apps.app_log_id(identity, "watch-poll-test", 0)
+
+      # A channel of this test's own: nothing else derives it, so the
+      # purge is safe to run alongside every other test in the file.
+      Baobab.purge(Catenary.id_for_key(identity), log_id: log_id, clump_id: clump_id)
+
+      on_exit(fn ->
+        Baobab.purge(Catenary.id_for_key(identity), log_id: log_id, clump_id: clump_id)
+      end)
+
+      %{clump_id: clump_id, identity: identity, author: author, log_id: log_id}
+    end
+
+    test "a watch arms one poll, and a quiet log holds its baseline", ctx do
+      socket = watch(ctx)
+
+      assert socket.assigns.pane_watches == %{{ctx.author, ctx.log_id} => 0}
+      assert is_reference(socket.assigns.watch_timer)
+
+      {:noreply, socket} = Live.handle_info(:watch_poll, socket)
+
+      # Nothing arrived: the baseline stands, the poll re-arms itself
+      # for as long as the set is non-empty, and nothing was pushed.
+      assert socket.assigns.pane_watches == %{{ctx.author, ctx.log_id} => 0}
+      assert is_reference(socket.assigns.watch_timer)
+      refute pushed(socket)
+    end
+
+    test "entries that arrive after the baseline are pushed as entry messages", ctx do
+      socket = watch(ctx)
+      append_entry(ctx)
+
+      {:noreply, socket} = Live.handle_info(:watch_poll, socket)
+
+      assert [["app-entry", %{author: author, log_id: log_id, seq: seq}]] = pushed(socket)
+      assert author == ctx.author
+      assert log_id == ctx.log_id
+      assert seq == 1
+      assert socket.assigns.pane_watches == %{{ctx.author, ctx.log_id} => 1}
+      assert is_reference(socket.assigns.watch_timer)
+    end
+
+    test "a burst beyond one tick is delivered over the following ticks", ctx do
+      socket = watch(ctx)
+      for _ <- 1..20, do: append_entry(ctx)
+
+      {:noreply, socket} = Live.handle_info(:watch_poll, socket)
+
+      # One tick walks at most a burst's worth, and the baseline stops
+      # at what actually went out.
+      assert entry_seqs(pushed(socket)) == Enum.to_list(16..1//-1)
+      assert socket.assigns.pane_watches[{ctx.author, ctx.log_id}] == 16
+
+      {:noreply, socket} = Live.handle_info(:watch_poll, socket)
+
+      # The rest follows on the next tick, nothing dropped along the way.
+      assert entry_seqs(pushed(socket)) == Enum.to_list(20..1//-1)
+      assert socket.assigns.pane_watches[{ctx.author, ctx.log_id}] == 20
+      assert is_reference(socket.assigns.watch_timer)
+    end
+
+    test "the set holds no more than the host's cap", ctx do
+      watches =
+        for i <- 1..AppHost.max_watches(), into: %{}, do: {{ctx.author, 1000 + i}, 0}
+
+      {:noreply, socket} =
+        Live.handle_info({:app_watch, ctx.author, ctx.log_id, 0}, watched_socket(ctx, watches))
+
+      assert map_size(socket.assigns.pane_watches) == AppHost.max_watches()
+      refute Map.has_key?(socket.assigns.pane_watches, {ctx.author, ctx.log_id})
+    end
+
+    test "a second watch of the same log keeps the baseline it has", ctx do
+      {:noreply, socket} =
+        Live.handle_info({:app_watch, ctx.author, ctx.log_id, 0}, watched_socket(ctx))
+
+      {:noreply, socket} =
+        Live.handle_info({:app_watch, ctx.author, ctx.log_id, 5}, socket)
+
+      assert socket.assigns.pane_watches == %{{ctx.author, ctx.log_id} => 0}
+    end
+
+    test "a fresh run or a stopped pane takes the watch set back", ctx do
+      socket = watch(ctx)
+
+      {:noreply, socket} = Live.handle_event("app-run-start", %{}, socket)
+      assert socket.assigns.pane_watches == %{}
+
+      # The pending poll finds an empty set and goes quiet by itself:
+      # no push, no re-arm, and nothing left to walk.
+      {:noreply, socket} = Live.handle_info(:watch_poll, socket)
+      refute pushed(socket)
+      assert socket.assigns.pane_watches == %{}
+      assert socket.assigns.watch_timer == nil
+
+      socket = watch(ctx)
+      {:noreply, socket} = Live.handle_event("app-stopped", %{}, socket)
+      assert socket.assigns.pane_watches == %{}
+    end
   end
 end

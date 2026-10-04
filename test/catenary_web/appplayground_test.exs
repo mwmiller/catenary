@@ -1,7 +1,7 @@
 defmodule CatenaryWeb.AppPlaygroundTest do
   use ExUnit.Case, async: false
 
-  alias Catenary.{Apps, Preferences}
+  alias Catenary.{Apps, AppWire, Preferences}
   alias Catenary.Live.AppPlayground
 
   @slug "playground"
@@ -137,5 +137,27 @@ defmodule CatenaryWeb.AppPlaygroundTest do
 
     author = Baobab.Identity.as_base62(ctx.identity)
     assert Baobab.max_seqnum(author, log_id: ctx.log_id, clump_id: ctx.clump_id) >= 1
+  end
+
+  # A watch's reply names the head the parent starts polling from, and a
+  # LiveComponent runs in its parent's process — so the baseline lands in
+  # the parent's mailbox while the reply itself still goes back over the
+  # wire untouched (§9.4).
+  test "a watch reply hands the parent the baseline to poll from", ctx do
+    socket = playground_socket(ctx)
+
+    {:reply, reply, _socket} =
+      AppPlayground.handle_event(
+        "app-want",
+        %{"op" => "watch", "args" => AppWire.encode_args(%{log_id: ctx.log_id})},
+        socket
+      )
+
+    assert {:ok, %{"author" => author, "log_id" => log_id, "seq" => seq}} =
+             AppWire.decode_data(reply)
+
+    assert log_id == ctx.log_id
+    assert is_integer(seq)
+    assert_received {:app_watch, ^author, ^log_id, ^seq}
   end
 end

@@ -596,16 +596,19 @@ defmodule Catenary.Apps do
   end
 
   # ================================================================
-  # Reading a release back out: listing → artifact, by hash.
+  # Reading a release back out: listing → artifact, by address or hash.
   #
   # The write side above is `Catenary.LogWriter.publish_app/2`; this is
   # what a viewer and the release route ask for. The newest listing IS the
-  # release record — identity, declared version, ABI and the hash the
-  # bytes must have — and nothing here trusts it about its own bytes: the
-  # artifact is found by hashing candidates until one matches. Listings
-  # written before the fold point at a manifest entry by sequence number
-  # instead; that path still resolves so older stores keep reading, and
-  # the manifest sub-id stays reserved for it.
+  # release record — identity, declared version, ABI, the hash the bytes
+  # must have, and (since decision #28) the address the artifact landed at
+  # — and nothing here trusts it about its own bytes: a pointer is taken
+  # to the entry and the entry still has to hash to what the listing
+  # names, and a listing that carries no pointer has its candidates hashed
+  # until one matches. Listings written before the fold point at a
+  # manifest entry by sequence number instead; that path still resolves so
+  # older stores keep reading, and the manifest sub-id stays reserved for
+  # it.
   # ================================================================
 
   @doc """
@@ -678,9 +681,14 @@ defmodule Catenary.Apps do
 
   The bytes are found by hash — `artifact` in the record is a SHA-256 of
   them — so an entry that does not hash to what the listing names is not
-  this release's artifact, whatever it claims to be. The record's `abi`
-  is checked too: this host runs `catenary_v1` modules and answers for
-  nothing else.
+  this release's artifact, whatever it claims to be. A record that also
+  carries `artifact_log`/`artifact_seq` is taken straight to that entry
+  and verified there; a record without the pointer (every listing written
+  before decision #28) has its candidates hashed until one matches. The
+  record says nothing else about what the module *is*: a release is
+  declared by its slug, version and hash, and whether this host can run
+  the bytes is proven at instantiate, never by a compatibility claim on
+  the announcement (decision #28).
 
   The artifact entry carries the source text beside the bytes, so the
   release answers with both: `text` is the exact WAT the bytes were built
@@ -698,10 +706,9 @@ defmodule Catenary.Apps do
   """
   @spec release(binary, pk, slug) ::
           {:ok, %{bytes: binary, text: binary | nil}}
-          | {:error, :not_released | :invalid_slug | :unsupported_abi | :no_artifact}
+          | {:error, :not_released | :invalid_slug | :no_artifact}
   def release(clump_id, pk, slug) do
     with {:ok, record} <- release_record(clump_id, pk, slug),
-         :ok <- supported_abi(record),
          {:ok, data} <- artifact_data(clump_id, pk, slug, record) do
       {:ok, %{bytes: data["bytes"], text: data["text"]}}
     end
@@ -735,10 +742,52 @@ defmodule Catenary.Apps do
 
   defp legacy_manifest(_clump_id, _pk, _listing), do: {:error, :not_released}
 
-  defp supported_abi(%{"abi" => "catenary_v1"}), do: :ok
-  defp supported_abi(_record), do: {:error, :unsupported_abi}
+  # The artifact a record names. When the record carries the address the
+  # release wrote (`artifact_log`/`artifact_seq`, decision #28) that one
+  # entry is read and checked against the hash the listing also carries —
+  # the pointer is a hint, the hash is the proof — and any miss or
+  # mismatch falls through to the scan below, which is also how a record
+  # written before the pointers landed resolves.
+  defp artifact_data(clump_id, pk, slug, %{"artifact" => wanted} = record)
+       when is_binary(wanted) do
+    case pointed_artifact(clump_id, pk, slug, record, wanted) do
+      {:ok, data} -> {:ok, data}
+      _ -> scanned_artifact(clump_id, pk, slug, wanted)
+    end
+  end
 
-  defp artifact_data(clump_id, pk, slug, %{"artifact" => wanted}) when is_binary(wanted) do
+  defp artifact_data(_clump_id, _pk, _slug, _record), do: {:error, :no_artifact}
+
+  defp pointed_artifact(
+         clump_id,
+         pk,
+         slug,
+         %{"artifact_log" => log_id, "artifact_seq" => seq},
+         wanted
+       )
+       when is_integer(log_id) and is_integer(seq) do
+    case Baobab.log_entry(pk, seq, log_id: log_id, clump_id: clump_id) do
+      %Baobab.Entry{} = entry -> pointed_decode(entry, slug, wanted)
+      _ -> {:error, :no_artifact}
+    end
+  end
+
+  defp pointed_artifact(_clump_id, _pk, _slug, _record, _wanted), do: {:error, :no_pointer}
+
+  defp pointed_decode(entry, slug, wanted) do
+    case decode_entry(entry) do
+      [{_entry, %{"type" => "artifact", "slug" => ^slug, "bytes" => bytes} = data}]
+      when is_binary(bytes) ->
+        if :crypto.hash(:sha256, bytes) == wanted,
+          do: {:ok, data},
+          else: {:error, :hash_mismatch}
+
+      _ ->
+        {:error, :no_artifact}
+    end
+  end
+
+  defp scanned_artifact(clump_id, pk, slug, wanted) do
     clump_id
     |> kind_entries(pk, @artifact)
     |> Enum.filter(fn {_entry, data} ->
@@ -754,8 +803,6 @@ defmodule Catenary.Apps do
       nil -> {:error, :no_artifact}
     end
   end
-
-  defp artifact_data(_clump_id, _pk, _slug, _record), do: {:error, :no_artifact}
 
   # Every decodable entry an author holds on one base — a kind base, or
   # the control log the listings ride — across whatever device facets they

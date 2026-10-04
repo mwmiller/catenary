@@ -12,7 +12,7 @@ defmodule Catenary.Live.PlaygroundNav do
   the playground.
 
   What belongs here is commands acting on whatever is in the editor: Run and
-  Stop for the buffer, then replay, the store fixture picker and the publish
+  Stop for the buffer, then replay, the store fixture picker and the release
   panel — plus ⇥, which takes a foreign `.wasm` straight to the pane without
   the buffer ever being involved. ⇥ is the glyph
   `Catenary.Live.PrefsManager` already uses for bringing a file in from disk
@@ -22,16 +22,19 @@ defmodule Catenary.Live.PlaygroundNav do
   stand-in for a tool that does not exist yet: a button that cannot be pressed
   would be a lie about the state of the build.
 
-  The publish trigger only opens the panel, so it is not amber; the panel's
+  The release trigger only opens the panel, so it is not amber; the panel's
   own submit is, because that is the button that writes. Amber is reserved
-  for actions that actually write to a log. What gets written is the buffer
-  as it stands — compile, artifact (bytes and WAT together), listing —
-  decided here
-  only in the sense that this is where the words are typed: the run, the
-  caps and the appends all belong to the LiveView that holds the draft and
-  to `Catenary.LogWriter`, the one place every write to a log goes through.
-  The gate a run is judged by (`_gate`, `_gateVerdict`) is the pane's
-  business and is not consulted to publish: §5 decision #21 keeps that
+  for actions that actually write to a log. To the author the submit is one
+  event — a release — and the panel says so: what lands underneath is the
+  artifact (bytes and WAT together) followed by the listing that announces
+  it, decided here only in the sense that this is where the words are typed:
+  the run, the caps and the appends all belong to the LiveView that holds
+  the draft and to `Catenary.LogWriter`, the one place every write to a log
+  goes through. "Release" is the name of that act everywhere the user sees
+  it; `publish` stays the word for what a *running app* does when it posts
+  to its channel. The gate a run is judged by (`_gate`, `_gateVerdict`) is
+  the pane's
+  business and is not consulted on release: §5 decision #21 keeps that
   decision with whoever is watching the app, not with the editor.
 
   The fixture picker (◈) is a radio pair rather than a form: the pick
@@ -117,8 +120,8 @@ defmodule Catenary.Live.PlaygroundNav do
           phx-target={@myself}
           aria-expanded={to_string(@publish)}
           aria-controls="publish-panel"
-          title="Publish"
-          aria-label="Publish — open the panel that writes this buffer to the logs"
+          title="Release"
+          aria-label="Release — open the release panel"
           class="btn-icon"
         >⇪</button>
       </div>
@@ -231,14 +234,15 @@ defmodule Catenary.Live.PlaygroundNav do
             />
           </div>
           <p class={help_cls()}>
-            Compiles the buffer as it stands, then writes the artifact —
-            source beside the bytes — and a listing to your logs.
+            One release: compiles the buffer as it stands, makes it runnable,
+            and lists it for discovery — slug, title, description and version
+            ride the release record.
           </p>
           <button
             type="submit"
             class="btn-primary w-full mt-2"
-            aria-label="Publish — writes a listing to the log"
-          >Publish</button>
+            aria-label="Release — release the buffer as it stands"
+          >Release</button>
         </form>
       </div>
     </div>

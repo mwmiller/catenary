@@ -6,6 +6,7 @@ defmodule CatenaryWeb.Live do
   require Logger
 
   alias Catenary.{
+    AppHost,
     Apps,
     Apps.DSL,
     Display,
@@ -33,6 +34,15 @@ defmodule CatenaryWeb.Live do
   # assigns for the life of the session and a module that prints in a loop
   # must not be able to grow it without bound.
   @trace_limit 200
+
+  # The pane's watch poll: how often the baselines registered by `watch`
+  # are read again, how far one log may advance per tick, and how many
+  # entries one tick may push in total (§11 risk 9). The burst keeps a log
+  # that has run ahead from arriving all at once; the total keeps a pane
+  # that watches many busy logs from flooding the runner with pushes.
+  @watch_poll_ms 1_000
+  @watch_burst 16
+  @watch_push_limit 32
 
   def mount(params, session, socket) do
     # Making sure these exist, but also faux docs
@@ -95,6 +105,13 @@ defmodule CatenaryWeb.Live do
          channel_bump: 0,
          trace: [],
          trace_at: 0,
+         # The pane's watch baselines, keyed {author, log_id}, and the
+         # timer over them. Both live here rather than in a component: a
+         # component is destroyed by navigation and a watch outlives the
+         # render that registered it only as far as the pane that asked
+         # for it (§11 risk 9).
+         pane_watches: %{},
+         watch_timer: nil,
          connect_mode: "announced",
          manual: %{},
          mdns_peers: [],
@@ -320,6 +337,7 @@ defmodule CatenaryWeb.Live do
         facet_id={@facet_id}
         aliases={@aliases}
         entry={@entry}
+        pane_watches={@pane_watches}
       />
     </.three_column_layout>
     """
@@ -354,6 +372,7 @@ defmodule CatenaryWeb.Live do
         identity={@identity}
         facet_id={@facet_id}
         fixture={@fixture}
+        pane_watches={@pane_watches}
       />
     </.three_column_layout>
     """
@@ -698,13 +717,30 @@ defmodule CatenaryWeb.Live do
     {:noreply, assign(socket, channel_bump: socket.assigns.channel_bump + 1)}
   end
 
+  # A watch one of the panes registered: the host answered with the head
+  # its baseline starts from, and the tick below walks that log from here
+  # (§11 risk 9). Re-watching a log the set already holds keeps the
+  # baseline it has, so entries that arrived since the first watch are not
+  # skipped over.
+  def handle_info({:app_watch, author, log_id, seq}, socket) do
+    {:noreply, register_watch(socket, {author, log_id}, seq)}
+  end
+
+  # One tick of the pane's watch poll. A tick that finds an empty set —
+  # cleared by navigation or by the run ending — goes quiet by itself
+  # rather than being cancelled, which is what keeps a clear that races a
+  # freshly-armed watch from stranding either timer.
+  def handle_info(:watch_poll, socket) do
+    {:noreply, socket |> assign(watch_timer: nil) |> poll_watches()}
+  end
+
   # Compiling belongs here rather than in the rail button that asks for it:
   # the draft is this LiveView's assign, and the module has to reach the pane
   # as one push either way. A failure is a trace entry and a status line, not
   # an exception — a buffer that does not compile is the ordinary case while
   # it is being written.
   def handle_info(:playground_run, socket) do
-    socket = assign(socket, trace: [], trace_at: 0)
+    socket = socket |> assign(trace: [], trace_at: 0) |> clear_watches()
 
     case compile_source(socket.assigns.source) do
       {:ok, wasm} ->
@@ -717,27 +753,30 @@ defmodule CatenaryWeb.Live do
   end
 
   def handle_info(:playground_stop, socket) do
-    {:noreply, push_event(socket, "app-stop", %{})}
+    {:noreply, socket |> clear_watches() |> push_event("app-stop", %{})}
   end
 
   # The publish panel's form carries the author's words; the buffer those
   # words apply to is this LiveView's assign, so the two are joined here and
   # the release goes to the writer. Both outcomes are trace entries rather
-  # than exceptions — a refusal is a diagnosis, not a crash (§9.7).
+  # than exceptions — a refusal is a diagnosis, not a crash (§9.7). The
+  # trace calls the act a release, one event however many entries land
+  # underneath it (decision #28); "publish" in the trace belongs to what a
+  # running app does to its channel.
   def handle_info({:playground_publish, values}, socket) do
     values = Map.put(values, "source", socket.assigns.source)
 
     detail =
       case LogWriter.publish_app(values, socket) do
         {:ok, release} ->
-          "published #{release.slug} · #{release.bytes} bytes · release v#{release.version}" <>
-            " · h'" <> Base.encode16(release.code, case: :lower) <> "'"
+          "released #{release.slug} v#{release.version} · #{release.bytes} bytes · h'" <>
+            Base.encode16(release.code, case: :lower) <> "'"
 
         {:error, message} ->
-          "publish refused: " <> message
+          "release refused: " <> message
       end
 
-    {:noreply, record_trace(socket, [%{"kind" => "publish", "detail" => detail}])}
+    {:noreply, record_trace(socket, [%{"kind" => "release", "detail" => detail}])}
   end
 
   def handle_info(<<"toggle-", _::binary>> = event, socket), do: handle_event(event, nil, socket)
@@ -911,9 +950,18 @@ defmodule CatenaryWeb.Live do
   # A drop-in starts and finishes in the pane — the LiveView never sees an
   # `app-run` for one — so the pane says it is beginning before its first
   # entry arrives, or that entry would land on the previous run's trace. A
-  # WAT run has already been cleared by `:playground_run`.
+  # WAT run has already been cleared by `:playground_run`. Either way the
+  # run is new, and the watch baselines the old one registered go with it.
   def handle_event("app-run-start", _params, socket) do
-    {:noreply, assign(socket, trace: [], trace_at: 0)}
+    {:noreply, socket |> assign(trace: [], trace_at: 0) |> clear_watches()}
+  end
+
+  # The run ended where the LiveView did not ask it to: it struck out,
+  # finished, or was stopped from inside the pane. The baselines it
+  # registered go back with it, so nothing keeps polling a log no pane is
+  # listening for.
+  def handle_event("app-stopped", _params, socket) do
+    {:noreply, clear_watches(socket)}
   end
 
   # The run's history, batched by the hook so a chatty module is one message
@@ -1741,6 +1789,95 @@ defmodule CatenaryWeb.Live do
     assign(socket, trace: trace, trace_at: max(length(trace) - 1, 0))
   end
 
+  # A watch one of the panes registered: take the baseline if the set has
+  # room — the host refused above its cap, but the set lives here, so this
+  # is where it is actually charged — and arm the poll if it is not already
+  # running. A pair the set already holds keeps the baseline it has, so a
+  # second watch of the same log does not skip the entries that arrived
+  # between the two.
+  defp register_watch(socket, entry, seq) do
+    watches = socket.assigns[:pane_watches] || %{}
+
+    watches =
+      if Map.has_key?(watches, entry) or map_size(watches) < AppHost.max_watches() do
+        Map.put_new(watches, entry, seq)
+      else
+        watches
+      end
+
+    socket
+    |> assign(pane_watches: watches)
+    |> arm_watch_poll()
+  end
+
+  # One timer for the whole set: the tick walks every watched log, so a
+  # second watch needs no second timer. A set emptied by a clear leaves the
+  # pending tick to find nothing and go quiet by itself — cancelling it
+  # here could race a watch that re-armed in the meantime and strand both.
+  defp arm_watch_poll(socket) do
+    case socket.assigns[:watch_timer] do
+      nil -> assign(socket, watch_timer: Process.send_after(self(), :watch_poll, @watch_poll_ms))
+      _pending -> socket
+    end
+  end
+
+  # The pane's watch set goes back wherever the pane it belonged to is
+  # replaced: navigation to another screen, a fresh run in the same pane,
+  # or the run ending. The timer is deliberately left alone — see
+  # `arm_watch_poll/1`.
+  defp clear_watches(socket), do: assign(socket, pane_watches: %{})
+
+  # One tick: walk every watched log from its baseline, push what may be
+  # shown, and re-arm only while the set is non-empty.
+  defp poll_watches(socket) do
+    clump_id = socket.assigns.clump_id
+
+    {_budget, kept, pushes} =
+      (socket.assigns[:pane_watches] || %{})
+      |> Enum.reduce({@watch_push_limit, %{}, []}, &watch_tick(&1, clump_id, &2))
+
+    socket =
+      Enum.reduce(pushes, socket, fn {author, log_id, seq}, socket ->
+        push_event(socket, "app-entry", %{author: author, log_id: log_id, seq: seq})
+      end)
+
+    socket = assign(socket, pane_watches: kept)
+
+    if map_size(kept) > 0, do: arm_watch_poll(socket), else: socket
+  end
+
+  # One watched log for one tick. The walk covers at most a burst past the
+  # baseline; entries that may be shown go out while the tick's total has
+  # room, and the baseline moves on. What it moves *to* is what keeps
+  # nothing from being dropped: to the end of the walk when everything
+  # showable in it went out (blocked entries are skipped forever, which is
+  # what a block means), to the last one actually pushed when the total ran
+  # out mid-walk, and not at all once the total is spent — that log is
+  # picked up next tick instead.
+  defp watch_tick({{author, log_id} = key, last}, clump_id, {budget, kept, pushes}) do
+    if budget <= 0 do
+      {budget, Map.put(kept, key, last), pushes}
+    else
+      head = Baobab.max_seqnum(author, log_id: log_id, clump_id: clump_id)
+
+      window =
+        if last >= head,
+          do: [],
+          else: Enum.to_list((last + 1)..min(head, last + @watch_burst))
+
+      visible = Enum.filter(window, &(AppHost.visible(author, log_id, &1, clump_id) == :ok))
+      {sent, held} = Enum.split(visible, budget)
+      walked = advance(last, window, sent, held)
+
+      {budget - length(sent), Map.put(kept, key, walked),
+       Enum.map(sent, &{author, log_id, &1}) ++ pushes}
+    end
+  end
+
+  defp advance(last, [], _sent, _held), do: last
+  defp advance(_last, window, _sent, []), do: List.last(window)
+  defp advance(_last, _window, sent, _held), do: List.last(sent)
+
   defp state_set(socket, from_caller) when is_map(from_caller),
     do: state_set(socket, from_caller, [])
 
@@ -1823,7 +1960,15 @@ defmodule CatenaryWeb.Live do
         opened: Baby.Connection.Registry.active() |> Enum.count()
       )
 
-    if connected?(socket) and moved_to_new_content?(socket.assigns, state) do
+    # Leaving one screen for another replaces whatever pane was watching
+    # logs, so the baselines go with it — the component that registered
+    # them is destroyed at this very render, and the next screen's pane (if
+    # it has one) starts from nothing. The same check already decides the
+    # scroll reset, so it decides this too (§11 risk 9).
+    moved? = moved_to_new_content?(socket.assigns, state)
+    refreshed = if moved?, do: clear_watches(refreshed), else: refreshed
+
+    if connected?(socket) and moved? do
       push_event(refreshed, "reset-scroll", %{})
     else
       refreshed

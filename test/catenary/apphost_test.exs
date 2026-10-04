@@ -458,6 +458,79 @@ defmodule Catenary.AppHostTest do
     end
   end
 
+  # A watch is the op behind `{"msg":"entry"}`: it answers with the head a
+  # module's baseline starts from — 0 included, because a module watches
+  # its own channel before anything has been written to it — and the
+  # LiveView polls onward from there (§9.4, §11 risk 9).
+  describe "watch" do
+    test "a quiet log answers with the head its baseline starts from", ctx do
+      assert {:ok, %{"author" => author, "log_id" => 999_999, "seq" => 0}} =
+               AppHost.handle(ctx.app, "watch", %{log_id: 999_999})
+
+      assert author == ctx.app.pk
+    end
+
+    test "the head on an existing log is the newest entry", ctx do
+      ctx = with_entries(ctx, ["one", "two"])
+      [_, seq] = ctx.seqs
+      log_id = ctx.log_id
+
+      assert {:ok, %{"log_id" => ^log_id, "seq" => ^seq}} =
+               AppHost.handle(ctx.app, "watch", %{log_id: log_id})
+    end
+
+    test "arguments keyed by string, as they arrive from the worker", ctx do
+      assert {:ok, %{"seq" => 0}} = AppHost.handle(ctx.app, "watch", %{"log_id" => 999_999})
+    end
+
+    test "a pair already in the set answers even when the set is full", ctx do
+      ctx = with_entries(ctx, ["one"])
+      author = Baobab.Identity.as_base62(ctx.author)
+
+      full =
+        for i <- 1..(AppHost.max_watches() - 1), into: %{{author, ctx.log_id} => 1} do
+          {{String.duplicate("2", 43), i}, 0}
+        end
+
+      assert map_size(full) == AppHost.max_watches()
+      assert AppHost.max_watches() == 32
+
+      app = Map.put(ctx.app, :watches, full)
+
+      # Re-watching the pair a module already holds spends no slot: a
+      # module may ask on every tick.
+      assert {:ok, %{"seq" => 1}} = AppHost.handle(app, "watch", %{log_id: ctx.log_id})
+
+      # One log beyond the set is refused rather than evicting another.
+      assert {:error, :watch_full} = AppHost.handle(app, "watch", %{log_id: 999_998})
+    end
+
+    test "an author the clump refuses cannot be watched", ctx do
+      Baobab.ClumpMeta.block(@foreign_author, ctx.clump_id)
+      on_exit(fn -> Baobab.ClumpMeta.unblock(@foreign_author, ctx.clump_id) end)
+
+      assert {:error, :blocked} =
+               AppHost.handle(ctx.app, "watch", %{author: @foreign_author, log_id: 0})
+    end
+
+    test "a log whose newest entry is blocked is refused", ctx do
+      ctx = with_entries(ctx, ["one"])
+      base = Bitwise.band(ctx.log_id, @base_mask)
+      block_pattern(ctx, %{op: :eq, mask: @base_mask, v: base})
+
+      assert {:error, :blocked} = AppHost.handle(ctx.app, "watch", %{log_id: ctx.log_id})
+    end
+
+    test "incomplete or malformed arguments are refused", ctx do
+      assert {:error, :bad_args} = AppHost.handle(ctx.app, "watch", %{})
+      assert {:error, :bad_args} = AppHost.handle(ctx.app, "watch", %{log_id: -1})
+      assert {:error, :bad_args} = AppHost.handle(ctx.app, "watch", %{log_id: "one"})
+
+      assert {:error, :bad_args} =
+               AppHost.handle(ctx.app, "watch", %{log_id: 0, author: "not-an-identity"})
+    end
+  end
+
   describe "refs" do
     test "what an entry names comes out of its payload", ctx do
       ctx = with_payload(ctx, %{"references" => []})

@@ -150,8 +150,8 @@ defmodule Catenary.AppFixture.Refuser do
   @moduledoc """
   The refusal path, as a module: the fixture for the ABI's `err` message.
 
-  Its first state asks for `watch`, an operation no host answers yet, so
-  the reply is `{"msg":"err"}` rather than `{"msg":"data"}`. Nothing moves
+  Its first state asks for `stats`, an operation no host answers, so the
+  reply is `{"msg":"err"}` rather than `{"msg":"data"}`. Nothing moves
   the module on but a delivered reply, so the second state's render and
   print only appear if the refusal reached it — and only then is the app
   still running to show them. Where the module was started decides whether
@@ -160,6 +160,10 @@ defmodule Catenary.AppFixture.Refuser do
   refuses the gate and the run stops with the reply delivered but no turn
   left to answer it. The app viewer's pane carries the strike like any
   other and ticks on into the second state.
+
+  `stats` rather than an operation the host does answer: the ones it does
+  are a closed list (§9.4), and a module that steps outside it is exactly
+  what this fixture exists to show.
   """
 
   alias Catenary.AppFixture
@@ -172,7 +176,7 @@ defmodule Catenary.AppFixture.Refuser do
   def first_effects do
     [
       %{"do" => "print", "text" => "asking"},
-      %{"do" => "want", "ref" => 1, "op" => "watch", "args" => %{}}
+      %{"do" => "want", "ref" => 1, "op" => "stats", "args" => %{}}
     ]
   end
 

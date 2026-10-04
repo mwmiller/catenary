@@ -204,6 +204,27 @@ defmodule CatenaryWeb.AppViewerTest do
     assert reply == %{"ok" => false, "error" => "not_found"}
   end
 
+  # The reply still goes back over the wire untouched, but the baseline
+  # inside it is handed up to the parent, which is the one that polls the
+  # log (§9.4).
+  test "a watch reply hands the parent the baseline to poll from", ctx do
+    socket = viewer_socket(ctx, "viewer-app")
+    log_id = Apps.app_log_id(ctx.identity, "viewer-app", Preferences.get(:facet_id))
+
+    {:reply, reply, _socket} =
+      AppViewer.handle_event(
+        "app-want",
+        %{"op" => "watch", "args" => AppWire.encode_args(%{log_id: log_id})},
+        socket
+      )
+
+    assert {:ok, %{"author" => author, "log_id" => ^log_id, "seq" => seq}} =
+             AppWire.decode_data(reply)
+
+    assert is_integer(seq)
+    assert_received {:app_watch, ^author, ^log_id, ^seq}
+  end
+
   test "a message missing part of the wire is answered, not raised on", ctx do
     socket = viewer_socket(ctx, "viewer-app")
 

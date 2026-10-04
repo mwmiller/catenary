@@ -46,6 +46,12 @@ const TRACE_FLUSH_MS = 120
 // sample waiting, and past the cap the oldest entry goes rather than the
 // newest — a down or an up is worth more than a stale move.
 const UI_QUEUE_LIMIT = 8
+// Entries pushed for logs this pane watches arrive on their own wire, and a
+// module that is busy when they do is a reason to hold them rather than to
+// drop them: past the cap the oldest goes rather than the newest, because
+// entries are sequential on their log and a later one is not worth more than
+// an earlier one the module has not seen yet.
+const ENTRY_QUEUE_LIMIT = 64
 // Somebody else's artifact, so the drop-in gets the order of magnitude of
 // the artifact budget rather than the buffer's own size cap.
 const MAX_WASM_BYTES = 4 * 1024 * 1024
@@ -61,10 +67,12 @@ export const AppRunner = {
     this._animateOn = false
     this._raf = null
     this._ui = []
+    this._entries = []
     this._loop = this._newLoop()
 
     this.handleEvent("app-run", payload => this._run(payload || {}))
     this.handleEvent("app-stop", () => this._loop.stop("stopped"))
+    this.handleEvent("app-entry", payload => this._queueEntry(payload || {}))
 
     // The rail's picker sits in another column and cannot reach this hook,
     // so it hands the file over on this element; dropping one on the pane is
@@ -132,6 +140,12 @@ export const AppRunner = {
         this._refuseGate(reason)
         this._record("stop", reason)
         this._teardown()
+        // The run is over — it struck out, finished or was stopped — and the
+        // LiveView is holding watch baselines on this pane's behalf. It
+        // clears them on its own way out (a new run, navigation), but a run
+        // that ends here has no other message coming, and a baseline with
+        // nothing listening keeps polling a log for nobody.
+        this.pushEvent("app-stopped", {})
       },
       print: text => {
         this._record("print", text)
@@ -202,6 +216,7 @@ export const AppRunner = {
     this._traceTimer = null
     this._trace = []
     this._ui = []
+    this._entries = []
     this._inFlight = false
     this._gate = payload.gate === true
     if (this._gate) this.pushEvent("app-run-start", {})
@@ -337,6 +352,7 @@ export const AppRunner = {
         // first, so the verdict below finds the gate already closed.
         await this._loop.effects(message.bytes)
         this._flushUi()
+        this._flushEntries()
         this._gateVerdict()
         break
       case "error":
@@ -520,6 +536,28 @@ export const AppRunner = {
       return
     }
     this._deliver({msg: "ui", event: this._ui.shift()})
+  },
+
+  // One `app-entry` push from the LiveView: a log this pane watches just
+  // moved. Entries wait in their own queue rather than being delivered
+  // straight away so that a pointer event the module is still answering for
+  // is not interrupted — the same one-delivery-at-a-time rule, in the same
+  // place the UI queue obeys it.
+  _queueEntry(entry) {
+    this._entries.push({msg: "entry", author: entry.author, log_id: entry.log_id, seq: entry.seq})
+    if (this._entries.length > ENTRY_QUEUE_LIMIT) this._entries.shift()
+    this._flushEntries()
+  },
+
+  _flushEntries() {
+    if (this._inFlight || this._entries.length === 0) return
+    if (!this._worker || !this._loop || this._loop.stopped) {
+      this._entries = []
+      return
+    }
+    const entry = this._entries.shift()
+    this._record("entry", `${entry.author}#${entry.log_id}:${entry.seq}`)
+    this._deliver(entry)
   }
 }
 

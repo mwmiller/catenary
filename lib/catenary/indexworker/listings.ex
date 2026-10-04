@@ -22,7 +22,7 @@ defmodule Catenary.IndexWorker.Listings do
   An entry is the release record folded into its announcement:
 
       %{"type" => "listing", "family" => 2, "slug" => "example-app",
-        "version" => "1.2.3", "abi" => "catenary_v1", "features" => [],
+        "version" => "1.2.3", "features" => [],
         "artifact" => <<...32 bytes...>>, "description" => "a tiny app",
         "published" => iso8601}
 
