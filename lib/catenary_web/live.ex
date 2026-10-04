@@ -756,7 +756,7 @@ defmodule CatenaryWeb.Live do
     {:noreply, socket |> clear_watches() |> push_event("app-stop", %{})}
   end
 
-  # The publish panel's form carries the author's words; the buffer those
+  # The release panel's form carries the author's words; the buffer those
   # words apply to is this LiveView's assign, so the two are joined here and
   # the release goes to the writer. Both outcomes are trace entries rather
   # than exceptions — a refusal is a diagnosis, not a crash (§9.7). The

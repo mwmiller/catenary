@@ -3,7 +3,7 @@ defmodule Catenary.UI do
   The class strings a rail panel is built from.
 
   The compose panel `Catenary.Live.Navigation` drops under its triggers and
-  the publish panel `Catenary.Live.PlaygroundNav` drops under its own are
+  the release panel `Catenary.Live.PlaygroundNav` drops under its own are
   the same shape of thing — a bordered box of small labelled fields,
   224 pixels wide, in a rail — so the strings live here rather than being
   copied out of whichever panel was written first.

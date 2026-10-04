@@ -6,7 +6,7 @@ defmodule Catenary.Live.Navigation do
   alias Catenary.{Display, Preferences}
 
   # The panel box, its fields and its captions are shared with the
-  # playground's publish panel, which drops the same shape of thing into
+  # playground's release panel, which drops the same shape of thing into
   # the other rail.
   import Catenary.UI, only: [panel_cls: 0, input_cls: 0, label_cls: 0, help_cls: 0]
 

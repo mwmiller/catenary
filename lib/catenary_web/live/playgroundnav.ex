@@ -53,7 +53,7 @@ defmodule Catenary.Live.PlaygroundNav do
   @impl true
   def update(assigns, socket) do
     # The open/closed state is this component's own — the parent is told
-    # what to publish, never which panel is showing. The fixture *choice*
+    # what to release, never which panel is showing. The fixture *choice*
     # is the other way round: it belongs to the run, so it arrives from the
     # parent and is only read here.
     {:ok,
