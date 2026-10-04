@@ -73,12 +73,14 @@ defmodule Catenary.Live.AppViewer do
         </div>
 
         <div
-          id={pane_id(@pk, @slug)}
+          id={pane_id()}
           phx-hook="AppRunner"
           phx-update="ignore"
           phx-target={@myself}
           data-worker-src={~p"/assets/app_worker.js"}
           data-wasm-src={@wasm_src}
+          data-pk={@pk}
+          data-slug={@slug}
           class="rounded-lg border border-slate-200 dark:border-slate-700 p-3 flex flex-col gap-2"
         >
           <p id="app-status" class="text-sm text-slate-400 dark:text-slate-600">
@@ -159,11 +161,14 @@ defmodule Catenary.Live.AppViewer do
 
   defp bump_channel(socket, _reply), do: socket
 
-  # The pane is ignored by LiveView, so it is never patched — only replaced.
-  # Naming it after the app is what makes a second app get a fresh pane (and
-  # a fresh hook, with the previous app's print log gone) instead of the
-  # first app's leftovers.
-  defp pane_id(pk, slug), do: "app-pane-#{pk}-#{slug}"
+  # The pane outlives the apps that run in it — the lease (§3): one
+  # physical pane, one hook, and a switch between apps parks the outgoing
+  # worker beside the pane instead of replacing the element it is attached
+  # to. A stable id is what makes LiveView patch this div in place (its
+  # `data-*` attributes — who holds the lease now, and the release route
+  # behind it — merge even under `phx-update="ignore"`) rather than swap in
+  # a fresh node and destroy the hook with every navigation.
+  defp pane_id, do: "app-pane"
 
   # Where the module comes from: the route that serves this author's
   # release of the slug, once the store holds a listing for it — and no

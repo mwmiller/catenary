@@ -74,6 +74,18 @@ export class AppLoop {
     return this._queue
   }
 
+  // The chain above, settled: awaits until whatever the array still owes —
+  // deferred wants and publishes included — has run out. The lease parks a
+  // module only once its last delivery has finished having consequences, so
+  // a blur arrives behind an in-flight want rather than on top of it (§3).
+  async settle() {
+    while (this._queue) {
+      const chain = this._queue
+      await chain
+      if (this._queue === chain) return
+    }
+  }
+
   async #run(bytes) {
     if (this.stopped) return
 

@@ -96,17 +96,51 @@ defmodule CatenaryWeb.AppViewerTest do
     assert html =~ "phx-hook=\"AppRunner\""
     assert html =~ "phx-update=\"ignore\""
     assert html =~ ~s(data-worker-src="/assets/app_worker.js")
-    # Named after the app so that a second app replaces the pane rather than
-    # inheriting the first one's print log.
-    assert html =~ "app-pane-#{ctx.identity}-viewer-app"
+    # One pane for every app — the lease's whole point: a second app patches
+    # this node in place instead of replacing it and taking the hook down
+    # with it. Who belongs in the pane is carried in the `data-*` attributes
+    # that LiveView still merges under `phx-update="ignore"`.
+    assert html =~ ~s(id="app-pane")
+    assert html =~ ~s(data-pk="#{ctx.identity}")
+    assert html =~ ~s(data-slug="viewer-app")
     # No release stands behind this slug, so the hook starts idle.
     refute html =~ "data-wasm-src"
     assert html =~ "No module loaded."
     assert html =~ "viewer-app"
     # The pane talks back to its own component.
-    {pos, _} = :binary.match(html, "app-pane")
-    pane = String.slice(html, pos, 400)
-    assert pane =~ ~r/phx-target="\d+"/
+    assert pane_node(html) =~ ~r/phx-target="\d+"/
+  end
+
+  # The pane id is stable across the listings that run in it: two apps
+  # opened in turn render the same node, which is what lets the hook
+  # survive the switch and park the worker that was running (§3).
+  test "two listings share one pane" do
+    announce("viewer-app")
+    announce("other-app")
+
+    {:ok, view, _html} = live(build_conn(), "/")
+    view |> element("button[title=Listings]") |> render_click()
+    view |> element("button[phx-value-slug=\"viewer-app\"]") |> render_click()
+    first = render(view) |> pane_node()
+
+    view |> element("button[title=Listings]") |> render_click()
+    view |> element("button[phx-value-slug=\"other-app\"]") |> render_click()
+    second = render(view) |> pane_node()
+
+    assert first =~ ~s(id="app-pane")
+    assert second =~ ~s(id="app-pane")
+    assert first =~ ~s(data-slug="viewer-app")
+    assert second =~ ~s(data-slug="other-app")
+  end
+
+  # The pane markup as the DOM would see it — the opening tag, carrying the
+  # id, the hook and the `data-*` attributes that name who is in it. Sliced
+  # by byte, since the offsets `:binary.match` deals in are bytes.
+  defp pane_node(html) do
+    {pos, _} = :binary.match(html, ~s(id="app-pane"))
+    tag = :binary.part(html, pos, byte_size(html) - pos)
+    {stop, _} = :binary.match(tag, ">")
+    :binary.part(tag, 0, stop + 1)
   end
 
   test "a saved app entry with no listing behind it still renders" do
