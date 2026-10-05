@@ -125,6 +125,39 @@ defmodule Catenary.AppHostTest do
     end
   end
 
+  # An entry on the jpeg log and the file `/cat_images` serves it from.
+  # The op answers by putting that file on disk, so the fixture starts
+  # with neither and takes both back: the log purged and the cache file
+  # (with the directory the op wrote) removed.
+  defp with_image(ctx) do
+    author = Catenary.id_for_key(Preferences.get(:identity))
+    log_id = 8008
+    start_clean(ctx, author, log_id)
+
+    Baobab.append_log(<<0xFF, 0xD8, 0xFF, 0xD9>>, author,
+      log_id: log_id,
+      clump_id: ctx.clump_id
+    )
+
+    seq = Baobab.max_seqnum(author, log_id: log_id, clump_id: ctx.clump_id)
+    file = image_file(ctx.clump_id, b62(author), log_id, seq)
+    File.rm_rf(Path.dirname(file))
+
+    on_exit(fn ->
+      Baobab.purge(author, log_id: log_id, clump_id: ctx.clump_id)
+      File.rm_rf(Path.dirname(file))
+    end)
+
+    Map.merge(ctx, %{author: author, log_id: log_id, seq: seq, file: file})
+  end
+
+  # Where the static route will serve an entry from, the same join the
+  # images index makes out of `image_src_for_entry/2`.
+  defp image_file(clump_id, author, log_id, seq) do
+    src = Catenary.image_src_for_entry({author, log_id, seq}, clump_id)
+    Path.join(Catenary.images_dir(), String.trim_leading(src, "/cat_images"))
+  end
+
   # An index row written straight into the table the workers own: the host
   # reads those tables, so a test puts one there rather than waiting for a
   # log to be indexed. Workers key entries in base62, so the caller passes
@@ -325,6 +358,69 @@ defmodule Catenary.AppHostTest do
 
       assert {:error, :too_large} =
                AppHost.handle(ctx.app, "log_read", %{log_id: ctx.log_id, seq: seq})
+    end
+  end
+
+  describe "image" do
+    test "answers with the id a draw names and the path the pane fetches", ctx do
+      ctx = with_image(ctx)
+
+      assert {:ok, %{"id" => id, "src" => src}} =
+               AppHost.handle(ctx.app, "image", %{"log_id" => ctx.log_id, "seq" => ctx.seq})
+
+      assert id == "#{b62(ctx.author)}/#{ctx.log_id}/#{ctx.seq}"
+      assert src == "/cat_images/#{ctx.clump_id}/#{b62(ctx.author)}/#{ctx.log_id}/#{ctx.seq}.jpeg"
+
+      # The answer came from the store: the op wrote the file the pane
+      # will fetch, since the fixture started with the cache empty.
+      assert File.regular?(ctx.file)
+    end
+
+    test "a module that names no author gets its own picture addressed the same way", ctx do
+      ctx = with_image(ctx)
+
+      assert {:ok, %{"id" => id}} =
+               AppHost.handle(ctx.app, "image", %{"log_id" => ctx.log_id, "seq" => ctx.seq})
+
+      assert id == "#{b62(ctx.author)}/#{ctx.log_id}/#{ctx.seq}"
+    end
+
+    test "a log that holds no pictures is refused as one, not 404ed", ctx do
+      assert {:error, :not_an_image} =
+               AppHost.handle(ctx.app, "image", %{"log_id" => 360_360, "seq" => 1})
+    end
+
+    test "an entry the store does not hold is missing", ctx do
+      ctx = with_image(ctx)
+
+      assert {:error, :missing} =
+               AppHost.handle(ctx.app, "image", %{"log_id" => ctx.log_id, "seq" => 99_999})
+    end
+
+    test "a picture on a blocked log is refused before the store is touched", ctx do
+      ctx = with_image(ctx)
+      block_pattern(ctx, %{op: :eq, mask: @base_mask, v: ctx.log_id})
+
+      assert {:error, :blocked} =
+               AppHost.handle(ctx.app, "image", %{"log_id" => ctx.log_id, "seq" => ctx.seq})
+
+      refute File.regular?(ctx.file)
+    end
+
+    test "a file over the ceiling is refused whole", ctx do
+      ctx = with_image(ctx)
+      File.mkdir_p!(Path.dirname(ctx.file))
+      File.write!(ctx.file, :binary.copy("x", 10 * 1024 * 1024 + 1))
+
+      assert {:error, :too_large} =
+               AppHost.handle(ctx.app, "image", %{"log_id" => ctx.log_id, "seq" => ctx.seq})
+    end
+
+    test "seq names an entry, not a head", ctx do
+      ctx = with_image(ctx)
+
+      assert {:error, :bad_args} =
+               AppHost.handle(ctx.app, "image", %{"log_id" => ctx.log_id, "seq" => "max"})
     end
   end
 

@@ -10,15 +10,19 @@
 // all bounded long before the 1 MiB cap on the effect array that carried
 // them.
 //
-// The vocabulary is fixed and small — rectangles, a line, a path, text
-// and two transforms — because everything else rides the message loop
-// rather than the op list: images arrive from the store as their own
-// message, and animation as `tick`s, neither of which fits in a list of
-// draw commands.
+// The vocabulary is fixed and small — rectangles, a line, a path, text,
+// two transforms and a picture named by id — because everything else
+// rides the message loop rather than the op list: an image is *loaded*
+// through the host's `image` want and only named here, and animation as
+// `tick`s, neither of which fits in a list of draw commands.
 
 export const MAX_OPS = 2000
 export const MAX_DRAW_TEXT_BYTES = 64 * 1024
 export const MAX_POINTS = 4096
+// The id a load answered with is `<author>/<log_id>/<seq>`, so this is
+// generous over what the host can ever hand back; the point of the cap
+// is that one op cannot carry an unbounded string through validation.
+export const MAX_IMAGE_ID_BYTES = 256
 
 // Slate, which is what the canvas border already is in both schemes: an op
 // that does not name a colour still draws something a reader can see.
@@ -99,6 +103,22 @@ export function checkDraw(ops) {
         break
       }
 
+      case "image": {
+        if (typeof op.id !== "string" || op.id.length === 0 || op.id.length > MAX_IMAGE_ID_BYTES) {
+          return "a draw image op with an unusable id"
+        }
+        if (!pair(op.x, op.y)) return "a draw image op with an unusable coordinate"
+        // The scaled form needs both halves: a `w` with no `h` (or the
+        // reverse) is a mistake rather than a size to guess at.
+        if ((op.w === undefined) !== (op.h === undefined)) {
+          return "a draw image op with a size that is not both w and h"
+        }
+        if (op.w !== undefined && (!span(op.w) || !span(op.h))) {
+          return "a draw image op with an unusable size"
+        }
+        break
+      }
+
       case "translate":
       case "scale":
         if (!pair(op.x, op.y)) return "a draw op with an unusable coordinate"
@@ -115,19 +135,22 @@ export function checkDraw(ops) {
 // Replay. Callers run `checkDraw` first; `applyDraw` returns a reason only
 // for the one thing validation cannot see — a canvas without a 2D
 // context — and lets a context that refuses an op surface as a thrown
-// error, which is how a browser's own limits report.
-export function applyDraw(canvas, ops) {
+// error, which is how a browser's own limits report. `images` is the
+// session's loaded pictures by id: an `image` op naming one that is not
+// there draws nothing, which covers both a load still in flight and one
+// the host refused — the module heard about the refusal on its own reply.
+export function applyDraw(canvas, ops, images) {
   const ctx = canvas.getContext("2d")
   if (!ctx) return "the canvas has no 2D drawing context"
 
   ctx.setTransform(1, 0, 0, 1, 0, 0)
   ctx.clearRect(0, 0, canvas.width, canvas.height)
 
-  for (const op of ops) runOp(ctx, op)
+  for (const op of ops) runOp(ctx, op, images)
   return null
 }
 
-function runOp(ctx, op) {
+function runOp(ctx, op, images) {
   const c = op.c === undefined ? DEFAULT_COLOR : op.c
 
   switch (op.op) {
@@ -170,6 +193,14 @@ function runOp(ctx, op) {
       ctx.fillText(String(op.s), op.x, op.y)
       break
 
+    case "image": {
+      const bitmap = images && images.get(op.id)
+      if (!bitmap) break
+      if (op.w === undefined) ctx.drawImage(bitmap, op.x, op.y)
+      else ctx.drawImage(bitmap, op.x, op.y, op.w, op.h)
+      break
+    }
+
     case "translate":
       ctx.translate(op.x, op.y)
       break
@@ -197,6 +228,13 @@ function pair(x, y) {
 
 function num(value) {
   return Number.isFinite(value)
+}
+
+// A width or height the replay will hand to `drawImage`: finite and not
+// negative. Zero is allowed — it draws nothing — while a negative size
+// would mirror the picture, which is a decision, not a default.
+function span(value) {
+  return num(value) && value >= 0
 }
 
 function width(lw) {

@@ -449,6 +449,64 @@ on data("l", r):
     assert compile_error(source) == "line 4, col 3: channel has no argument nope"
   end
 
+  # The picture round: `image` loads through a want like any other read,
+  # and the draw op names the picture back by the id that reply carried.
+  test "image loads through a want and draws by the reply's id" do
+    wat =
+      compile_ok!(~S|on init:
+  want "pic" = image(log_id: 8008, seq: 3)
+on data("pic", r):
+  draw[image(id: get(r, "id"), x: 0, y: 0, w: 64, h: 64)]
+|)
+
+    assert wat =~ "image"
+  end
+
+  test "image want takes only its own arguments" do
+    source = ~S|on init:
+  print(1)
+on data("l", r):
+  want "l" = image(nope: 1)
+|
+
+    assert compile_error(source) == "line 4, col 3: image has no argument nope"
+  end
+
+  test "image want needs the entry it names" do
+    source = ~S|on init:
+  want "pic" = image(log_id: 8008)
+on data("pic", r):
+  print(1)
+|
+
+    assert compile_error(source) == "line 2, col 3: image is missing seq"
+  end
+
+  test "the image draw op takes an id and a place, and half a size is its own runtime story" do
+    assert compile_error("on init:\n  draw[image(x: 0, y: 0)]\n") ==
+             "line 2, col 8: image is missing id"
+
+    # w and h are optional together — the pane decides what half a size
+    # means at replay — so the compiler takes the scaled and natural
+    # forms alike.
+    assert compile_ok!("on init:\n  draw[image(id: \"a/8008/1\", x: 0, y: 0)]\n")
+    assert compile_ok!("on init:\n  draw[image(id: \"a/8008/1\", x: 0, y: 0, w: 4, h: 4)]\n")
+  end
+
+  test "image in expression position points at want" do
+    source = ~S|on init:
+  print(image(log_id: 8008, seq: 1))
+|
+
+    assert compile_error(source) ==
+             ~s|line 2, col 9: image is used inside want "label" = image(…)|
+  end
+
+  test "the image round is a reserved word" do
+    assert compile_error("on init:\n  let image = 1\n") ==
+             "line 2, col 3: image is a reserved word"
+  end
+
   test "the host stamps published on publish like v and app" do
     source = ~S|on init:
   publish(published: "yesterday")

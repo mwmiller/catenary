@@ -24,6 +24,7 @@ defmodule Catenary.Apps.DSL do
   @host_ops %{
     "channel" => %{req: [], opt: ~w(app cursor limit)},
     "log_read" => %{req: ~w(log_id seq), opt: ~w(author)},
+    "image" => %{req: ~w(log_id seq), opt: ~w(author)},
     "log_head" => %{req: ~w(log_id), opt: ~w(author)},
     "log_range" => %{req: ~w(log_id), opt: ~w(author from count)},
     "refs" => %{req: ~w(log_id seq), opt: ~w(author)},
@@ -44,6 +45,7 @@ defmodule Catenary.Apps.DSL do
     "stroke_path" => %{req: ~w(pts lw), opt: ~w(c)},
     "fill_path" => %{req: ~w(pts), opt: ~w(c)},
     "text" => %{req: ~w(s x y), opt: ~w(size c)},
+    "image" => %{req: ~w(id x y), opt: ~w(w h)},
     "translate" => %{req: ~w(x y), opt: []},
     "scale" => %{req: ~w(x y), opt: []}
   }
@@ -100,7 +102,7 @@ defmodule Catenary.Apps.DSL do
                 abs sqrt ceil round asin acos atan2
                 push get decode repeat times
                 fill_rect stroke_rect line stroke_path fill_path
-                translate scale)
+                translate scale image)
 
   # Field names the ABI and the effect wire need, interned before any of
   # the program's own strings so the pool is order-deterministic.
@@ -108,7 +110,7 @@ defmodule Catenary.Apps.DSL do
                   view ops on op args s kids w h
                   print render animate want publish draw col row canvas
                   entry
-                  x y lw c x1 y1 x2 y2 pts size
+                  x y lw c x1 y1 x2 y2 pts size id
                   log_id seq author from count kind cursor limit key value app) ++
                  [@default_color]
 

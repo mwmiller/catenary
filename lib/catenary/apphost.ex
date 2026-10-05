@@ -43,8 +43,8 @@ defmodule Catenary.AppHost do
   # The operation allow-list. Matching on the names themselves rather than
   # turning a wire string into an atom means an unrecognised operation
   # never creates an atom and never reaches a read.
-  @ops ~w(channel log_read log_head log_range refs entry_meta timeline profile storage_get
-         storage_set watch)
+  @ops ~w(channel log_read image log_head log_range refs entry_meta timeline profile
+         storage_get storage_set watch)
 
   # A range answers with a page, not with a log: at most this many entries
   # and at most this much payload, whichever comes first. The first visible
@@ -68,6 +68,14 @@ defmodule Catenary.AppHost do
   # no business pulling through the host: an artifact (up to 5 MB) is
   # served by the release route, not by an op.
   @max_read_bytes 512 * 1024
+
+  # The ceiling on one picture, in file bytes. A JPEG has no business
+  # crossing CBOR — it would meet @max_read_bytes first anyway — so the
+  # op answers with the path the pane fetches instead, and this is what
+  # bounds the fetch: 10 MiB is the images index's own "med" group, big
+  # enough for anything meant to be looked at and small enough that one
+  # picture cannot become the pane's whole memory.
+  @max_image_bytes 10 * 1024 * 1024
 
   # The number of distinct {author, log_id} pairs a single run may watch at
   # once. Watching is the one op that keeps state behind the reply — the
@@ -152,6 +160,7 @@ defmodule Catenary.AppHost do
   # lookup.
   defp dispatch(app, "channel", args), do: channel(app, args)
   defp dispatch(app, "log_read", args), do: log_read(app, args)
+  defp dispatch(app, "image", args), do: image(app, args)
   defp dispatch(app, "log_head", args), do: log_head(app, args)
   defp dispatch(app, "log_range", args), do: log_range(app, args)
   defp dispatch(app, "refs", args), do: refs(app, args)
@@ -196,6 +205,92 @@ defmodule Catenary.AppHost do
     else
       :error -> {:error, :bad_args}
       {:error, _} = err -> err
+    end
+  end
+
+  # A picture from the image logs, addressed like any other entry. The
+  # answer is deliberately not the payload: the bytes of a photograph are
+  # the file, so the host proves the entry exists and may be shown, puts
+  # the file where `/cat_images` already serves it, and replies with the
+  # two strings the round trip needs — an `id` the module names back in a
+  # draw, and the `src` the pane fetches. The fetch and the decode happen
+  # pane-side before the reply is handed to the module, which is what
+  # makes a module that draws the image right after its want returns find
+  # it already there.
+  defp image(%{clump_id: clump_id} = app, args) do
+    with {:ok, author} <- resolve_author(app, args),
+         {:ok, log_id} <- arg(args, :log_id),
+         {:ok, seq} <- arg(args, :seq),
+         {:ok, log_id} <- as_log_id(log_id),
+         {:ok, seq} <- as_image_seq(seq),
+         :ok <- image_log?(log_id),
+         :ok <- visible(author, log_id, seq, clump_id),
+         {:ok, file} <- materialize_image(author, log_id, seq, clump_id),
+         :ok <- within_image_budget(file) do
+      {:ok,
+       %{
+         "id" => "#{author}/#{log_id}/#{seq}",
+         "src" => Catenary.image_src_for_entry({author, log_id, seq}, clump_id)
+       }}
+    else
+      :error -> {:error, :bad_args}
+      {:error, _} = err -> err
+    end
+  end
+
+  # `seq: "max"` reads as a date on other ops; here it would mean "the
+  # newest picture", which is a head lookup the module can do itself
+  # with `log_head` before asking for the picture.
+  defp as_image_seq(seq) when is_integer(seq) and seq > 0, do: {:ok, seq}
+  defp as_image_seq(_), do: :error
+
+  # Only the raw image logs answer. Anything else named with an image op
+  # is told so rather than sent to a path `/cat_images` would 404 on.
+  defp image_log?(log_id) do
+    case QuaggaDef.log_def(log_id) do
+      %{type: "image/" <> _} -> :ok
+      _ -> {:error, :not_an_image}
+    end
+  end
+
+  # The file `/cat_images` serves, written from the store when the images
+  # cache has not reached it yet. The images index fills the same cache on
+  # its own schedule; doing it here means the op answers for an entry the
+  # index has not caught up to rather than depending on it.
+  defp materialize_image(author, log_id, seq, clump_id) do
+    src = Catenary.image_src_for_entry({author, log_id, seq}, clump_id)
+    file = Path.join(Catenary.images_dir(), String.trim_leading(src, "/cat_images"))
+
+    if File.regular?(file) do
+      {:ok, file}
+    else
+      write_image(file, author, log_id, seq, clump_id)
+    end
+  end
+
+  defp write_image(file, author, log_id, seq, clump_id) do
+    case Baobab.log_entry(author, seq, log_id: log_id, clump_id: clump_id) do
+      %Baobab.Entry{payload: data} ->
+        with :ok <- File.mkdir_p(Path.dirname(file)),
+             :ok <- File.write(file, data, [:binary]) do
+          {:ok, file}
+        else
+          _ -> {:error, :unreadable}
+        end
+
+      {:error, reason} ->
+        {:error, reason}
+
+      _ ->
+        {:error, :missing}
+    end
+  end
+
+  defp within_image_budget(file) do
+    case File.stat(file) do
+      {:ok, %{size: size}} when size <= @max_image_bytes -> :ok
+      {:ok, _} -> {:error, :too_large}
+      {:error, _} -> {:error, :missing}
     end
   end
 

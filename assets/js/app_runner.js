@@ -46,7 +46,7 @@
 import {AppLoop, fromBase64, isMap} from "./app_loop.js"
 import {applyDraw, checkDraw} from "./app_draw.js"
 import {buildView} from "./app_view.js"
-import {encode} from "./cbor.js"
+import {decode, encode} from "./cbor.js"
 const DEADLINE_MS = 5000
 const PRINT_LIMIT = 64 * 1024
 const TRACE_LIMIT = 200
@@ -73,6 +73,12 @@ const SESSION_CAP = 3
 // Somebody else's artifact, so the drop-in gets the order of magnitude of
 // the artifact budget rather than the buffer's own size cap.
 const MAX_WASM_BYTES = 4 * 1024 * 1024
+// Loaded pictures, per run. The host already refuses a file over 10 MiB;
+// these bound what the decoded side can hold on to: at most 32 bitmaps,
+// none of them past 16 megapixels (the pane's canvas is at most 4096 on a
+// side, so nothing the module can draw ever needs more).
+const MAX_IMAGES = 32
+const MAX_IMAGE_PIXELS = 16 * 1024 * 1024
 
 export const AppRunner = {
   mounted() {
@@ -194,7 +200,10 @@ export const AppRunner = {
       printText: null,
       viewHtml: null,
       viewHidden: true,
-      frame: null
+      frame: null,
+      // Pictures this run has loaded, by the id its `image` want answered
+      // with: the replay map a draw's `image` ops look in.
+      images: new Map()
     }
     session.loop = this._newLoop(session)
     return session
@@ -270,7 +279,7 @@ export const AppRunner = {
           return
         }
         try {
-          const failure = applyDraw(canvas, ops)
+          const failure = applyDraw(canvas, ops, session.images)
           if (failure) session.loop.strike(failure)
         } catch (error) {
           session.loop.strike(`the draw could not be applied (${error.message})`)
@@ -714,7 +723,51 @@ export const AppRunner = {
     if (!first || first.status !== "fulfilled" || !first.value) {
       throw new Error("the app view did not answer")
     }
-    return first.value.reply
+    const reply = first.value.reply
+    // An `image` want is answered by the pane as well as the host: the
+    // reply names the file, and the picture itself is fetched and decoded
+    // here before the module is told the load happened. Anything wrong on
+    // the way comes back as the refusal the loop already reports, so the
+    // module sees a normal `err` and the usual strike.
+    if (op === "image" && reply && reply.ok === true) {
+      return await this._receiveImage(session, reply)
+    }
+    return reply
+  },
+
+  async _receiveImage(session, reply) {
+    try {
+      const data = decode(fromBase64(reply.data))
+      if (!isMap(data) || typeof data.id !== "string" || typeof data.src !== "string") {
+        throw new Error("the host's image reply did not name an image")
+      }
+      await this._fetchImage(session, data.id, data.src)
+      return reply
+    } catch (error) {
+      return {ok: false, error: `image could not be loaded (${error.message})`}
+    }
+  },
+
+  async _fetchImage(session, id, src) {
+    // The host answers with a path under /cat_images and nothing else;
+    // anything else is a reply this pane will not go fetching.
+    if (!src.startsWith("/cat_images/")) {
+      throw new Error("the host's image src is not a cat_images path")
+    }
+    if (session.images.size >= MAX_IMAGES && !session.images.has(id)) {
+      throw new Error(`more than ${MAX_IMAGES} images in one run`)
+    }
+
+    const response = await fetch(src)
+    if (!response.ok) throw new Error(`the image could not be fetched (${response.status})`)
+    const bitmap = await createImageBitmap(await response.blob())
+    const pixels = bitmap.width * bitmap.height
+    if (bitmap.width < 1 || bitmap.height < 1 || pixels > MAX_IMAGE_PIXELS) {
+      const size = `${bitmap.width}x${bitmap.height}`
+      bitmap.close()
+      throw new Error(`the image decodes to ${size} pixels, over the limit`)
+    }
+    session.images.set(id, bitmap)
   },
 
   // One publish, one round trip. The entry goes up as base64(CBOR(entry))
@@ -791,6 +844,10 @@ export const AppRunner = {
       session.worker.terminate()
       session.worker = null
     }
+    // The run's pictures go with the run: a bitmaps backing store the
+    // browser keeps until told otherwise, and nothing else references them.
+    for (const bitmap of session.images.values()) bitmap.close()
+    session.images.clear()
     this._sessions.delete(session.key)
   },
 
