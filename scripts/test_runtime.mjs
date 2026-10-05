@@ -433,5 +433,110 @@ ok("sin(1e6) stays finite", Number.isFinite(E.t_sin(1e6)))
 ok("sin(NaN) is NaN", Number.isNaN(E.t_sin(NaN)))
 ok("cos(1e300) does not trap", typeof E.t_cos(1e300) === "number")
 
+// --- abs / sqrt / ceil / round -------------------------------------------
+
+ok("abs drops the sign", E.t_abs(-2.5) === 2.5 && E.t_abs(2.5) === 2.5)
+ok("abs(-0) is +0", Object.is(E.t_abs(-0), 0))
+ok("abs(-1e300) keeps the magnitude", E.t_abs(-1e300) === 1e300)
+ok("abs(NaN) is NaN", Number.isNaN(E.t_abs(NaN)))
+
+ok("sqrt reads the squares", E.t_sqrt(4) === 2 && E.t_sqrt(9) === 3 && E.t_sqrt(1e20) === 1e10)
+{
+  const err = Math.abs(E.t_sqrt(2) - Math.SQRT2)
+  ok(`sqrt(2) within 1e-15 (worst ${err})`, err < 1e-15)
+}
+ok("sqrt(-4) is NaN, not a trap", Number.isNaN(E.t_sqrt(-4)))
+ok("sqrt(-0) is -0", Object.is(E.t_sqrt(-0), -0))
+ok("sqrt(NaN) is NaN", Number.isNaN(E.t_sqrt(NaN)))
+
+ok("ceil climbs away from zero", E.t_ceil(1.1) === 2 && E.t_ceil(-1.1) === -1)
+ok("ceil leaves integers standing", E.t_ceil(3) === 3 && E.t_ceil(-3) === -3)
+ok("ceil(+inf) is +inf", E.t_ceil(Infinity) === Infinity)
+ok("ceil(NaN) is NaN", Number.isNaN(E.t_ceil(NaN)))
+
+// round is floor(x + 0.5): ties toward +∞, the JavaScript rule — not
+// f64.nearest, whose ties-to-even answers round(0.5) with 0.
+ok("round sends ties toward +inf", E.t_round(0.5) === 1 && E.t_round(1.5) === 2 && E.t_round(2.5) === 3)
+ok("round sends negative ties the same way", E.t_round(-0.5) === 0 && E.t_round(-1.5) === -1 && E.t_round(-2.5) === -2)
+ok("round reads the neighbors too", E.t_round(2.4) === 2 && E.t_round(-2.4) === -2 && E.t_round(2.6) === 3)
+ok("round(NaN) is NaN", Number.isNaN(E.t_round(NaN)))
+{
+  // Everywhere except the open (-0.5, 0) interval — where the two rules
+  // differ only in the sign they give zero — round must agree with the
+  // platform's Math.round to the last bit.
+  let bad = null
+  for (let i = -600; i <= 600; i++) {
+    const x = i / 100
+    const mine = E.t_round(x)
+    const theirs = Math.round(x)
+    if (!(mine === theirs || (mine === 0 && theirs === 0))) bad = { x, mine, theirs }
+  }
+  ok(`round agrees with Math.round on the sweep${bad ? "" : " (601 points)"}`, !bad, bad ?? undefined)
+}
+
+// --- atan2 / asin / acos -------------------------------------------------
+
+const P4 = Math.PI / 4
+const HP = Math.PI / 2
+const PI = Math.PI
+
+ok("atan2 picks the quadrant",
+  Math.abs(E.t_atan2(1, 1) - P4) < 1e-15 &&
+  Math.abs(E.t_atan2(1, -1) - 3 * P4) < 1e-15 &&
+  Math.abs(E.t_atan2(-1, -1) + 3 * P4) < 1e-15 &&
+  Math.abs(E.t_atan2(-1, 1) + P4) < 1e-15)
+ok("atan2 reads the vertical axis",
+  Math.abs(E.t_atan2(1, 0) - HP) < 1e-15 &&
+  Math.abs(E.t_atan2(-1, 0) + HP) < 1e-15)
+ok("atan2 reads the horizon, zero sign included",
+  Object.is(E.t_atan2(0, 1), 0) && E.t_atan2(0, -1) === PI &&
+  Object.is(E.t_atan2(-0, 1), -0) && E.t_atan2(-0, -1) === -PI)
+ok("atan2 of both zeros keeps the quadrant",
+  Object.is(E.t_atan2(0, 0), 0) && Object.is(E.t_atan2(-0, 0), -0) &&
+  E.t_atan2(0, -0) === PI && E.t_atan2(-0, -0) === -PI)
+ok("atan2(NaN, ·) and atan2(·, NaN) are NaN",
+  Number.isNaN(E.t_atan2(NaN, 1)) && Number.isNaN(E.t_atan2(1, NaN)) &&
+  Number.isNaN(E.t_atan2(NaN, 0)))
+{
+  let worst = 0
+  for (let i = -40; i <= 40; i++) {
+    for (let j = -40; j <= 40; j++) {
+      const y = i * 0.37 + (i % 3) * 0.11
+      const x = j * 0.53 + (j % 5) * 0.29 - 0.017
+      worst = Math.max(worst, Math.abs(E.t_atan2(y, x) - Math.atan2(y, x)))
+    }
+  }
+  for (const [y, x] of [
+    [1e6, 1], [1, 1e6], [1e-6, 1], [1, -1e6], [-1e6, -1],
+    [1e300, 1], [1, 1e300], [-1e300, -1e300], [1e-10, -1e-10],
+    [5e-324, -1], [-1, 5e-324], [1e308, -1e308],
+  ]) {
+    worst = Math.max(worst, Math.abs(E.t_atan2(y, x) - Math.atan2(y, x)))
+  }
+  ok(`atan2 sweep within 1e-15 (worst ${worst})`, worst < 1e-15)
+}
+
+ok("asin walks the ends",
+  Math.abs(E.t_asin(1) - HP) < 1e-15 && Math.abs(E.t_asin(-1) + HP) < 1e-15 &&
+  Object.is(E.t_asin(0), 0))
+ok("asin(0.5) is pi/6", Math.abs(E.t_asin(0.5) - PI / 6) < 1e-15)
+ok("acos walks the ends",
+  Object.is(E.t_acos(1), 0) && Math.abs(E.t_acos(-1) - PI) < 1e-15 &&
+  Math.abs(E.t_acos(0) - HP) < 1e-15)
+ok("the domain check comes from sqrt: past ±1 is NaN",
+  Number.isNaN(E.t_asin(2)) && Number.isNaN(E.t_asin(-1.0000001)) &&
+  Number.isNaN(E.t_acos(1.5)) && Number.isNaN(E.t_acos(-2)))
+{
+  let wa = 0
+  let wc = 0
+  for (let i = -100; i <= 100; i++) {
+    const z = i / 100
+    wa = Math.max(wa, Math.abs(E.t_asin(z) - Math.asin(z)))
+    wc = Math.max(wc, Math.abs(E.t_acos(z) - Math.acos(z)))
+  }
+  ok(`asin sweep within 1e-15 (worst ${wa})`, wa < 1e-15)
+  ok(`acos sweep within 1e-15 (worst ${wc})`, wc < 1e-15)
+}
+
 console.log(`${passes} passed, ${fails} failed`)
 process.exit(fails ? 1 : 0)

@@ -40,6 +40,13 @@ module = """
   (func (export "t_decode") (param $b i32) (result i32) (call $v_decode (local.get $b)))
   (func (export "t_sin") (param $x f64) (result f64) (call $sin_f (local.get $x)))
   (func (export "t_cos") (param $x f64) (result f64) (call $cos_f (local.get $x)))
+  (func (export "t_abs") (param $x f64) (result f64) (call $abs_f (local.get $x)))
+  (func (export "t_sqrt") (param $x f64) (result f64) (call $sqrt_f (local.get $x)))
+  (func (export "t_ceil") (param $x f64) (result f64) (call $ceil_f (local.get $x)))
+  (func (export "t_round") (param $x f64) (result f64) (call $round_f (local.get $x)))
+  (func (export "t_atan2") (param $y f64) (param $x f64) (result f64) (call $atan2_f (local.get $y) (local.get $x)))
+  (func (export "t_asin") (param $x f64) (result f64) (call $asin_f (local.get $x)))
+  (func (export "t_acos") (param $x f64) (result f64) (call $acos_f (local.get $x)))
 )
 """
 

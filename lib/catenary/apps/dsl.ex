@@ -60,9 +60,35 @@ defmodule Catenary.Apps.DSL do
     "sin" => 1,
     "cos" => 1,
     "pi" => 0,
+    "abs" => 1,
+    "sqrt" => 1,
+    "ceil" => 1,
+    "round" => 1,
+    "asin" => 1,
+    "acos" => 1,
+    "atan2" => 2,
     "push" => 2,
     "get" => 2,
     "decode" => 1
+  }
+
+  # Unary value calls, each spelled as the same shape: coerce the
+  # argument where the routine wants a number, box the answer back
+  # through make_num. A map instead of a case arm keeps emit_expr's
+  # cyclomatic complexity inside what credo allows.
+  @unary_fmt %{
+    "show" => "(call $v_show %{res})",
+    "len" => "(call $v_len %{res})",
+    "floor" => "(call $make_num (f64.floor (call $v_num %{res})))",
+    "sin" => "(call $make_num (call $sin_f (call $v_num %{res})))",
+    "cos" => "(call $make_num (call $cos_f (call $v_num %{res})))",
+    "decode" => "(call $v_decode %{res})",
+    "abs" => "(call $make_num (call $abs_f (call $v_num %{res})))",
+    "sqrt" => "(call $make_num (call $sqrt_f (call $v_num %{res})))",
+    "ceil" => "(call $make_num (call $ceil_f (call $v_num %{res})))",
+    "round" => "(call $make_num (call $round_f (call $v_num %{res})))",
+    "asin" => "(call $make_num (call $asin_f (call $v_num %{res})))",
+    "acos" => "(call $make_num (call $acos_f (call $v_num %{res})))"
   }
 
   @default_color "#64748b"
@@ -71,6 +97,7 @@ defmodule Catenary.Apps.DSL do
   @reserved ~w(on init data err tick ui entry let if else match when want
                 print render draw publish animate true false null and or
                 text col row canvas show len floor min max sin cos pi
+                abs sqrt ceil round asin acos atan2
                 push get decode repeat times
                 fill_rect stroke_rect line stroke_path fill_path
                 translate scale)
@@ -1952,20 +1979,9 @@ defmodule Catenary.Apps.DSL do
   end
 
   defp emit_expr({:call, name, {:pos, [arg]}, _at}, ctx)
-       when name in ["show", "len", "floor", "sin", "cos", "decode"] do
+       when is_map_key(@unary_fmt, name) do
     {pre, res, ctx} = emit_expr(arg, ctx)
-
-    body =
-      case name do
-        "show" -> "(call $v_show #{res})"
-        "len" -> "(call $v_len #{res})"
-        "floor" -> "(call $make_num (f64.floor (call $v_num #{res})))"
-        "sin" -> "(call $make_num (call $sin_f (call $v_num #{res})))"
-        "cos" -> "(call $make_num (call $cos_f (call $v_num #{res})))"
-        "decode" -> "(call $v_decode #{res})"
-      end
-
-    {pre, body, ctx}
+    {pre, String.replace(Map.fetch!(@unary_fmt, name), "%{res}", res), ctx}
   end
 
   # pi is a constant wearing a call's clothes: no arguments, the same
@@ -1982,6 +1998,16 @@ defmodule Catenary.Apps.DSL do
 
     {pre_a ++ pre_b, "(call $make_num (#{op} (call $v_num #{res_a}) (call $v_num #{res_b})))",
      ctx}
+  end
+
+  # atan2 funnels through the runtime like sin does — the quadrant
+  # bookkeeping is a function, not an instruction.
+  defp emit_expr({:call, "atan2", {:pos, [a, b]}, _at}, ctx) do
+    {pre_a, res_a, ctx} = emit_expr(a, ctx)
+    {pre_b, res_b, ctx} = emit_expr(b, ctx)
+
+    {pre_a ++ pre_b,
+     "(call $make_num (call $atan2_f (call $v_num #{res_a}) (call $v_num #{res_b})))", ctx}
   end
 
   defp emit_expr({:call, name, {:pos, [a, b]}, _at}, ctx) when name in ["push", "get"] do

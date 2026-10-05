@@ -711,6 +711,48 @@ on err(m):
     end
   end
 
+  test "the math round checks arity with a position" do
+    assert compile_error("on init:\n  print(show(abs(1, 2)))\n") ==
+             "line 2, col 14: abs takes 1 argument(s), got 2"
+
+    assert compile_error("on init:\n  print(show(sqrt()))\n") ==
+             "line 2, col 14: sqrt takes 1 argument(s), got 0"
+
+    assert compile_error("on init:\n  print(show(round(1, 2, 3)))\n") ==
+             "line 2, col 14: round takes 1 argument(s), got 3"
+
+    assert compile_error("on init:\n  print(show(atan2(1)))\n") ==
+             "line 2, col 14: atan2 takes 2 argument(s), got 1"
+
+    assert compile_error("on init:\n  print(show(asin(1, 2)))\n") ==
+             "line 2, col 14: asin takes 1 argument(s), got 2"
+  end
+
+  test "the math round is reserved words" do
+    for name <- ~w(abs sqrt ceil round asin acos atan2) do
+      assert compile_error("on init:\n  let #{name} = 1\n") ==
+               "line 2, col 3: #{name} is a reserved word"
+    end
+  end
+
+  test "the math round calls reach the runtime" do
+    wat =
+      compile_ok!(~S|on init:
+  print(show(abs(0 - 2.5)) + show(sqrt(2)) + show(ceil(1.5)) + show(round(0.5)))
+  print(show(atan2(1, 0 - 1)) + show(asin(1)) + show(acos(0)))
+|)
+
+    assert wat =~ "(call $abs_f"
+    assert wat =~ "(call $sqrt_f"
+    assert wat =~ "(call $ceil_f"
+    assert wat =~ "(call $round_f"
+    assert wat =~ "(call $atan2_f"
+    assert wat =~ "(call $asin_f"
+    assert wat =~ "(call $acos_f"
+
+    assert is_binary(Watusi.to_wasm(wat))
+  end
+
   test "repeat lowers to a counted block and the new calls reach the runtime" do
     wat =
       compile_ok!(~S|on init:

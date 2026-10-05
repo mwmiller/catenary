@@ -637,6 +637,148 @@ defmodule Catenary.Apps.DSL.Runtime do
         (call $sin_f (f64.add (local.get $x) (f64.const 1.5707963267948966))))
 
       ;; ----------------------------------------------------------------
+      ;; the rest of the math kit. WebAssembly hands this half of it over
+      ;; as instructions — abs, sqrt, ceil — where sin and cos had to be
+      ;; written. round is the interesting one: the instruction the
+      ;; machine does offer (f64.nearest) breaks ties toward even, so
+      ;; round(0.5) answers 0, which on a playground reads as a bug
+      ;; nobody can reproduce in their head. round is therefore the
+      ;; JavaScript rule, floor(x + 0.5): ties toward +∞. atan2 carries
+      ;; the quadrants; asin and acos are it wearing square roots.
+      ;; ----------------------------------------------------------------
+
+      (func $abs_f (param $x f64) (result f64)
+        (f64.abs (local.get $x)))
+
+      ;; f64.sqrt is an IEEE-754 instruction: correctly rounded, half an
+      ;; ulp — no Newton iteration of ours would beat it, so unlike sin
+      ;; there is no hole here to hand-fill.
+      (func $sqrt_f (param $x f64) (result f64)
+        (f64.sqrt (local.get $x)))
+
+      (func $ceil_f (param $x f64) (result f64)
+        (f64.ceil (local.get $x)))
+
+      (func $round_f (param $x f64) (result f64)
+        (f64.floor (f64.add (local.get $x) (f64.const 0.5))))
+
+      ;; atan on whatever the quadrant glue below hands it. Two moves:
+      ;; past |1| a single reciprocal turn — atan(z) = copysign(π/2, z)
+      ;; − atan(1/z) — folds the giants down (1/inf is ±0, so IEEE's
+      ;; ±π/2 for infinite input falls out for free); then four
+      ;; half-angle folds atan(a) = 2·atan(a/(1 + √(1 + a²))) bring |a|
+      ;; under 0.1 even from a billion to one, and there the odd Taylor
+      ;; through z¹⁵/15 lands within ~1e-17 — comfortably under the
+      ;; 1e-15 the sweep holds atan2 to.
+      (func $atan_f (param $z f64) (result f64)
+        (local $a f64)
+        (local $big i32)
+        (local $t f64)
+        (local $p f64)
+        (local.set $big
+          (f64.gt (f64.abs (local.get $z)) (f64.const 1)))
+        (local.set $a
+          (if (result f64) (local.get $big)
+            (then (f64.div (f64.const 1) (local.get $z)))
+            (else (local.get $z))))
+        (local.set $a
+          (f64.div (local.get $a)
+            (f64.add (f64.const 1)
+              (f64.sqrt (f64.add (f64.const 1) (f64.mul (local.get $a) (local.get $a)))))))
+        (local.set $a
+          (f64.div (local.get $a)
+            (f64.add (f64.const 1)
+              (f64.sqrt (f64.add (f64.const 1) (f64.mul (local.get $a) (local.get $a)))))))
+        (local.set $a
+          (f64.div (local.get $a)
+            (f64.add (f64.const 1)
+              (f64.sqrt (f64.add (f64.const 1) (f64.mul (local.get $a) (local.get $a)))))))
+        (local.set $a
+          (f64.div (local.get $a)
+            (f64.add (f64.const 1)
+              (f64.sqrt (f64.add (f64.const 1) (f64.mul (local.get $a) (local.get $a)))))))
+        ;; a·(1 + t·(−1/3 + t·(1/5 + t·(−1/7 + t·(1/9 + t·(−1/11 +
+        ;; t·(1/13 + t·(−1/15)))))))) with t = a²
+        (local.set $t (f64.mul (local.get $a) (local.get $a)))
+        (local.set $p
+          (f64.mul (local.get $a)
+            (f64.add (f64.const 1)
+              (f64.mul (local.get $t)
+                (f64.add (f64.const -0.3333333333333333)
+                  (f64.mul (local.get $t)
+                    (f64.add (f64.const 0.2)
+                      (f64.mul (local.get $t)
+                        (f64.add (f64.const -0.14285714285714285)
+                          (f64.mul (local.get $t)
+                            (f64.add (f64.const 0.1111111111111111)
+                              (f64.mul (local.get $t)
+                                (f64.add (f64.const -0.09090909090909091)
+                                  (f64.mul (local.get $t)
+                                    (f64.add (f64.const 0.07692307692307693)
+                                      (f64.mul (local.get $t)
+                                        (f64.const -0.06666666666666667)))))))))))))))))
+        ;; four folds halved the angle each time: put the 16 back
+        (local.set $p (f64.mul (local.get $p) (f64.const 16)))
+        ;; and undo the reciprocal turn when there was one
+        (if (result f64) (local.get $big)
+          (then
+            (f64.sub
+              (f64.copysign (f64.const 1.5707963267948966) (local.get $z))
+              (local.get $p)))
+          (else (local.get $p))))
+
+      ;; atan2: the raw quotient's angle, corrected by half a turn when
+      ;; the point sits left of the y-axis — signbit-style, so a −0
+      ;; counts as pointing down. NaN never gets past the first guard,
+      ;; and the both-zeros corner keeps y's sign (±0) unless x is −0,
+      ;; where the quadrant itself is the answer (±π).
+      (func $atan2_f (param $y f64) (param $x f64) (result f64)
+        (local $q f64)
+        (if (result f64)
+          (i32.or (f64.ne (local.get $y) (local.get $y))
+            (f64.ne (local.get $x) (local.get $x)))
+          (then (f64.const nan))
+          (else
+            (if (result f64) (f64.eq (local.get $x) (f64.const 0))
+              (then
+                (if (result f64) (f64.eq (local.get $y) (f64.const 0))
+                  (then
+                    (if (result f64)
+                      (f64.lt (f64.div (f64.const 1) (local.get $x)) (f64.const 0))
+                      (then
+                        (if (result f64)
+                          (f64.lt (f64.div (f64.const 1) (local.get $y)) (f64.const 0))
+                          (then (f64.const -3.141592653589793))
+                          (else (f64.const 3.141592653589793))))
+                      (else (local.get $y))))
+                  (else
+                    (if (result f64) (f64.gt (local.get $y) (f64.const 0))
+                      (then (f64.const 1.5707963267948966))
+                      (else (f64.const -1.5707963267948966))))))
+              (else
+                (local.set $q
+                  (call $atan_f (f64.div (local.get $y) (local.get $x))))
+                (if (result f64) (f64.gt (local.get $x) (f64.const 0))
+                  (then (local.get $q))
+                  (else
+                    (if (result f64)
+                      (f64.lt (f64.div (f64.const 1) (local.get $y)) (f64.const 0))
+                      (then (f64.sub (local.get $q) (f64.const 3.141592653589793)))
+                      (else (f64.add (local.get $q) (f64.const 3.141592653589793)))))))))))
+
+      ;; asin and acos are atan2 in square-root clothes, and the domain
+      ;; check rides along for free: |z| past 1 makes 1 − z² negative,
+      ;; sqrt says NaN, the guard above passes it straight out.
+      (func $asin_f (param $z f64) (result f64)
+        (call $atan2_f (local.get $z)
+          (f64.sqrt (f64.sub (f64.const 1) (f64.mul (local.get $z) (local.get $z))))))
+
+      (func $acos_f (param $z f64) (result f64)
+        (call $atan2_f
+          (f64.sqrt (f64.sub (f64.const 1) (f64.mul (local.get $z) (local.get $z))))
+          (local.get $z)))
+
+      ;; ----------------------------------------------------------------
       ;; show — text passes through, everything else walks into a bounded
       ;; scratch buffer so a hostile structure cannot print forever.
       ;; ----------------------------------------------------------------
